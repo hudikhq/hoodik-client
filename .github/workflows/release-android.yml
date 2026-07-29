@@ -1,0 +1,144 @@
+name: Release Android
+
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+
+jobs:
+    require-green-ci:
+        name: Require green CI for this SHA
+        # Skip on manual triggers — when the operator runs `gh workflow run`
+        # or clicks "Run workflow" they're explicitly opting in, no need
+        # to second-guess them via a CI-status query (which the GitHub
+        # API has been unreliable about anyway: the head_sha filter on
+        # /actions/runs returned [] for SHAs that demonstrably had a
+        # green CI run, blocking releases on a phantom "missing" state).
+        # The guard remains for tag-push triggers so an automated tag
+        # can't sneak past CI.
+        if: github.event_name != 'workflow_dispatch'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Check ci.yml status for tagged SHA
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  status=$(gh run list \
+                    --workflow=ci.yml \
+                    --commit="$GITHUB_SHA" \
+                    --json conclusion,status \
+                    --jq '[.[] | select(.status == "completed")][0].conclusion // "missing"')
+                  echo "ci.yml status for $GITHUB_SHA: $status"
+                  if [ "$status" != "success" ]; then
+                    echo "Release blocked: ci.yml is not green for $GITHUB_SHA (status: $status)" >&2
+                    echo "Wait for the push to main to finish CI before tagging." >&2
+                    exit 1
+                  fi
+
+    build-android:
+        name: Build & Upload Android
+        needs: require-green-ci
+        # Run when the guard passed OR was skipped (manual trigger). Default
+        # `needs:` semantics skip a dependent job when the parent skips, so
+        # we override with `always() && != 'failure'` to keep the manual-
+        # trigger short-circuit working.
+        if: always() && needs.require-green-ci.result != 'failure'
+        runs-on: ubuntu-latest
+        # A cold build recompiles cryptfns + transfer + hoodik_mobile for two
+        # ABIs in release mode. At cargo's default parallelism that starves the
+        # runner's RAM and GitHub kills the VM ("lost communication with the
+        # server"), so the build step caps CARGO_BUILD_JOBS below. 150 min covers
+        # the slower-but-surviving cold rebuild; warm runs finish in ~25.
+        timeout-minutes: 150
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Clone hoodik (for shared Rust crates)
+              run: |
+                  git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+                  echo "HOODIK_SHA=$(git -C ../hoodik rev-parse HEAD)" >> "$GITHUB_ENV"
+
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  # arm64 covers every modern Android phone/tablet; armv7 covers the long tail of older 32-bit
+                  # devices. x86_64 is emulator-only (+ a tiny sliver of x86 Chromebooks that can run ARM via
+                  # Houdini anyway) — not worth the ~10 min of CI time per release.
+                  targets: aarch64-linux-android,armv7-linux-androideabi
+
+            # Restore/save the compiled Rust artifacts explicitly. Swatinem's
+            # rust-cache only writes in its post-step, which a runner that dies
+            # mid-build never reaches — so a cold build that got OOM-killed saved
+            # nothing and every retry started cold. The save step runs right after
+            # the compile (below), keyed on the lockfile + the hoodik revision the
+            # shared crates are built from.
+            - name: Restore Rust build cache
+              id: rust-cache
+              uses: actions/cache/restore@v4
+              with:
+                  path: |
+                      ~/.cargo/registry
+                      ~/.cargo/git
+                      rust/target
+                  key: android-rust-${{ hashFiles('rust/Cargo.lock') }}-${{ env.HOODIK_SHA }}
+                  restore-keys: |
+                      android-rust-${{ hashFiles('rust/Cargo.lock') }}-
+                      android-rust-
+
+            - uses: actions/setup-java@v4
+              with:
+                  distribution: "temurin"
+                  java-version: "17"
+
+            - uses: subosito/flutter-action@v2
+              with:
+                  flutter-version: "3.41.x"
+                  channel: stable
+
+            - name: Decode keystore
+              run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload.jks
+
+            - name: Create key.properties
+              run: |
+                  cat > android/key.properties <<'PROPS'
+                  storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+                  keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+                  keyAlias=upload
+                  storeFile=upload.jks
+                  PROPS
+
+            - run: flutter pub get
+            # Pin ABIs to arm64 + armv7 to match the Rust targets above. Flutter's
+            # default also builds android-x64, which no shipping device uses (it is
+            # emulator-only) and which would ship a broken x86 split with no Rust
+            # library, while costing a third of the build.
+            # Cap cargo parallelism: a cold release build of the hoodik crate tree
+            # across two ABIs spawns enough parallel rustc to exhaust the runner's
+            # RAM, and GitHub kills the VM with "lost communication with the server".
+            # Two jobs keeps peak memory bounded — slower cold, but it survives, and
+            # the restored cache makes every later build fast.
+            - run: flutter build appbundle --release --target-platform android-arm64,android-arm
+              env:
+                  CARGO_BUILD_JOBS: "2"
+                  CARGO_INCREMENTAL: "0"
+
+            - name: Save Rust build cache
+              if: always() && steps.rust-cache.outputs.cache-hit != 'true'
+              uses: actions/cache/save@v4
+              with:
+                  path: |
+                      ~/.cargo/registry
+                      ~/.cargo/git
+                      rust/target
+                  key: android-rust-${{ hashFiles('rust/Cargo.lock') }}-${{ env.HOODIK_SHA }}
+
+            - uses: r0adkll/upload-google-play@v1
+              with:
+                  serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+                  packageName: com.hudikhq.hoodik
+                  releaseFiles: build/app/outputs/bundle/release/app-release.aab
+                  track: internal
+                  status: draft

@@ -1,0 +1,119 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    analyze-and-test:
+        name: release-check-fast
+        runs-on: ubuntu-latest
+        env:
+            # ci.yml runs on ubuntu-latest, which lacks a simulator for the
+            # integration tier (Rust FFI needs a real runtime). The nightly
+            # release-check.yml covers integration on macOS; here we skip cleanly.
+            HOODIK_SKIP_INTEGRATION_WITHOUT_DEVICE: "1"
+            # Fast path never touches docker (only E2E does).
+            HOODIK_PREFLIGHT_NO_DOCKER: "1"
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Free disk space
+              # Building the host Rust FFI (release) alongside Flutter and the
+              # deps can overrun the runner disk; drop preinstalled SDKs the job
+              # never uses (Android alone is ~9 GB).
+              run: |
+                  sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                    /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+                  df -h /
+
+            - uses: subosito/flutter-action@v2
+              with:
+                  flutter-version: "3.41.x"
+                  channel: stable
+
+            # Use taiki-e/install-action's `@just` shorthand: it pulls
+            # the just binary directly from casey/just's release assets
+            # and installs to PATH, no GitHub-releases-API matching to
+            # fail on. extractions/setup-just@v2 worked for a while but
+            # broke twice in 24 h with "no release for just matching
+            # version specifier 1.47.1" even though that version exists
+            # — the action's release-listing path mis-handles certain
+            # versions. taiki-e is single-purpose and rock solid; many
+            # CI workflows use it for rust tools precisely because of
+            # this kind of flake.
+            - uses: taiki-e/install-action@just
+
+            # The unit suite now exercises the Rust FFI, so the host library has
+            # to exist: frb's default loader opens rust/target/release/
+            # libhoodik_mobile.so. Build it from the shared crates in the hoodik
+            # repo — the fast path can no longer stub hoodik.
+            - name: Clone hoodik (shared Rust crates)
+              run: git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+
+            - uses: dtolnay/rust-toolchain@stable
+
+            - uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: rust -> target
+
+            - uses: awalsh128/cache-apt-pkgs-action@latest
+              with:
+                  packages: clang llvm pkg-config nettle-dev libpq-dev libc6-dev
+                  version: 1.0
+
+            - name: Build host FFI library
+              run: cd rust && cargo build --release
+
+            - run: flutter pub get
+
+            - name: release-check-fast (format + analyze + invariants + unit)
+              run: just release-check-fast
+
+    build-verify-ios:
+        name: Build Verify (iOS, no codesign)
+        runs-on: macos-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Clone hoodik (for shared Rust crates)
+              run: git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  targets: aarch64-apple-ios
+
+            - uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: rust -> target
+                  key: ios-ci
+
+            - uses: subosito/flutter-action@v2
+              with:
+                  flutter-version: "3.41.x"
+                  channel: stable
+
+            - run: flutter pub get
+
+            - name: Build iOS with retry on transient pod or git failures
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  for attempt in 1 2 3; do
+                    if flutter build ios --release --no-codesign; then
+                      exit 0
+                    fi
+
+                    if [ "$attempt" -eq 3 ]; then
+                      exit 1
+                    fi
+
+                    echo "iOS build failed on attempt $attempt — cleaning CocoaPods state and retrying..."
+                    rm -rf ios/Pods ios/Podfile.lock
+                    pod cache clean --all || true
+                    sleep 20
+                  done

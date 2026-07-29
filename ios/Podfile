@@ -1,0 +1,211 @@
+platform :ios, '14.0'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  target 'ShareExtension' do
+    inherit! :search_paths
+  end
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+  # Patrol iOS runner — drives integration_test/e2e/** tests through XCUITest.
+  # `inherit! :complete` (Patrol's upstream example, not :search_paths) is
+  # mandatory: the XCTest bundle ends up linked against @rpath-relative pods
+  # at runtime (media_kit's Ass.framework, etc.), and :search_paths only
+  # propagates header search paths — the simulator dyld can't resolve the
+  # frameworks themselves and fails with "Library not loaded: @rpath/...".
+  target 'RunnerUITests' do
+    inherit! :complete
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      # Xcode 26 enables "Explicitly Built Modules" by default, which breaks
+      # Flutter plugins whose ObjC headers #import <Flutter/Flutter.h>.
+      config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+
+      # Patrol's iOS code is wrapped in `#if PATROL_ENABLED` — without this
+      # flag, PatrolServer.init() and .start() are empty stubs, server.appReady
+      # never flips, and every Patrol run dies with "test runner timed out
+      # preparing to run tests". patrol_cli passes `-D PATROL_ENABLED` on the
+      # xcodebuild command line, but CocoaPods-generated pod targets compile
+      # through a separate invocation that does not inherit it. We pin it on
+      # every pod target here so the flag is always defined when the `patrol`
+      # pod's Swift sources compile, regardless of how `xcodebuild` is called.
+      config.build_settings['OTHER_SWIFT_FLAGS'] ||= '$(inherited)'
+      flags = config.build_settings['OTHER_SWIFT_FLAGS']
+      flags = flags.is_a?(Array) ? flags.join(' ') : flags
+      unless flags.include?('PATROL_ENABLED')
+        config.build_settings['OTHER_SWIFT_FLAGS'] = "#{flags} -D PATROL_ENABLED"
+      end
+      config.build_settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] ||= '$(inherited)'
+      swift_conds = config.build_settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS']
+      swift_conds = swift_conds.is_a?(Array) ? swift_conds.join(' ') : swift_conds
+      unless swift_conds.include?('PATROL_ENABLED')
+        config.build_settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = "#{swift_conds} PATROL_ENABLED"
+      end
+    end
+  end
+  # Also disable at the Pods project level — required for the fix to take effect.
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+  end
+
+  # Strip the patrol framework from the Runner Release build. Patrol lives in
+  # dev_dependencies (pubspec.yaml) but Flutter's iOS plugin system installs
+  # every pubspec dependency into the main Runner target's Pods. Patrol's iOS
+  # code uses the private XCUIApplication `terminate` selector for test-driver
+  # lifecycle, which triggers ITMS-90338 (non-public API) on App Store
+  # submission. We strip patrol from three places for Release only — Debug and
+  # Profile keep it so `patrol test` and `flutter run` continue to work locally:
+  #   1. `-framework "patrol"` link flag in Pods-Runner.release.xcconfig
+  #   2. Pods-Runner-frameworks-Release-input-files.xcfilelist (controls which
+  #      frameworks the Embed Frameworks build phase copies into Runner.app)
+  #   3. The same -output-files.xcfilelist (Xcode skips the embed step entirely
+  #      if input/output don't match, so they must stay in sync)
+  # Strip patrol references from GeneratedPluginRegistrant.m. Flutter's plugin
+  # system auto-registers EVERY pubspec dependency (including dev_dependencies)
+  # in this file. The block looks like:
+  #
+  #   #if __has_include(<patrol/PatrolPlugin.h>)
+  #   #import <patrol/PatrolPlugin.h>
+  #   #else
+  #   @import patrol;
+  #   #endif
+  #   ...
+  #   [PatrolPlugin registerWithRegistrar:...];
+  #
+  # Both branches reference patrol. Removing the header search path doesn't
+  # short-circuit the #else branch — `@import patrol;` still tries to load the
+  # patrol module and fails. The symbol reference also makes the linker emit a
+  # @rpath/patrol.framework/patrol load command in the Runner binary, which is
+  # exactly what Apple's static analyzer catches as ITMS-90338.
+  #
+  # We patch the file unconditionally at post_install time. Patrol is in
+  # dev_dependencies so the registration is never needed for the production
+  # app — only patrol_test/integration_test code calls into PatrolPlugin, and
+  # those test bundles compile separately with their own registrant.
+  # `installation_root` is the directory containing Podfile == `ios/`.
+  # GeneratedPluginRegistrant.m lives at `ios/Runner/GeneratedPluginRegistrant.m`.
+  registrant = installer.config.installation_root.join('Runner', 'GeneratedPluginRegistrant.m').to_s
+  if File.exist?(registrant)
+    text = File.read(registrant)
+    new_text = text.dup
+    # Strip the import block: from `#if __has_include(<patrol/...` to next `#endif`.
+    new_text.gsub!(/^#if __has_include\(<patrol\/[^>]+>\)\n.*?\n#endif\n+/m, '')
+    # Strip the register call line.
+    new_text.gsub!(/^\s*\[PatrolPlugin\s+registerWithRegistrar:.*?\];\n/, '')
+    if new_text != text
+      File.write(registrant, new_text)
+    end
+  end
+
+  pods_root = installer.config.installation_root.join('Pods')
+  # ShareExtension.appex ships in the IPA and CocoaPods generates a separate
+  # xcconfig for it that ALSO contains -framework "patrol" (despite
+  # `inherit! :search_paths` — CocoaPods propagates link flags from the
+  # parent's pod set in a way that surprises this scenario). Strip patrol
+  # from BOTH Runner and ShareExtension Release xcconfigs.
+  ['Pods-Runner/Pods-Runner.release.xcconfig',
+   'Pods-ShareExtension/Pods-ShareExtension.release.xcconfig'].each do |rel|
+    release_xcconfig = pods_root.join('Target Support Files', rel)
+    next unless File.exist?(release_xcconfig)
+    contents = File.read(release_xcconfig)
+    stripped = contents.dup
+    # 1. Linker: remove `-framework "patrol"`. Without this the linker still
+    #    adds an undefined symbol stub if the compiler emitted a reference.
+    stripped.gsub!(/-framework\s+"?patrol"?\s*/, '')
+    # 2. Header search path: ${PODS_CONFIGURATION_BUILD_DIR}/patrol/patrol.framework/Headers
+    #    THIS IS THE LOAD-BEARING ONE. GeneratedPluginRegistrant.m wraps the
+    #    patrol registration in `#if __has_include(<patrol/PatrolPlugin.h>)`.
+    #    If the header path is reachable, __has_include returns true, the
+    #    patrol code compiles in, the linker emits an UNDEFINED PatrolPlugin
+    #    symbol AND a `@rpath/patrol.framework/patrol` load command. Apple's
+    #    static analyzer sees that load command and rejects the binary even
+    #    when the framework itself isn't embedded. Remove the header path so
+    #    __has_include short-circuits and the code never compiles in.
+    stripped.gsub!(%r{\s*"\$\{PODS_CONFIGURATION_BUILD_DIR\}/patrol/patrol\.framework/Headers"}, '')
+    # 3. Framework search path + module verifier flag — same family of paths.
+    #    Strip for cleanliness; harmless if missed but they leave breadcrumbs
+    #    that some Xcode versions follow back to the symbol resolution.
+    stripped.gsub!(%r{\s*"\$\{PODS_CONFIGURATION_BUILD_DIR\}/patrol"}, '')
+    stripped.gsub!(%r{\s*"-F\$\{PODS_CONFIGURATION_BUILD_DIR\}/patrol"}, '')
+    File.write(release_xcconfig, stripped) if stripped != contents
+  end
+  ['input', 'output'].each do |kind|
+    filelist = pods_root.join("Target Support Files/Pods-Runner/Pods-Runner-frameworks-Release-#{kind}-files.xcfilelist")
+    next unless File.exist?(filelist)
+    lines = File.readlines(filelist).reject { |l| l.include?('/patrol.framework') }
+    File.write(filelist, lines.join)
+  end
+
+  # The xcfilelist files above are dependency hints for Xcode's incremental
+  # build system, but the SHELL SCRIPT that actually copies frameworks into
+  # Runner.app at build time is Pods-Runner-frameworks.sh. It contains three
+  # `if [[ "$CONFIGURATION" == "..." ]]` blocks (Debug, Profile, Release),
+  # each with an `install_framework "...patrol.framework"` line. Strip the
+  # patrol install ONLY from the Release block — the scoped Ruby walk below
+  # tracks which $CONFIGURATION block we're in to avoid touching Debug/Profile.
+  # Without this, every prior fix silently failed: the link flag is gone, the
+  # filelist hint is gone, but the embed script still copies the binary,
+  # producing the same ITMS-90338 rejection (rejections #1 and #2 of v1.1.0).
+  framework_script = pods_root.join('Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh').to_s
+  if File.exist?(framework_script)
+    in_release_block = false
+    new_lines = []
+    File.readlines(framework_script).each do |line|
+      if line =~ /if\s*\[\[\s*"\$CONFIGURATION"\s*==\s*"Release"\s*\]\]/
+        in_release_block = true
+      elsif in_release_block && line.strip == 'fi'
+        in_release_block = false
+      end
+      next if in_release_block && line.include?('/patrol/patrol.framework')
+      new_lines << line
+    end
+    # BULLETPROOF BACKSTOP: append a guaranteed strip step at the end of the
+    # script. Even if some prior modification fails (xcfilelist regenerated,
+    # Pods reinstalled, etc.) this `rm -rf` runs unconditionally after the
+    # whole embed phase and removes patrol.framework from Runner.app for
+    # Release builds. Marker comment makes the patch idempotent — repeated
+    # post_install runs detect prior application and skip re-appending.
+    marker = '# HOODIK_STRIP_PATROL_RELEASE'
+    unless new_lines.any? { |l| l.include?(marker) }
+      new_lines << "\n#{marker}\nif [[ \"$CONFIGURATION\" == \"Release\" ]]; then\n"
+      new_lines << "  rm -rf \"${TARGET_BUILD_DIR}/${PRODUCT_NAME}.app/Frameworks/patrol.framework\"\n"
+      new_lines << "  rm -rf \"${TARGET_BUILD_DIR}/${PRODUCT_NAME}.app/PlugIns/ShareExtension.appex/Frameworks/patrol.framework\"\n"
+      new_lines << "fi\n"
+    end
+    File.write(framework_script, new_lines.join)
+  end
+end

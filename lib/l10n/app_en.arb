@@ -1,0 +1,2286 @@
+{
+  "@@locale": "en",
+  "accountActiveTransfers": "Active transfers in progress",
+  "accountAdminHeader": "ADMINISTRATION",
+  "accountAdminPanel": "Admin Panel",
+  "accountAdminPanelSubtitle": "Users, invitations & settings",
+  "accountAiAccessMacosOnly": "AI Access via MCP is available on the macOS version of Hoodik.",
+  "accountAiAccessSubtitle": "MCP server for AI agents",
+  "accountAiAccessTitle": "AI Access",
+  "accountAllAccountsHeader": "ALL ACCOUNTS",
+  "accountAuditAllStatuses": "All statuses",
+  "accountAuditAllTools": "All tools",
+  "accountAuditClearConfirmBody": "This permanently removes every recorded tool invocation. Your files are not affected.",
+  "accountAuditClearConfirmTitle": "Clear audit log?",
+  "accountAuditClearLog": "Clear log",
+  "accountAuditCleared": "Audit log cleared",
+  "accountAuditDuration": "Duration",
+  "accountAuditEmptyBody": "Every AI tool call is recorded here. Enable AI Access and connect an agent to see activity.",
+  "accountAuditEmptyTitle": "No audit entries yet",
+  "accountAuditError": "Error",
+  "accountAuditFilterByStatus": "Filter by status",
+  "accountAuditFilterByTool": "Filter by tool",
+  "accountAuditLoadFailed": "Failed to load: {error}",
+  "@accountAuditLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "accountAuditLogTitle": "Audit Log",
+  "accountAuditMilliseconds": "{ms} ms",
+  "@accountAuditMilliseconds": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "accountAuditNoParams": "(no params)",
+  "accountAuditParamsHash": "Params hash",
+  "accountAuditSession": "Session",
+  "accountAuditStatus": "Status",
+  "accountAuditStatusDenied": "Denied",
+  "accountAuditStatusOk": "Ok",
+  "accountAuditTimestamp": "Timestamp",
+  "accountClear": "Clear",
+  "accountDefaultLanding": "Default landing",
+  "accountDefaultLandingSubtitle": "The tab shown when the app opens",
+  "accountDiagnosticsExportLogs": "Export Logs",
+  "accountDiagnosticsLogsInfo": "Logs may contain filenames and server URLs so you can recognise what each line refers to. They never contain file contents, passwords, or encryption keys. You’ll see every line and can remove anything before sending.",
+  "accountDiagnosticsNoTelemetryBody": "Hoodik doesn’t use Sentry, crash reporters, or any third-party analytics. The only data that leaves your device is what’s needed for encrypted file sync.",
+  "accountDiagnosticsNoTracking": "We don’t track anything about your device.",
+  "accountDiagnosticsStep1": "Close Hoodik completely.",
+  "accountDiagnosticsStep2": "Open it again.",
+  "accountDiagnosticsStep3": "Try to reproduce the bug.",
+  "accountDiagnosticsStep4": "Come back here and tap Export Logs below.",
+  "accountDiagnosticsSubtitle": "Send a bug report — no telemetry",
+  "accountDiagnosticsTellUsBody": "This means when something breaks, we don’t know about it unless you tell us. Here’s the most useful way to do that:",
+  "accountDiagnosticsTitle": "Privacy & Diagnostics",
+  "accountDisable": "Disable",
+  "accountEnable": "Enable",
+  "accountEnabled": "Enabled",
+  "accountEnterPinBody": "Enter your PIN to enable biometric unlock.",
+  "accountEnterPinTitle": "Enter PIN",
+  "accountIncorrectPin": "Incorrect PIN",
+  "accountLegalHeader": "LEGAL",
+  "accountLogsClearAll": "Clear all",
+  "accountLogsCopied": "Logs copied to clipboard",
+  "accountLogsCopyToClipboard": "Copy to Clipboard",
+  "accountLogsCurrentSession": "Current session",
+  "accountLogsEmptyBody": "Close the app, reopen it, reproduce the bug, then come back and try again.",
+  "accountLogsEmptyTitle": "No log lines to review.",
+  "accountLogsLineCount": "{count, plural, =1{1 line} other{{count} lines}}",
+  "@accountLogsLineCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountLogsPastDays": "Past 3 days",
+  "accountLogsReviewTitle": "Review Logs",
+  "accountLogsSendViaEmail": "Send via Email ({email})",
+  "@accountLogsSendViaEmail": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "accountLogsShareFailed": "Sharing failed — try Copy to Clipboard instead",
+  "accountManageAccounts": "Manage Accounts",
+  "accountManageAccountsSubtitle": "Add or switch accounts",
+  "accountMcpActivityHeader": "ACTIVITY",
+  "accountMcpAllowReadOnlyOff": "All agent access paused when PIN-locked",
+  "accountMcpAllowReadOnlyOn": "Agents may list and search files when PIN-locked",
+  "accountMcpAllowReadOnlyTitle": "Allow read-only access while locked",
+  "accountMcpBearerToken": "Bearer Token",
+  "accountMcpBurstCapacity": "Burst capacity",
+  "accountMcpClearAuditLog": "Clear audit log",
+  "accountMcpClearAuditLogSubtitle": "Removes every recorded tool invocation",
+  "accountMcpConfigCopied": "Config copied to clipboard",
+  "accountMcpConfigFootnote": "Copy this JSON into your Claude Desktop or Claude Code MCP server configuration.",
+  "accountMcpConfigurationHeader": "CONFIGURATION",
+  "accountMcpConnectClientSubtitle": "Guided setup for Claude Desktop, Cursor, and others",
+  "accountMcpConnectClientTitle": "Connect an AI client",
+  "accountMcpConnectionHeader": "CONNECTION",
+  "accountMcpCopyConfig": "Copy Config",
+  "accountMcpDisabled": "Disabled",
+  "accountMcpEnable": "Enable AI Access",
+  "accountMcpEnableFootnote": "When enabled, AI agents like Claude Desktop and Claude Code can access your encrypted files through a local endpoint.",
+  "accountMcpEndpoint": "Endpoint",
+  "accountMcpLastAgentCall": "Last agent call {time}",
+  "@accountMcpLastAgentCall": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "accountMcpLockedFootnote": "When the app is locked with a PIN, decrypting file content requires you to unlock. Read-only access exposes only encrypted metadata the server already knows.",
+  "accountMcpNoAgentActivity": "No agent activity yet",
+  "accountMcpNotRunning": "Not running",
+  "accountMcpOffSubtitle": "Toggle AI Access to start the local MCP server.",
+  "accountMcpPausedSubtitle": "Port {port} reserved • restart to resume",
+  "@accountMcpPausedSubtitle": {
+    "placeholders": {
+      "port": {
+        "type": "int"
+      }
+    }
+  },
+  "accountMcpPerSecondOption": "{value} / sec",
+  "@accountMcpPerSecondOption": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "accountMcpPort": "Port",
+  "accountMcpPortRange": "Port must be between 1024 and 65535",
+  "accountMcpPortUpdated": "Port updated to {port}",
+  "@accountMcpPortUpdated": {
+    "placeholders": {
+      "port": {
+        "type": "int"
+      }
+    }
+  },
+  "accountMcpQuickActionsHeader": "QUICK ACTIONS",
+  "accountMcpRateLimitFootnote": "A token bucket throttles each AI session. Burst capacity is how many requests back-to-back are allowed before the bucket starts refilling at the configured rate.",
+  "accountMcpRateLimitHeader": "RATE LIMIT",
+  "accountMcpRegenerate": "Regenerate",
+  "accountMcpRequestsPerSecond": "Requests per second",
+  "accountMcpRetentionDays": "{count, plural, =1{1 day} other{{count} days}}",
+  "@accountMcpRetentionDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountMcpRetentionForever": "Forever",
+  "accountMcpRetentionHeader": "AUDIT RETENTION",
+  "accountMcpRetentionOneYear": "1 year",
+  "accountMcpRetentionTitle": "Keep entries for",
+  "accountMcpRotateToken": "Rotate bearer token",
+  "accountMcpRotateTokenSubtitle": "Invalidates every configured AI client",
+  "accountMcpRunningOnPort": "Running on port {port}",
+  "@accountMcpRunningOnPort": {
+    "placeholders": {
+      "port": {
+        "type": "int"
+      }
+    }
+  },
+  "accountMcpSecurityHeader": "SECURITY",
+  "accountMcpServerHeader": "MCP SERVER",
+  "accountMcpStarting": "Starting...",
+  "accountMcpStatusOff": "Off",
+  "accountMcpStatusPaused": "Paused",
+  "accountMcpStatusRunning": "Running",
+  "accountMcpStopServer": "Stop server",
+  "accountMcpStopServerSubtitle": "Closes the local MCP port",
+  "accountMcpTokenCopied": "Token copied to clipboard",
+  "accountMcpTokenRegenerated": "Token regenerated",
+  "accountMcpUnavailable": "MCP server is unavailable. Log in on macOS to continue.",
+  "accountMcpViewAuditLog": "View audit log",
+  "accountMcpViewAuditLogSubtitle": "Review every AI tool call",
+  "accountMcpWizardMacosOnly": "The connect wizard is available in the macOS build of Hoodik.",
+  "accountNotConfigured": "Not configured",
+  "accountNotSignedIn": "Not signed in",
+  "accountOfflineCacheStats": "{count, plural, =1{1 file} other{{count} files}} · {size}",
+  "@accountOfflineCacheStats": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "accountOfflineCacheTitle": "Offline Cache",
+  "accountOfflineClearBody": "This will remove all offline copies of your files from this device. Your files on the server are not affected.",
+  "accountOfflineClearTitle": "Clear Offline Cache",
+  "accountOfflineCleared": "Offline cache cleared",
+  "accountOfflineNoFiles": "No files cached",
+  "accountOpenSourceLicenses": "Open source licenses",
+  "accountPasscodeLock": "Passcode Lock",
+  "accountPinLabel": "PIN",
+  "accountPrivacyPolicy": "Privacy Policy",
+  "accountRecoveryHide": "Hide",
+  "accountRecoveryKeyBody": "This is the credential that recovers your account if you ever forget your password. Keep a copy somewhere safe and private — anyone who has it can sign in as you. To use it, pick \"Log in with your key\" on the sign-in screen.",
+  "accountRecoveryKeyCopied": "Recovery key copied",
+  "accountRecoveryKeyLocked": "Your keys are not unlocked right now. Sign in with your password to export your recovery key.",
+  "accountRecoveryKeySubtitle": "Back up your sign-in key",
+  "accountRecoveryKeyTitle": "Recovery Key",
+  "accountRecoveryReveal": "Reveal",
+  "accountRemovePasscodeBody": "This will remove the PIN lock screen. You will need to sign in with your password next time.",
+  "accountRemovePasscodeTitle": "Remove Passcode",
+  "accountSetUp": "Set up",
+  "accountSetUpPinFirst": "Set up a PIN first",
+  "accountSettingsHeader": "SETTINGS",
+  "accountSharingDisabledMsg": "You will no longer receive sharing emails.",
+  "accountSharingEmailToggle": "Email me when a file is shared with me",
+  "accountSharingEmailsOff": "Sharing emails are off.",
+  "accountSharingEmailsOn": "Sharing emails are on.",
+  "accountSharingEnabledMsg": "You will receive an email when someone shares a file with you.",
+  "accountSharingHeader": "SHARING",
+  "accountSharingUpdateFailed": "Could not update sharing notifications.",
+  "accountSignOut": "Sign Out",
+  "accountSignOutConfirm": "Are you sure you want to sign out?",
+  "accountStorageQuota": "Quota: {size}",
+  "@accountStorageQuota": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "accountStorageTitle": "Storage",
+  "accountStorageUnlimited": "Unlimited",
+  "accountTermsOfService": "Terms of Service",
+  "accountTitle": "Account",
+  "accountWizardCallingInitialize": "Calling initialize…",
+  "accountWizardCapabilitiesList": "Capabilities: {list}",
+  "@accountWizardCapabilitiesList": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "accountWizardCapabilitiesNone": "Capabilities: none advertised",
+  "accountWizardConnected": "Connected",
+  "accountWizardConnectionFailed": "Connection failed. Check the server and token.",
+  "accountWizardCopyToClipboard": "Copy to clipboard",
+  "accountWizardCopyToken": "Copy token",
+  "accountWizardEnableHint": "Enable to bind the local port.",
+  "accountWizardFailed": "Failed",
+  "accountWizardFinish": "Finish",
+  "accountWizardHideToken": "Hide token",
+  "accountWizardNext": "Next",
+  "accountWizardNoToken": "(no token)",
+  "accountWizardOpenFolder": "Open config folder",
+  "accountWizardProtocol": "protocol {version}",
+  "@accountWizardProtocol": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "accountWizardReadyBody": "Press \"Run test\" to call initialize against the local server.",
+  "accountWizardReadyTitle": "Ready to test",
+  "accountWizardRegenerateConfirmBody": "This invalidates existing agent sessions. You will need to paste the new token into every AI client you have configured.",
+  "accountWizardRegenerateConfirmTitle": "Regenerate bearer token?",
+  "accountWizardRunTest": "Run test",
+  "accountWizardServerName": "Server {name}",
+  "@accountWizardServerName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "accountWizardShowToken": "Show token",
+  "accountWizardStep1Subtitle": "The local MCP server needs to be running before we can hand credentials to your AI client.",
+  "accountWizardStep1Title": "Step 1 of 4: Start the MCP server",
+  "accountWizardStep2Subtitle": "Your AI client uses this token to authenticate every MCP call. Treat it like a password.",
+  "accountWizardStep2Title": "Step 2 of 4: Review the bearer token",
+  "accountWizardStep3Title": "Step 3 of 4: Copy into your AI client",
+  "accountWizardStep4Subtitle": "We will call initialize over the local MCP socket and show you exactly what your AI client will see.",
+  "accountWizardStep4Title": "Step 4 of 4: Verify the handshake",
+  "accountWizardTesting": "Testing",
+  "accountWizardTryAgain": "Try again",
+  "adminActionFailed": "Failed: {error}",
+  "@adminActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "adminActionsHeader": "ACTIONS",
+  "adminAdminRole": "Admin role",
+  "adminAllowRegistration": "Allow Registration",
+  "adminAllowRegistrationSubtitle": "Let new users sign up without invitation",
+  "adminBadgeAdmin": "admin",
+  "adminCopied": "Copied",
+  "adminDefaultQuotaGbLabel": "Default quota (GB)",
+  "adminDefaultQuotaHeader": "DEFAULT QUOTA",
+  "adminDeleteUser": "Delete User",
+  "adminDeleteUserBody": "Permanently delete {email} and ALL their files? This cannot be undone.",
+  "@adminDeleteUserBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminDeleteUserSubtitle": "Permanently delete user and all data",
+  "adminDisable": "Disable",
+  "adminDisableTfa": "Disable 2FA",
+  "adminDisableTfaBody": "This will remove 2FA for {email}. They will need to re-enable it themselves.",
+  "@adminDisableTfaBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminDisableTfaTitle": "Disable Two-Factor Auth",
+  "adminDisabled": "Disabled",
+  "adminEditRoleQuotaTooltip": "Edit role & quota",
+  "adminEditUserTitle": "Edit User",
+  "adminEmailHeader": "EMAIL",
+  "adminEmailLabel": "Email",
+  "adminEmailTestFailed": "Email test failed: {error}",
+  "@adminEmailTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "adminEmailVerifiedLabel": "Email Verified",
+  "adminEnabled": "Enabled",
+  "adminEnforceEmailVerification": "Enforce Email Verification",
+  "adminEnforceEmailVerificationSubtitle": "Require users to verify email before login",
+  "adminExpire": "Expire",
+  "adminExpireInvitationBody": "Expire the invitation for {email}? They will no longer be able to use it to register.",
+  "@adminExpireInvitationBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminExpireInvitationTitle": "Expire Invitation",
+  "adminFileCount": "{count, plural, =1{1 file} other{{count} files}}",
+  "@adminFileCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminInvitationCount": "{count, plural, =1{1 invitation} other{{count} invitations}}",
+  "@adminInvitationCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminInvitationSent": "Invitation sent to {email}",
+  "@adminInvitationSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminInvite": "Invite",
+  "adminKillAll": "Kill All",
+  "adminKillAllSessions": "Kill All Sessions",
+  "adminKillAllSessionsBody": "This will sign {email} out of all devices.",
+  "@adminKillAllSessionsBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "adminLastActive": "Active {time}",
+  "@adminLastActive": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "adminNoActiveSessions": "No active sessions",
+  "adminNoFiles": "No files",
+  "adminNoFilesSubtitle": "This user has not uploaded any files",
+  "adminNoInvitations": "No invitations yet",
+  "adminNoUsersFound": "No users found",
+  "adminNotVerified": "Not verified",
+  "adminPaginationRange": "{start}–{end} of {total}",
+  "@adminPaginationRange": {
+    "placeholders": {
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPanelTitle": "Admin Panel",
+  "adminQuotaDefaultHint": "Leave empty for default",
+  "adminQuotaGbLabel": "Quota (GB)",
+  "adminQuotaLabel": "Quota",
+  "adminQuotaUnlimitedHint": "Leave empty for unlimited",
+  "adminRegisteredLabel": "Registered",
+  "adminRegistrationHeader": "USER REGISTRATION",
+  "adminRoleAdmin": "Admin",
+  "adminRoleLabel": "Role",
+  "adminRoleUser": "User",
+  "adminSaveSettings": "Save Settings",
+  "adminSearchUsersHint": "Search users...",
+  "adminSendInvitationTitle": "Send Invitation",
+  "adminSendTest": "Send Test",
+  "adminSessionsHeader": "SESSIONS ({count})",
+  "@adminSessionsHeader": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminSettingsLoadFailed": "Unable to load settings",
+  "adminSettingsSaved": "Settings saved",
+  "adminSharingHeader": "SHARING",
+  "adminSharingSubtitle": "When off, the Share action disappears everywhere and the sharing endpoints stop responding. Existing shares are kept.",
+  "adminSharingToggle": "Account-to-account sharing",
+  "adminStatusExpired": "Expired",
+  "adminStatusPending": "Pending",
+  "adminStatusRedeemed": "Redeemed",
+  "adminStorageHeader": "STORAGE ({size} · {count, plural, =1{1 file} other{{count} files}})",
+  "@adminStorageHeader": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminTabInvitations": "Invitations",
+  "adminTabSettings": "Settings",
+  "adminTabUsers": "Users",
+  "adminTestEmailSubtitle": "Send a test email to verify SMTP",
+  "adminTestEmailTitle": "Test Email Configuration",
+  "adminTwoFactorLabel": "Two-Factor Auth",
+  "adminUnlimited": "Unlimited",
+  "adminUserDeleted": "User deleted",
+  "adminUserInfoHeader": "USER INFO",
+  "adminUserUpdated": "User updated",
+  "authAddAnotherAccount": "Add another account",
+  "authAddNewServer": "ADD NEW SERVER",
+  "authAddServer": "Add Server",
+  "authBiometricFailed": "Biometric failed",
+  "authBiometricFailedUsePin": "Biometric failed — use your PIN",
+  "authBiometricLockedOut": "Too many attempts — try again in 30 s, or use your PIN",
+  "authBiometricNotConfigured": "Biometric not configured for this build — use your PIN",
+  "authBiometricNotEnrolled": "No biometric enrolled on this device — use your PIN",
+  "authBiometricPermanentlyLockedOut": "Biometric locked — unlock your device, then try again",
+  "authBiometricPinNotFound": "Biometric PIN not found",
+  "authCheckEmailBody": "Your account was created. Verify your email, then sign in to unlock encryption.",
+  "authCheckEmailTitle": "Check your email",
+  "authConfirmPasswordLabel": "Confirm Password",
+  "authConfirmPinLabel": "Confirm PIN",
+  "authConnectToServer": "Connect to a Server",
+  "authConnectionFailed": "Connection failed: {error}",
+  "@authConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "authCreateAccount": "Create Account",
+  "authCreateAnAccount": "Create an account",
+  "authCreatePasscode": "Create a Passcode",
+  "authDeleteServerConfirm": "Remove \"{name}\" and all its accounts?",
+  "@authDeleteServerConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "authDeleteServerTitle": "Delete Server",
+  "authEmailLabel": "Email",
+  "authEmailPasswordRequired": "Email and password are required",
+  "authEnterPasscode": "Enter Passcode",
+  "authEnterPinPrompt": "Please enter your PIN",
+  "authEnterTfaCode": "Please enter your 2FA code",
+  "authExistingAccounts": "EXISTING ACCOUNTS",
+  "authForget": "Forget",
+  "authForgetAccountConfirm": "This will remove the account \"{email}\" from this device. All offline files for this account will be deleted. You can sign in again later.",
+  "@authForgetAccountConfirm": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "authForgetAccountTitle": "Forget Account",
+  "authForgetThisAccount": "Forget this account",
+  "authGetMyRecoveryKey": "Get my recovery key",
+  "authInvalidCredentials": "Invalid email or password",
+  "authKeyLoginIntro": "Paste the recovery key you saved when you set up your account. It never leaves this device — it is only used to sign a login challenge.",
+  "authKeyLoginInvalidKey": "This is not a valid private key",
+  "authKeyLoginNoAccount": "The server accepted the key but returned no account",
+  "authKeyLoginNoIdentityKey": "This recovery key carries no usable identity key",
+  "authKeyLoginSelfCheckFailed": "This recovery key failed its self-check",
+  "authKeyLoginSessionFailed": "Signed in, but the session could not be established",
+  "authKeyLoginTitle": "Log In With Your Key",
+  "authKeyLoginUnrecognizedKey": "The server did not recognize this key",
+  "authLastUsed": "Last used {time}",
+  "@authLastUsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "authLater": "Later",
+  "authLearnMore": "Learn more",
+  "authLogIn": "Log In",
+  "authLogInWithKey": "Log in with your key",
+  "authLogInWithPassword": "Log in with email and password",
+  "authManageAccounts": "Manage Accounts",
+  "authMigrationNoticeBody": "Your files are now protected with upgraded encryption, and you sign in without your password ever leaving this device.\n\nBecause this created new keys for your account, save a fresh copy of your recovery key — it is the only way back in if you forget your password. You can always find it under Account → Recovery Key.",
+  "authMigrationNoticeTitle": "Your account security was upgraded",
+  "authNeedServerBody": "Self-host for free, or get a managed instance.",
+  "authNeedServerTitle": "Need a server?",
+  "authNeverUsed": "Never used",
+  "authNoAccountFound": "No account found",
+  "authNoActiveAccountOrKey": "No active account or private key available",
+  "authNoServerSelected": "No server selected",
+  "authPasswordLabel": "Password",
+  "authPasswordsDoNotMatch": "Passwords do not match",
+  "authPasteRecoveryKeyFirst": "Paste your recovery key first",
+  "authPinLabel": "PIN",
+  "authPinPlaceholder": "At least 4 characters",
+  "authPinSetupFailed": "Failed to set up PIN: {error}",
+  "@authPinSetupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "authPinTooShort": "PIN must be at least 4 characters",
+  "authPinsDoNotMatch": "PINs do not match",
+  "authRecoveryKeyEmpty": "Recovery key is empty",
+  "authRecoveryKeyLabel": "Recovery key",
+  "authRecoveryKeyMissingKeys": "Recovery key is missing its identity or wrapping key",
+  "authRecoveryKeyUnrecognized": "This does not look like a Hoodik recovery key",
+  "authRegistrationFailed": "Registration failed: {error}",
+  "@authRegistrationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "authRegistrationNotAllowed": "Registration not allowed for this email",
+  "authSavedServers": "SAVED SERVERS",
+  "authServerTooOldForRegister": "This server is too old to create an account from this app. Please update the server, or sign in to an existing account.",
+  "authServerUrlLabel": "Server URL",
+  "authServerUrlRequired": "Please enter a server URL",
+  "authSetPin": "Set PIN",
+  "authSetupPinIntro": "Set a PIN to quickly unlock your account next time without entering your password.",
+  "authSignIn": "Sign In",
+  "authSignInDifferentAccount": "SIGN IN WITH A DIFFERENT ACCOUNT",
+  "authSignInToContinue": "Please sign in to continue.",
+  "authSignInToUnlockEncryption": "Please sign in with your password to unlock encryption.",
+  "authSkip": "Skip",
+  "authSwitchAccount": "SWITCH ACCOUNT",
+  "authTagline": "End-to-End Encrypted Cloud Storage",
+  "authTfaCodeLabel": "2FA Code",
+  "authTfaRequired": "Two-factor authentication code required",
+  "authUnknownServer": "Unknown server",
+  "authUnlock": "Unlock",
+  "authUnlockHoodik": "Unlock Hoodik",
+  "authValidationError": "Validation error — check your input",
+  "authWrongPin": "Wrong PIN",
+  "authWrongPinOrAuthFailed": "Wrong PIN or authentication failed",
+  "authWrongPinOrVerifyFailed": "Wrong PIN or verification failed",
+  "commonAdd": "Add",
+  "commonCancel": "Cancel",
+  "commonClose": "Close",
+  "commonConfirm": "Confirm",
+  "commonCopy": "Copy",
+  "commonCreate": "Create",
+  "commonDelete": "Delete",
+  "commonDone": "Done",
+  "commonDownload": "Download",
+  "commonEdit": "Edit",
+  "commonLoading": "Loading...",
+  "commonMove": "Move",
+  "commonNever": "Never",
+  "commonNo": "No",
+  "commonOk": "OK",
+  "commonOpen": "Open",
+  "commonRemove": "Remove",
+  "commonRename": "Rename",
+  "commonRetry": "Retry",
+  "commonSave": "Save",
+  "commonSearch": "Search",
+  "commonSend": "Send",
+  "commonShare": "Share",
+  "commonUnknown": "Unknown",
+  "commonUpload": "Upload",
+  "commonYes": "Yes",
+  "filesAccountNotInitialized": "Account not fully initialized",
+  "filesAvailableOffline": "{name} available offline",
+  "@filesAvailableOffline": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesCacheFailed": "Failed to cache: {error}",
+  "@filesCacheFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesCancelled": "Cancelled",
+  "filesCannotBeUndone": "This cannot be undone.",
+  "filesCannotDecryptKey": "Cannot decrypt file key",
+  "filesCannotDecryptSharedKey": "Cannot decrypt the shared file key",
+  "filesCannotReadPath": "Could not read file path",
+  "filesChooseFolder": "Choose folder",
+  "filesChunksLabel": "Chunks",
+  "filesCipherLabel": "Cipher",
+  "filesClear": "Clear",
+  "filesConvertFailed": "Convert failed: {error}",
+  "@filesConvertFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesConvertToNote": "Convert to note",
+  "filesConvertedToNote": "Converted to note",
+  "filesCopiedToClipboard": "{label} copied to clipboard",
+  "@filesCopiedToClipboard": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "filesCopyLink": "Copy Link",
+  "filesCreateFolder": "Create Folder",
+  "filesCreateFolderFailed": "Failed to create folder: {error}",
+  "@filesCreateFolderFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesCreateLink": "Create Link",
+  "filesCreateLinkFailed": "Failed to create link: {error}",
+  "@filesCreateLinkFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesCreatedLabel": "Created",
+  "filesDateLabel": "Date",
+  "filesDeleteConfirmMessage": "Delete \"{name}\"? This cannot be undone.",
+  "@filesDeleteConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesDeleteCountTitle": "{count, plural, =1{Delete 1 item?} other{Delete {count} items?}}",
+  "@filesDeleteCountTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesDeleteFailed": "Delete failed: {error}",
+  "@filesDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesDeleteFileTitle": "Delete file?",
+  "filesDeleteFolderTitle": "Delete folder?",
+  "filesDeleted": "Deleted",
+  "filesDeletedCount": "{count, plural, =1{Deleted 1 item} other{Deleted {count} items}}",
+  "@filesDeletedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesDetails": "Details",
+  "filesDiscard": "Discard",
+  "filesDownloadingForOffline": "Downloading for offline access...",
+  "filesDropToUpload": "Drop files to upload",
+  "filesEmptyFolder": "Empty folder",
+  "filesEmptyHint": "Tap + to create a folder or upload a file",
+  "filesEmptyTitle": "No files yet",
+  "filesEncryptedFallback": "(encrypted)",
+  "filesEncryptedPlaceholder": "[Encrypted] {id}...",
+  "@filesEncryptedPlaceholder": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "filesExport": "Export",
+  "filesExportFailed": "Export failed: {error}",
+  "@filesExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesExportStarted": "Export started — share sheet will open when complete",
+  "filesExportingTo": "Exporting to {path}",
+  "@filesExportingTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "filesFailedUploadsHeader": "Failed uploads ({count})",
+  "@filesFailedUploadsHeader": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesFailedUploadsTooltip": "{count, plural, =1{1 failed upload} other{{count} failed uploads}}",
+  "@filesFailedUploadsTooltip": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesFolderCreated": "Folder created",
+  "filesFolderLabel": "Folder",
+  "filesFolderNameHint": "Folder name",
+  "filesForkFailed": "Failed to save to your drive: {error}",
+  "@filesForkFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesForkFolderUnsupported": "Folders cannot be saved to your drive",
+  "filesForkQuotaExceeded": "Not enough space to save this file to your drive",
+  "filesForkSaved": "Saved \"{name}\" to your drive",
+  "@filesForkSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesForkSaving": "Saving \"{name}\" to your drive…",
+  "@filesForkSaving": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesIdLabel": "ID",
+  "filesLeave": "Leave",
+  "filesLeaveShareBody": "You'll lose access to \"{name}\" on future reads. Anything you've already downloaded stays with you — end-to-end encryption can't recall what's already been decrypted on your device, and the owner can't un-share it.",
+  "@filesLeaveShareBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesLeaveShareTitle": "Leave this share?",
+  "filesLinkCopied": "Link copied to clipboard",
+  "filesLinkCreatedTitle": "Link Created",
+  "filesLoadFailed": "Failed to load files: {error}",
+  "@filesLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesLoadSharedFailed": "Failed to load shared items: {error}",
+  "@filesLoadSharedFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesMakeAvailableOffline": "Make Available Offline",
+  "filesMembers": "Members",
+  "filesMoreActions": "More actions",
+  "filesMoveFailed": "Move failed: {error}",
+  "@filesMoveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesMoveHere": "Move here",
+  "filesMoveItems": "{count, plural, =1{Move 1 item} other{Move {count} items}}",
+  "@filesMoveItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesMoveToTitle": "Move to...",
+  "filesMyFiles": "My Files",
+  "filesNameInvalid": "Invalid name",
+  "filesNameInvalidChars": "Name cannot contain / or \\",
+  "filesNameLabel": "Name",
+  "filesNewNameHint": "New name",
+  "filesNoAccessToLeave": "You do not have access to leave",
+  "filesNoSubfolders": "No sub-folders",
+  "filesNotAuthenticated": "Not authenticated",
+  "filesOfflineChip": "Offline",
+  "filesOfflineCopyRemoved": "Offline copy removed",
+  "filesOpsUnavailable": "File operations not available",
+  "filesOpsUnavailableNoKey": "File operations not available (no private key)",
+  "filesOwnedBy": "Owned by {name}",
+  "@filesOwnedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesPinnedForOffline": "{name} pinned for offline access",
+  "@filesPinnedForOffline": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesPreparing": "Preparing…",
+  "filesPreview": "Preview",
+  "filesPublicKeyUnavailable": "Public key not available",
+  "filesQueued": "Queued",
+  "filesRefresh": "Refresh",
+  "filesRemoveOfflineCopy": "Remove Offline Copy",
+  "filesRenameFailed": "Rename failed: {error}",
+  "@filesRenameFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesRenamed": "Renamed",
+  "filesRevokeFailed": "Failed to revoke: {error}",
+  "@filesRevokeFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesRootFolder": "Root",
+  "filesSaveFileDialogTitle": "Save file",
+  "filesSaveToMyDrive": "Save to my drive",
+  "filesSelect": "Select",
+  "filesSelectFilesTooltip": "Select files",
+  "filesSelectedCount": "{count} selected",
+  "@filesSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesShareFailed": "Failed to share: {error}",
+  "@filesShareFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesSharedItemsNeedConnection": "Shared items need a connection.",
+  "filesSharedWith": "Shared with {count}",
+  "@filesSharedWith": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesSizeLabel": "Size",
+  "filesSortTooltip": "Sort",
+  "filesStillUploading": "This file is still uploading — give it a moment.",
+  "filesTakePhoto": "Take Photo",
+  "filesTheseFolders": "these folders",
+  "filesTitle": "Files",
+  "filesTransferActive": "{verb} {fileName}",
+  "@filesTransferActive": {
+    "placeholders": {
+      "verb": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "filesTransferActiveMore": "{verb} {fileName} (+{count} more)",
+  "@filesTransferActiveMore": {
+    "placeholders": {
+      "verb": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesTransferCancelled": "{fileName} — Cancelled",
+  "@filesTransferCancelled": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "filesTransferDone": "{fileName} — Done",
+  "@filesTransferDone": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "filesTransferDoneSize": "Done  {size}",
+  "@filesTransferDoneSize": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "filesTransferFailed": "{fileName} — Failed",
+  "@filesTransferFailed": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "filesTransferQueued": "{fileName} — Queued",
+  "@filesTransferQueued": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "filesTransfersCount": "{count, plural, =1{1 transfer} other{{count} transfers}}",
+  "@filesTransfersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesTransfersDismissTooltip": "Dismiss — transfers continue in background",
+  "filesTransfersTitle": "Transfers",
+  "filesTypeLabel": "Type",
+  "filesUnknownError": "Unknown error",
+  "filesUploadFailed": "Upload failed: {error}",
+  "@filesUploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "filesUploadFile": "Upload File",
+  "filesUploadHere": "Upload here",
+  "filesUploadMedia": "Upload Media",
+  "filesUploadingChunks": "Uploading... {stored}/{total} chunks",
+  "@filesUploadingChunks": {
+    "placeholders": {
+      "stored": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "filesViewAsTooltip": "View as: {mode}",
+  "@filesViewAsTooltip": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "filesViewIcons": "Icons",
+  "filesViewList": "List",
+  "filesViewTree": "Tree",
+  "filesYourDrive": "your drive",
+  "languageSubtitle": "App display language",
+  "languageSystem": "System default",
+  "languageTitle": "Language",
+  "linksCopiedToClipboard": "Link copied to clipboard",
+  "linksCopyTooltip": "Copy link",
+  "linksDeleteBody": "This will remove the shared link for \"{name}\". The file itself won't be deleted.",
+  "@linksDeleteBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "linksDeleteFailed": "Delete failed: {error}",
+  "@linksDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "linksDeleteLink": "Delete link",
+  "linksDeleteTitle": "Delete link?",
+  "linksDeleted": "Link deleted",
+  "linksDownloadCount": "{count, plural, =1{1 download} other{{count} downloads}}",
+  "@linksDownloadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "linksEmptySubtitle": "Create a link from any file's context menu",
+  "linksEmptyTitle": "No shared links",
+  "linksExpired": "Expired",
+  "linksExpiresInDays": "Expires in {days}d",
+  "@linksExpiresInDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "linksExpiresInHours": "Expires in {hours}h",
+  "@linksExpiresInHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "linksExpiresSoon": "Expires soon",
+  "linksExpiryRemoved": "Expiry removed — link never expires",
+  "linksExpiryUpdated": "Expiry updated",
+  "linksNotAuthenticated": "Not authenticated",
+  "linksRemoveExpiry": "Remove expiry",
+  "linksSetExpiry": "Set expiry",
+  "linksUpdateFailed": "Update failed: {error}",
+  "@linksUpdateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesAuthorAnonymous": "Anonymous",
+  "notesAuthorYou": "You",
+  "notesBlockquote": "Blockquote",
+  "notesBold": "Bold",
+  "notesBulletList": "Bullet list",
+  "notesCannotDecrypt": "Cannot decrypt file",
+  "notesCannotOpenNoKey": "Cannot open — decryption key unavailable",
+  "notesChunkCount": "{count, plural, =1{1 chunk} other{{count} chunks}}",
+  "@notesChunkCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notesClearHistoryBody": "Every historical version of this note will be permanently deleted. The current note stays.",
+  "notesClearHistoryTitle": "Clear all history?",
+  "notesClearHistoryTooltip": "Clear all history",
+  "notesCloseEditor": "Close editor",
+  "notesCloseNote": "Close note",
+  "notesCode": "Code block",
+  "notesConflictBody": "The server has an unfinished save for this note from another session. Overwriting will discard whatever that session was about to commit.",
+  "notesConflictDiscardMine": "Drop my changes",
+  "notesConflictOverwrite": "Discard remote, save mine",
+  "notesConflictTitle": "Another save is in progress",
+  "notesCreateFolderFailed": "Failed to create folder: {error}",
+  "@notesCreateFolderFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesCreateFolderIn": "Create a new folder in \"{folder}\"",
+  "@notesCreateFolderIn": {
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
+  "notesCreateFolderInRoot": "Create a new folder in root",
+  "notesCreateNoteFailed": "Failed to create note: {error}",
+  "@notesCreateNoteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesCreateNoteIn": "Create a new note in \"{folder}\"",
+  "@notesCreateNoteIn": {
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
+  "notesCreateNoteInRoot": "Create a new note in root",
+  "notesCreatedNote": "Created \"{name}\"",
+  "@notesCreatedNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notesCreatedNoteMissingKey": "Created note missing encryption key",
+  "notesDeleteAll": "Delete all",
+  "notesDeleteFolderBody": "\"{name}\" and everything inside it will be permanently deleted.",
+  "@notesDeleteFolderBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notesDeleteFolderFailed": "Failed to delete folder: {error}",
+  "@notesDeleteFolderFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesDeleteFolderTitle": "Delete folder?",
+  "notesDeleteNoteBody": "\"{name}\" will be permanently deleted.",
+  "@notesDeleteNoteBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notesDeleteNoteFailed": "Failed to delete: {error}",
+  "@notesDeleteNoteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesDeleteNoteTitle": "Delete note?",
+  "notesDeleteThisVersion": "Delete this version",
+  "notesDeleteVersionFailed": "Delete failed: {error}",
+  "@notesDeleteVersionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesDeleteVersionMsg": "Permanently delete v{version} from {date}. Cannot be undone.",
+  "@notesDeleteVersionMsg": {
+    "placeholders": {
+      "version": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notesDeleteVersionTitle": "Delete v{version}?",
+  "@notesDeleteVersionTitle": {
+    "placeholders": {
+      "version": {
+        "type": "int"
+      }
+    }
+  },
+  "notesDetails": "Details",
+  "notesDiscard": "Discard",
+  "notesEmptyHint": "Create one from the sidebar's + button.",
+  "notesEmptyTitle": "No notes yet",
+  "notesEncryptedFallback": "[Encrypted] {id}…",
+  "@notesEncryptedFallback": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "notesEncryptedName": "(encrypted)",
+  "notesExport": "Export",
+  "notesExportFailed": "Export failed: {error}",
+  "@notesExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesExportStarted": "Export started — share sheet will open when ready",
+  "notesExportToPdf": "Export to PDF",
+  "notesExportingTo": "Exporting to {path}",
+  "@notesExportingTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "notesFileNotFound": "File not found",
+  "notesFolderName": "folder",
+  "notesFolderNameHint": "My folder",
+  "notesForkFailed": "Fork failed: {error}",
+  "@notesForkFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesHeading": "Heading {level}",
+  "@notesHeading": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "notesHideSidebar": "Hide sidebar",
+  "notesHistory": "Version history",
+  "notesHistoryNamed": "History · {name}",
+  "@notesHistoryNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notesItalic": "Italic",
+  "notesKeyUnavailable": "Cannot decrypt — file key or client unavailable",
+  "notesLoadFailed": "Failed to load",
+  "notesLoadNotesFailed": "Failed to load notes: {error}",
+  "@notesLoadNotesFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesMetadataUnavailable": "File metadata unavailable",
+  "notesModified": "Modified {when}",
+  "@notesModified": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "notesMore": "More",
+  "notesMoreActions": "More actions",
+  "notesMoveFailed": "Move failed: {error}",
+  "@notesMoveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesMoveHere": "Move here",
+  "notesMoveToTitle": "Move to",
+  "notesMoved": "Moved",
+  "notesNameRequired": "Name is required",
+  "notesNewFolder": "New folder",
+  "notesNewIn": "New note or folder in {name}",
+  "@notesNewIn": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notesNewNote": "New note",
+  "notesNoHistory": "No history yet. Edit the note to start building one.",
+  "notesNoServerId": "Server returned no id",
+  "notesNotAuthenticated": "Not authenticated",
+  "notesNotSignedIn": "Not signed in",
+  "notesNoteNameHint": "My note",
+  "notesNumberedList": "Numbered list",
+  "notesPdfExportFailed": "PDF export failed: {error}",
+  "@notesPdfExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesPreview": "Preview",
+  "notesPreviewFailed": "Preview failed: {error}",
+  "@notesPreviewFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesPurgeFailed": "Purge failed: {error}",
+  "@notesPurgeFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesRecentHeader": "Recent notes",
+  "notesRedo": "Redo",
+  "notesRenameFailed": "Failed to rename: {error}",
+  "@notesRenameFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesRenameFolderFailed": "Failed to rename folder: {error}",
+  "@notesRenameFolderFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesRenameNote": "Rename note",
+  "notesResetZoom": "Reset zoom",
+  "notesRestore": "Restore",
+  "notesRestoreAsNew": "Restore as new note",
+  "notesRestoreFailed": "Restore failed: {error}",
+  "@notesRestoreFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesRestoreHere": "Restore in place",
+  "notesRestoreThisVersion": "Restore this version",
+  "notesRestoreVersionMsg": "This replaces the current content with v{version} from {date}. Your current version stays in history so you can undo the restore later.",
+  "@notesRestoreVersionMsg": {
+    "placeholders": {
+      "version": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notesRestoreVersionTitle": "Restore v{version}?",
+  "@notesRestoreVersionTitle": {
+    "placeholders": {
+      "version": {
+        "type": "int"
+      }
+    }
+  },
+  "notesRestoredVersion": "Restored v{version}",
+  "@notesRestoredVersion": {
+    "placeholders": {
+      "version": {
+        "type": "int"
+      }
+    }
+  },
+  "notesRootName": "root",
+  "notesSaveAndClose": "Save & close",
+  "notesSaveFailed": "Failed to save: {error}",
+  "@notesSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "notesSaveNoteDialogTitle": "Save note",
+  "notesShowSidebar": "Show sidebar",
+  "notesSidebarEmpty": "No notes or folders",
+  "notesSidebarHeader": "NOTES",
+  "notesStillUploading": "This note is still uploading. If it stays stuck, delete it from the Files tab and create a new one.",
+  "notesStrikethrough": "Strikethrough",
+  "notesTable": "Table",
+  "notesThisFolder": "this folder",
+  "notesThisNote": "this note",
+  "notesTitle": "Notes",
+  "notesUndo": "Undo",
+  "notesUnsavedChangesBody": "You have unsaved changes. What would you like to do?",
+  "notesUnsavedChangesTitle": "Unsaved changes — {name}",
+  "@notesUnsavedChangesTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notesUntitled": "Untitled",
+  "notesZoomIn": "Zoom in",
+  "notesZoomOut": "Zoom out",
+  "previewCannotDecrypt": "Cannot decrypt file",
+  "previewDecryptAfterDownloadFailed": "Failed to decrypt after download",
+  "previewDeleteFailed": "Failed to delete: {error}",
+  "@previewDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "previewDeleteFileBody": "Delete \"{name}\"? This cannot be undone.",
+  "@previewDeleteFileBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "previewDeleteFileTitle": "Delete file?",
+  "previewDownloadFailed": "Download failed",
+  "previewExport": "Export",
+  "previewFailedToLoadImage": "Failed to load image",
+  "previewFailedToRenderPage": "Failed to render page: {error}",
+  "@previewFailedToRenderPage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "previewNoPreviewAvailable": "No preview available",
+  "previewNoPreviewableFiles": "No previewable files",
+  "previewPageCounter": "Page {current} / {total}",
+  "@previewPageCounter": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "previewSaveFileTitle": "Save file",
+  "previewShowingFirstMb": "Showing first 1 MB of {size}",
+  "@previewShowingFirstMb": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "relativeDaysAgo": "{days}d ago",
+  "@relativeDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "relativeHoursAgo": "{hours}h ago",
+  "@relativeHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "relativeJustNow": "just now",
+  "relativeMinutesAgo": "{minutes}m ago",
+  "@relativeMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "searchEmptyPrompt": "Search your files",
+  "searchEncryptedFileFallback": "[Encrypted] {id}...",
+  "@searchEncryptedFileFallback": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "searchFailed": "Search failed: {error}",
+  "@searchFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "searchHint": "Search files and notes…",
+  "searchNoResults": "No results found",
+  "serviceBugReportShareText": "Please describe what you were doing when the bug happened, including any steps to reproduce.\n\nSend to: {email}",
+  "@serviceBugReportShareText": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "serviceBugReportSubject": "Hoodik bug report",
+  "serviceDownloadCancelled": "Download cancelled",
+  "serviceDownloadFailed": "Download failed",
+  "serviceFileAlreadyExists": "File already exists",
+  "serviceFileNoEncryptionKey": "File has no encryption key",
+  "serviceLandingBranchFiles": "Files",
+  "serviceLandingBranchNotes": "Notes",
+  "serviceNotificationDownloadComplete": "Download complete",
+  "serviceNotificationReady": "Ready",
+  "serviceNotificationUploadComplete": "Upload complete",
+  "serviceOfflineManagerUnavailable": "Offline manager not available",
+  "serviceTransferCancelled": "Cancelled",
+  "serviceTransferDecrypting": "Decrypting",
+  "serviceTransferDownloading": "Downloading",
+  "serviceTransferEncrypting": "Encrypting",
+  "serviceTransferUploading": "Uploading",
+  "serviceUploadCancelled": "Upload cancelled",
+  "serviceUploadFailed": "Upload failed",
+  "serviceUploadWorkerUnavailable": "Upload requires an active encrypt worker and tar transport. Please restart the app and try again.",
+  "sharesAccessRevoked": "Access revoked",
+  "sharesAccessRevokedFor": "Access revoked for {email}",
+  "@sharesAccessRevokedFor": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAddFiles": "Add files",
+  "sharesAddMember": "Add member",
+  "sharesAddMemberFailed": "Failed to add member: {error}",
+  "@sharesAddMemberFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAddMemberToGroup": "Add member to {group}",
+  "@sharesAddMemberToGroup": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAddedByCoOwner": "Added by co-owner",
+  "sharesAddedByOwner": "Added by owner",
+  "sharesAddedByUnknown": "Added by unknown",
+  "sharesAllowAddFiles": "Allow them to add new files",
+  "sharesAuditARecipient": "a recipient",
+  "sharesAuditARecipientCapital": "A recipient",
+  "sharesAuditAccessFallback": "access",
+  "sharesAuditBadgeMismatch": "Mismatch",
+  "sharesAuditBadgeSystem": "System",
+  "sharesAuditBadgeVerified": "Verified",
+  "sharesAuditCoOwnerRevoked": "{recipient}'s access to {file} via a co-owner was revoked",
+  "@sharesAuditCoOwnerRevoked": {
+    "placeholders": {
+      "recipient": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditEdited": "{sender} edited shared file {file}",
+  "@sharesAuditEdited": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditEmpty": "No sharing activity yet. Events show up here when you share a file, change a role, or revoke access.",
+  "sharesAuditEvicted": "{recipient} lost access to {file} (cascade)",
+  "@sharesAuditEvicted": {
+    "placeholders": {
+      "recipient": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditFileIdLabel": "file {head}…",
+  "@sharesAuditFileIdLabel": {
+    "placeholders": {
+      "head": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditForked": "{sender} forked {file} into their drive",
+  "@sharesAuditForked": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditGrant": "{sender} shared {file} with {recipient}",
+  "@sharesAuditGrant": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      },
+      "recipient": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditGrantAsRole": "{sender} shared {file} with {recipient} as {role}",
+  "@sharesAuditGrantAsRole": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      },
+      "recipient": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditKeyRotation": "{sender} rotated their account encryption keys",
+  "@sharesAuditKeyRotation": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditLegendMismatch": "failed verification — do not trust this row",
+  "sharesAuditLegendSystem": "a server-attributed cascade event, no signature",
+  "sharesAuditLegendVerified": "signature and chain check out",
+  "sharesAuditLinkBroken": "Chain link to the previous visible event is broken.",
+  "sharesAuditLoadFailed": "Couldn't load your sharing activity.",
+  "sharesAuditLoadFailedOffline": "Could not load your sharing activity. Activity needs a connection to the server — try again once you are back online.",
+  "sharesAuditMovedOut": "{sender} moved {file} out of a shared folder",
+  "@sharesAuditMovedOut": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditPageBoundaryNote": "Earlier event in this chain is on another page",
+  "sharesAuditRecipientFallback": "recipient",
+  "sharesAuditReshared": "{sender} re-shared {file} with {recipient}",
+  "@sharesAuditReshared": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      },
+      "recipient": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditResharedAsRole": "{sender} re-shared {file} with {recipient} as {role}",
+  "@sharesAuditResharedAsRole": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      },
+      "recipient": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditRestored": "{sender} restored a previous version of shared file {file}",
+  "@sharesAuditRestored": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditRevoked": "{sender} revoked {recipient} from {file}",
+  "@sharesAuditRevoked": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "recipient": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditRoleChanged": "{sender} changed {recipient}'s role on {file}",
+  "@sharesAuditRoleChanged": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "recipient": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditRoleChangedFromTo": "{sender} changed {recipient}'s role on {file} from {before} to {after}",
+  "@sharesAuditRoleChangedFromTo": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "recipient": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      },
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesAuditSelfHashMismatch": "Row content does not match its stored hash.",
+  "sharesAuditShowingRecent": "Showing the {shown} most recent of {total} events.",
+  "@sharesAuditShowingRecent": {
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "sharesAuditSignatureFailed": "Signature failed verification on this event.",
+  "sharesAuditSystemSender": "system",
+  "sharesAuditTamperedBody": "This event failed verification. Treat its claim with suspicion and report it to the file owner.",
+  "sharesAuditUploaded": "{sender} uploaded into shared folder {file}",
+  "@sharesAuditUploaded": {
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesCannotAddSelfToGroup": "You cannot add yourself to a group.",
+  "sharesCannotDecryptFileKey": "Cannot decrypt the file key",
+  "sharesCannotShareWithSelf": "You can't share with yourself.",
+  "sharesChangeRole": "Change role",
+  "sharesDeleteGroup": "Delete group",
+  "sharesDeleteGroupBody": "Delete \"{name}\"? Files you already shared with these people stay shared; the group is just removed as a saved selection.",
+  "@sharesDeleteGroupBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesDeleteGroupTitle": "Delete group?",
+  "sharesDestinationIsShared": "The destination is itself a shared folder. Pick a private folder or your drive root.",
+  "sharesEmailPlaceholder": "someone@example.com",
+  "sharesEmailUnknownCannotChangeRole": "Email unknown — cannot change role",
+  "sharesEnterMemberEmailFirst": "Enter the member email first.",
+  "sharesEnterRecipientEmailFirst": "Enter the recipient email first.",
+  "sharesEveryoneCanRead": "Everyone listed will be able to read every file in this folder.",
+  "sharesEvictFailed": "Failed to evict: {error}",
+  "@sharesEvictFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesFindUser": "Find user",
+  "sharesGiveGroupName": "Give the group a name.",
+  "sharesGroupCreateFailed": "Could not create the group: {error}",
+  "@sharesGroupCreateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesGroupDeleteFailed": "Could not delete the group.",
+  "sharesGroupDeleted": "\"{name}\" deleted.",
+  "@sharesGroupDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesGroupLabel": "Group",
+  "sharesGroupMemberKeyUnverified": "A group member's key could not be verified — refusing to share. ({email})",
+  "@sharesGroupMemberKeyUnverified": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesGroupNameLabel": "Group name",
+  "sharesGroupNamePlaceholder": "e.g. Marketing team",
+  "sharesGroupNameTaken": "A group with that name already exists.",
+  "sharesGroupNoOneElse": "This group has no one else to share with yet.",
+  "sharesGroupReady": "\"{name}\" is ready to receive members.",
+  "@sharesGroupReady": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesGroupRenameFailed": "Could not rename the group: {error}",
+  "@sharesGroupRenameFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesGroupRoleCoOwnerDescription": "Co-owner — can also manage members and rename.",
+  "sharesGroupRoleEditorDescription": "Editor — can share files to the group.",
+  "sharesGroupRoleLabel": "Group role",
+  "sharesGroupRoleOwnerDescription": "Owner — full control of the group.",
+  "sharesGroupRoleReaderDescription": "Reader — sees the group, nothing more.",
+  "sharesGroupsExplainer": "Groups let you share with everyone in the group at once.",
+  "sharesGroupsLoadFailed": "Could not load your groups.",
+  "sharesItemCount": "{count, plural, =1{1 item} other{{count} items}}",
+  "@sharesItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharesKeyFingerprintMismatch": "This account's key and fingerprint do not match. Sharing is blocked — do not proceed.",
+  "sharesLookupFailed": "Could not look up that user.",
+  "sharesMemberAddedToGroup": "{email} is now part of \"{group}\".",
+  "@sharesMemberAddedToGroup": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesMemberCount": "{count, plural, =1{1 member} other{{count} members}}",
+  "@sharesMemberCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharesMemberEmailLabel": "Member email",
+  "sharesMemberNowRole": "{email} is now {role}.",
+  "@sharesMemberNowRole": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesMemberOfHeader": "MEMBER OF",
+  "sharesMemberRemoveFailed": "Could not remove the member.",
+  "sharesMemberRemoved": "Member removed.",
+  "sharesMemberRoleChangeFailed": "Could not change the member's role.",
+  "sharesMembersCount": "Members ({count})",
+  "@sharesMembersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharesMembersLoadFailed": "Could not load the member list.",
+  "sharesMembersLoadFailedOffline": "Could not load the member list. The roster needs a connection to the server — try again once you are back online.",
+  "sharesMembersTitle": "Members",
+  "sharesMismatchAcknowledge": "I've verified this new fingerprint with the recipient out of band.",
+  "sharesMoveAndShare": "Move and share",
+  "sharesMoveAndShareTitle": "Move and share folder?",
+  "sharesMoveCheckFailed": "Could not check where these items live. Check your connection and try again.",
+  "sharesMoveFailed": "Failed to move: {error}",
+  "@sharesMoveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesMoveWillMove": "Moving \"{folder}\" into \"{destination}\" will move it and its {items}.",
+  "@sharesMoveWillMove": {
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      },
+      "destination": {
+        "type": "String"
+      },
+      "items": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesMoveWillShare": "Moving \"{folder}\" into \"{destination}\" will share it and its {items} with {members}.",
+  "@sharesMoveWillShare": {
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      },
+      "destination": {
+        "type": "String"
+      },
+      "items": {
+        "type": "String"
+      },
+      "members": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesMovedItems": "{count, plural, =1{Moved 1 item} other{Moved {count} items}}",
+  "@sharesMovedItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharesNamesAndOthers": "{first}, {second} and {count} others",
+  "@sharesNamesAndOthers": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharesNewGroup": "New group",
+  "sharesNewShareGroup": "New share group",
+  "sharesNoAccessYet": "No one has access yet.",
+  "sharesNoLongerHaveAccess": "You no longer have access to this folder.",
+  "sharesNoMemberOfGroups": "No one has added you to a group yet.",
+  "sharesNoMembersYet": "No members yet — add someone to share with this group.",
+  "sharesNoOwnedGroups": "You haven't created any groups yet. Groups let you share with several people at once.",
+  "sharesNoUserWithEmail": "No Hoodik user with that email.",
+  "sharesNotAuthenticated": "Not authenticated.",
+  "sharesNotGroupEditor": "You're not an editor of any group yet. Create a group or ask its owner to make you an editor.",
+  "sharesOnlyOwnedIntoShared": "You can only move files you own into a shared folder.",
+  "sharesOnlyOwnerCanMoveOut": "Only the owner can move a file out of a shared folder.",
+  "sharesOnlyOwnerCanMoveThisOut": "Only the owner can move this file out of the shared folder.",
+  "sharesOwnedBy": "owned by {email}",
+  "@sharesOwnedBy": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesOwnedGroupsHeader": "OWNED GROUPS",
+  "sharesOwnerCannotBeRemoved": "The owner cannot be removed.",
+  "sharesPeopleWithAccess": "People with access",
+  "sharesPickEditorToEnable": "Pick Editor or Co-owner to enable",
+  "sharesPreparingAccess": "Preparing access ({done} / {total})",
+  "@sharesPreparingAccess": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "sharesPreviouslyTrusted": "Previously trusted",
+  "sharesRecipientEmailLabel": "Recipient email",
+  "sharesRecipientsLoadFailed": "Could not load existing recipients.",
+  "sharesRefresh": "Refresh",
+  "sharesRemoveMember": "Remove member",
+  "sharesRemoveMemberBody": "Remove {email} from \"{name}\"? Files you already shared with them stay shared; they just won't be included next time you share with this group.",
+  "@sharesRemoveMemberBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesRemoveMemberTitle": "Remove member?",
+  "sharesRenameGroup": "Rename group",
+  "sharesRenamedTo": "Renamed to \"{name}\".",
+  "@sharesRenamedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesRevoke": "Revoke",
+  "sharesRevokeAccessTitle": "Revoke access?",
+  "sharesRevokeCascadeExtra": "This also removes {count, plural, =1{1 share} other{{count} shares}} they granted under this folder.",
+  "@sharesRevokeCascadeExtra": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharesRevokeFailed": "Failed to revoke: {error}",
+  "@sharesRevokeFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesRevokeFileBody": "{email} will no longer be able to open this file.",
+  "@sharesRevokeFileBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesRevokeFolderBody": "{name} will lose access to {folder}.",
+  "@sharesRevokeFolderBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesRoleCoOwner": "Co-owner",
+  "sharesRoleCoOwnerDescription": "Co-owner — can view, edit, re-share, and save copies.",
+  "sharesRoleEditor": "Editor",
+  "sharesRoleEditorDescription": "Editor — can view and edit. No re-share.",
+  "sharesRoleLabel": "Role",
+  "sharesRoleOwner": "Owner",
+  "sharesRoleReader": "Reader",
+  "sharesRoleReaderDescription": "Reader — can view only.",
+  "sharesServerReturnedNow": "Server returned now",
+  "sharesSetGroupRole": "Set group role",
+  "sharesShareFailed": "Failed to share: {error}",
+  "@sharesShareFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesShareFileTitle": "Share file",
+  "sharesShareFromShareMenu": "Share a file to this group from its share menu.",
+  "sharesShareToGroup": "Share to group",
+  "sharesShareToGroupFailed": "Failed to share to group: {error}",
+  "@sharesShareToGroupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesShareWithGroup": "Share with a group",
+  "sharesSharedWith": "Shared with {email}",
+  "@sharesSharedWith": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "sharesSharedWithGroup": "Shared with the group.",
+  "sharesSharedWithMe": "Shared with me",
+  "sharesSharingDisabled": "Sharing is disabled on this server.",
+  "sharesSubtreeTooLargeMove": "This folder has more than {cap} files. Move a sub-folder instead.",
+  "@sharesSubtreeTooLargeMove": {
+    "placeholders": {
+      "cap": {
+        "type": "int"
+      }
+    }
+  },
+  "sharesSubtreeTooLargeShare": "This folder has more than {cap} files. Share a sub-folder instead.",
+  "@sharesSubtreeTooLargeShare": {
+    "placeholders": {
+      "cap": {
+        "type": "int"
+      }
+    }
+  },
+  "sharesTabActivity": "Activity",
+  "sharesTabGroups": "Groups",
+  "sharesTabPublicLinks": "Public links",
+  "sharesTooManyLookups": "Too many lookups, try again shortly.",
+  "sharesTrustFirstSight": "First time sharing with this account. Compare the fingerprint out of band if you want certainty — we will warn loudly if it ever changes.",
+  "sharesTrustMismatchBody": "This recipient's key fingerprint changed since you last trusted it. This is what a legitimate key rotation looks like — and also exactly what a key-substitution attack looks like. The server cannot tell them apart; only you can, by verifying out of band.",
+  "sharesTrustVerified": "Verified — this fingerprint matches the one you trusted before.",
+  "sharesTwoNames": "{first} and {second}",
+  "@sharesTwoNames": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetDismiss": "Dismiss",
+  "widgetOutdatedServer": "Your Hoodik server is {version}. Upgrade to v{latest} to get the latest features and bug fixes.",
+  "@widgetOutdatedServer": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "latest": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetOutdatedServerNoLatest": "Your Hoodik server is {version}. Upgrade to the latest release for new features and bug fixes.",
+  "@widgetOutdatedServerNoLatest": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetServerVersionUnknown": "older than v1.16.0",
+  "widgetUpdate": "Update",
+  "widgetUpdateAvailable": "A new version of Hoodik (v{version}) is available.",
+  "@widgetUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetUpdateDownloaded": "A new version of Hoodik has been downloaded.",
+  "widgetUpdateRestart": "Restart"
+}

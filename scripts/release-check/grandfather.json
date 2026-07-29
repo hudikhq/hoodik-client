@@ -1,0 +1,9 @@
+{
+  "baselineTag": "v1.0.2-37",
+  "baselineDate": "2026-04-20",
+  "files": [
+    {"path": "lib/features/notes/widgets/notes_sidebar.dart", "lines": 1390, "target": 500},
+    {"path": "lib/features/notes/widgets/notes_workspace.dart", "lines": 966, "target": 500},
+    {"path": "lib/features/notes/screens/version_history_screen.dart", "lines": 550, "target": 500}
+  ]
+}

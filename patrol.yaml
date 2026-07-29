@@ -1,0 +1,11 @@
+ios:
+  bundle_id: com.hudikhq.hoodik
+
+android:
+  package_name: com.hudikhq.hoodik
+
+macos:
+  bundle_id: com.hudikhq.hoodik
+
+tests:
+  target: integration_test/e2e

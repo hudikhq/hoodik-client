@@ -1,0 +1,50 @@
+name: Verify that the application version is not previously released
+
+# When the PR is merged and pubspec.yaml is changed
+# we are expecting the version of the application to also be
+# bumped. If the version is bumped, we will check that the new
+# version does not already exist in the tags because once it is
+# merged automated release will be created and app will be deployed.
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - pubspec.yaml
+
+env:
+  HANDLE: hoodik-client
+  NAME: Hoodik App
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the application version
+        id: extract_version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version_line="$(grep -E '^version:' pubspec.yaml | head -n1 | sed 's/^version:[[:space:]]*//')"
+          if [ -z "$version_line" ]; then
+            echo "version not found in pubspec.yaml" >&2
+            exit 1
+          fi
+          echo "version=${version_line}" >> "$GITHUB_OUTPUT"
+
+      - uses: mukunku/tag-exists-action@v1.2.0
+        id: checkTag
+        with:
+          tag: "v${{ steps.extract_version.outputs.version }}"
+
+      - name: Verify the tag doesn't already exist
+        run: |
+          if [[ "${{ steps.checkTag.outputs.exists }}" == "true" ]]; then
+            echo "Tag already exists: v${{ steps.extract_version.outputs.version }}"
+            echo "This probably means that the version in the pubspec.yaml is previously released version."
+            echo "In order to merge your PR it needs to update the application version."
+            exit 1
+          fi

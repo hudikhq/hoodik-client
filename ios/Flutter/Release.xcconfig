@@ -1,0 +1,4 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include "Generated.xcconfig"
+// Xcode 26: disable strict module scanning that breaks Flutter plugin ObjC headers.
+SWIFT_ENABLE_EXPLICIT_MODULES=NO

@@ -1,0 +1,12 @@
+{
+  "name": "hoodik-e2e-bootstrap",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Drives the hoodik web registration form via Playwright to seed an ephemeral hoodik server with the deterministic Patrol E2E user. Mirrors hoodik/web/e2e/helpers/auth.ts. Self-contained — kept out of the Flutter project tree so a stale node_modules can't drift into the app build.",
+  "scripts": {
+    "register": "node register-user.cjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

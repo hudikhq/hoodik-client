@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and below (fullBackupContent). Redundant while allowBackup is
+     false, but kept explicit so any future re-enable can't silently start
+     backing up key material. -->
+<full-backup-content>
+    <exclude domain="file" path="." />
+</full-backup-content>

@@ -1,0 +1,42 @@
+[package]
+name = "hoodik_mobile"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.91"
+authors = ["Tibor Hudik <hello@hudik.eu>"]
+description = "FFI bridge exposing Hoodik crypto and transfer operations to Flutter"
+
+[lib]
+name = "hoodik_mobile"
+path = "src/lib.rs"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+transfer = { path = "../../hoodik/transfer", features = ["mobile"] }
+cryptfns = { path = "../../hoodik/cryptfns", default-features = false }
+argon2 = "0.5"
+flutter_rust_bridge = "=2.11.1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# ---------------------------------------------------------------------------
+# Android-only: vendor OpenSSL so it compiles from source.
+# reqwest pulls in native-tls -> openssl-sys, which can't find a
+# pre-built OpenSSL for Android targets.
+# ---------------------------------------------------------------------------
+[target.'cfg(target_os = "android")'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
+# ---------------------------------------------------------------------------
+# Use upstream aegis from git (master includes the Android cross-compilation
+# fix from PR #10). Can switch back to crates.io once a new version is
+# published with the fix.
+# ---------------------------------------------------------------------------
+[patch.crates-io]
+aegis = { git = "https://github.com/jedisct1/rust-aegis.git" }
+
+[profile.release]
+lto = true
+strip = true
+opt-level = "z"

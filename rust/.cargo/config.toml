@@ -1,0 +1,16 @@
+# The main hoodik repo is a sibling checkout (hoodik-client/ and hoodik/ share a
+# parent); the app's Cargo.toml already depends on it by relative path, and CI
+# clones it to ../hoodik, so these settings are valid in every build.
+[patch."https://github.com/hudikhq/hoodik"]
+transfer = { path = "../../hoodik/transfer" }
+cryptfns = { path = "../../hoodik/cryptfns" }
+
+# Build ML-KEM on libcrux's formally verified portable path. libcrux's build
+# scripts turn on NEON for every aarch64 target — iOS, Android, Apple Silicon —
+# and that NEON code is not covered by the verification. Wrapping is client-side
+# and runs once per file key, so the portable path's few microseconds cost
+# nothing. Read by the build scripts of libcrux-ml-kem, libcrux-sha3 and
+# libcrux-intrinsics (all three gate SIMD on this exact variable).
+[env]
+LIBCRUX_DISABLE_SIMD128 = "1"
+LIBCRUX_DISABLE_SIMD256 = "1"

@@ -1,0 +1,26 @@
+version: "3.8"
+
+# Ephemeral hoodik server used by release-check E2E runs (spec §12).
+# SQLite backend, plain HTTP, no mail — the test harness wants a blank server
+# that starts fast and leaves nothing behind. No volumes: data lives inside
+# the container and is discarded when the container is removed.
+services:
+  hoodik:
+    image: ${HOODIK_IMAGE:-hudik/hoodik:latest}
+    container_name: hoodik-e2e
+    ports:
+      - "127.0.0.1:5443:5443"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "5443"
+      DATA_DIR: "/data"
+      SSL_DISABLED: "true"
+      APP_URL: "http://127.0.0.1:5443"
+      APP_CLIENT_URL: "http://127.0.0.1:5443"
+      # Header-based JWT auth instead of cookies — session survives across
+      # any host the client reaches the server as (127.0.0.1 from iOS sim,
+      # 10.0.2.2 from Android emulator, localhost from Playwright bootstrap).
+      # Cookie Domain matching becomes irrelevant.
+      USE_HEADERS_FOR_AUTH: "true"
+      MAILER_TYPE: "none"
+      RUST_LOG: "error"

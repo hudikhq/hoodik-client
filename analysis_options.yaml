@@ -1,0 +1,30 @@
+# This file configures the analyzer, which statically analyzes Dart code to
+# check for errors, warnings, and lints.
+
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Code quality
+    prefer_single_quotes: true
+    avoid_print: true
+    unawaited_futures: true
+    sized_box_for_whitespace: true
+    use_null_aware_elements: true
+
+    # Safety
+    cancel_subscriptions: true
+    close_sinks: true
+    no_adjacent_strings_in_list: true
+    test_types_in_equals: true
+    throw_in_finally: true
+    unnecessary_statements: true
+
+analyzer:
+  exclude:
+    - lib/src/rust/**  # Auto-generated FFI code
+    - rust_builder/cargokit/**  # Third-party build tooling
+  errors:
+    # Treat these as warnings, not errors, to avoid breaking CI on style issues.
+    prefer_single_quotes: warning
+    unawaited_futures: warning

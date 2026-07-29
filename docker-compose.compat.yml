@@ -1,0 +1,59 @@
+version: "3.8"
+
+# Pinned so the project name — and therefore the volume name teardown.sh
+# removes — does not depend on what the checkout directory happens to be
+# called.
+name: hoodik-compat
+
+# Pre-release backwards-compat gate (docs/compat-testing.md).
+#
+# Boots an ephemeral older hoodik server so the upcoming app release can be
+# exercised against a server pinned to a real, released tag. Real self-hosters
+# stay on older server versions for months after the app updates — if the app's
+# capability probes or graceful-degradation paths are broken, this is where
+# we catch it.
+#
+# Named volume is NOT persistent between runs: teardown (scripts/compat/teardown.sh)
+# runs `down -v` which wipes it. Every `just e2e-compat <version>` starts from a
+# blank database so bootstrap registration is deterministic.
+services:
+  hoodik:
+    image: hudik/hoodik:${HOODIK_SERVER_VERSION:?set HOODIK_SERVER_VERSION e.g. v1.9.0}
+    container_name: hoodik-compat
+    ports:
+      - "127.0.0.1:5443:5443"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "5443"
+      DATA_DIR: "/data"
+      SSL_DISABLED: "true"
+      # APP_URL drives the cookie `Domain` attribute on the session cookies
+      # the server sets. Cookie jars reject cookies whose Domain doesn't
+      # match the request host — so the URL has to match whatever host the
+      # CLIENT uses, not the server. The Android emulator reaches the host
+      # via `10.0.2.2`; the bootstrap.sh helper that runs ON the host uses
+      # `127.0.0.1`. Both are valid cookie-jar matches of `10.0.2.2` only
+      # if the server issues cookies with that Domain. Pick 10.0.2.2 for
+      # the emulator path — the bootstrap script sends no credentialed
+      # requests, so a Domain mismatch on the host side is harmless.
+      APP_URL: "http://10.0.2.2:5443"
+      APP_CLIENT_URL: "http://10.0.2.2:5443"
+      MAILER_TYPE: "none"
+      RUST_LOG: "error"
+    volumes:
+      - hoodik-compat-data:/data
+    healthcheck:
+      # `/api/auth/self` is POST-only and returns 401 without a session — a 401
+      # is proof the server is up and routing requests. Anything else (connect
+      # refused, 5xx while migrations run, timeout) is unhealthy.
+      #
+      # The image ships with busybox wget and no curl, so we use -S to surface
+      # the server response line and grep for the expected 401.
+      test: ["CMD-SHELL", "wget -qSO /dev/null --post-data='' -T 3 http://127.0.0.1:5443/api/auth/self 2>&1 | grep -q '401 Unauthorized'"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+volumes:
+  hoodik-compat-data:

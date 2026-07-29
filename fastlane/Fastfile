@@ -1,0 +1,112 @@
+default_platform(:ios)
+
+# Answers "is this build number already on App Store Connect?" per Apple
+# platform so the release workflow can skip legs that already uploaded —
+# a re-run after a store-state failure shouldn't rebuild 30 minutes of
+# iOS on a 10x-billed macOS runner just to redo the macOS upload.
+#
+# Fail-open by design: any lookup error reports both platforms as absent,
+# which just means the workflow builds everything as it always did. The
+# client-side version re-check guards the opposite direction — a quietly
+# ignored server filter can never produce a false "already uploaded" that
+# skips a leg the store doesn't actually have.
+desc "Write ios_uploaded/macos_uploaded to GITHUB_OUTPUT for a build number"
+lane :check_uploads do |options|
+  build_number = options[:build_number].to_s
+  UI.user_error!("build_number is required") if build_number.empty?
+
+  uploaded = { "ios" => false, "macos" => false }
+  begin
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY"],
+      is_key_content_base64: true,
+    )
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: api_key)
+    app = Spaceship::ConnectAPI::App.find(
+      CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+    )
+
+    { "ios" => "IOS", "macos" => "MAC_OS" }.each do |key, platform|
+      builds = Spaceship::ConnectAPI::Build.all(
+        app_id: app.id,
+        build_number: build_number,
+        platform: platform,
+        includes: "preReleaseVersion",
+        limit: 5,
+      )
+      uploaded[key] = builds.any? { |b| b.version.to_s == build_number }
+    end
+  rescue => e
+    UI.important("Store lookup failed (#{e.message}) — assuming nothing is uploaded")
+    uploaded = { "ios" => false, "macos" => false }
+  end
+
+  File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |f|
+    f.puts("ios_uploaded=#{uploaded['ios']}")
+    f.puts("macos_uploaded=#{uploaded['macos']}")
+  end
+  UI.message(
+    "Build #{build_number}: ios_uploaded=#{uploaded['ios']} macos_uploaded=#{uploaded['macos']}",
+  )
+end
+
+platform :mac do
+  desc "Upload macOS build to App Store"
+  lane :release do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY"],
+      is_key_content_base64: true,
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      pkg: "build/macos/Build/Products/Release/Hoodik.pkg",
+      platform: "osx",
+      submit_for_review: false,
+      automatic_release: false,
+      skip_screenshots: true,
+      skip_metadata: true,
+      precheck_include_in_app_purchases: false,
+      force: true,
+    )
+  end
+end
+
+platform :ios do
+  desc "Upload to TestFlight"
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY"],
+      is_key_content_base64: true,
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: "build/ios/ipa/Hoodik.ipa",
+      skip_waiting_for_build_processing: true,
+    )
+  end
+
+  desc "Upload to App Store for review"
+  lane :release do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY"],
+      is_key_content_base64: true,
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      ipa: "build/ios/ipa/Hoodik.ipa",
+      submit_for_review: false,
+      automatic_release: false,
+    )
+  end
+end

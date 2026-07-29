@@ -1,0 +1,123 @@
+name: Auto Tag Release
+
+on:
+    workflow_run:
+        workflows: ["CI"]
+        types:
+            - completed
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: "Tag for the new release (SemVer vX.X.X[- or + or ~][something])"
+                required: true
+            release_name:
+                description: "Name of the release"
+                required: false
+
+permissions:
+    contents: write
+    actions: write
+
+concurrency:
+    group: auto-tag-main
+    cancel-in-progress: false
+
+jobs:
+    create-release:
+        name: Create release/tag after green CI
+        if: >
+            github.event_name == 'workflow_dispatch' ||
+            (
+              github.event.workflow_run.conclusion == 'success' &&
+              github.event.workflow_run.head_branch == 'main'
+            )
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout main at the validated SHA
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || github.event.workflow_run.head_sha }}
+                  fetch-depth: 0
+
+            - name: Prepare release meta
+              id: meta
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+                    echo "Triggered manually. Using input tag."
+                    TAG=${{ github.event.inputs.tag }}
+                  else
+                    echo "Extracting version from pubspec.yaml."
+                    version_line="$(grep -E '^version:' pubspec.yaml | head -n1 | sed 's/^version:[[:space:]]*//')"
+                    if [ -z "$version_line" ]; then
+                      echo "version not found in pubspec.yaml" >&2
+                      exit 1
+                    fi
+                    TAG="v${version_line}"
+                  fi
+
+                  RELEASE_NAME="${{ github.event.inputs.release_name }}"
+                  if [[ "${RELEASE_NAME}" == "" ]]; then
+                    RELEASE_NAME="Release $TAG"
+                  fi
+
+                  echo "tag=$TAG" >> $GITHUB_OUTPUT
+                  echo "name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+
+                  echo "Resolved tag: $TAG"
+                  echo "Resolved release name: $RELEASE_NAME"
+
+            - name: Validate Tag Format
+              env:
+                  TAG: ${{ steps.meta.outputs.tag }}
+              run: |
+                  # Regex for vX.X.X with optional build number +X or suffix [- or + or ~][something]
+                  if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(\+[0-9]+)?([-+~][A-Za-z0-9.-]+)?$ ]]; then
+                    echo "Tag format is valid: $TAG"
+                  else
+                    echo "Error: Tag '$TAG' format is invalid. Expected format: vX.X.X[+X][- or + or ~][something]."
+                    exit 1
+                  fi
+
+            - name: Create release
+              id: create
+              uses: actions/github-script@v6.3.3
+              with:
+                  github-token: "${{ secrets.PERSONAL_GITHUB_TOKEN }}"
+                  script: |
+                      const tag = "${{ steps.meta.outputs.tag }}";
+
+                      try {
+                        await github.rest.repos.getReleaseByTag({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          tag,
+                        });
+                        core.info(`Release for ${tag} already exists — nothing to do.`);
+                        core.setOutput("skipped", "true");
+                        return;
+                      } catch (error) {
+                        if (error.status !== 404) {
+                          core.setFailed(error.message);
+                          return;
+                        }
+                      }
+
+                      await github.rest.repos.createRelease({
+                        draft: false,
+                        generate_release_notes: true,
+                        name: "${{ steps.meta.outputs.name }}",
+                        owner: context.repo.owner,
+                        prerelease: false,
+                        repo: context.repo.repo,
+                        tag_name: tag,
+                      });
+                      core.info(`Created release for ${tag}.`);
+                      core.setOutput("skipped", "false");
+
+            # The release is created with a PAT, so pushing the tag already triggers
+            # release-apple.yml and release-android.yml through their `push: tags`
+            # filter. Dispatching them again here ran every release twice, doubling
+            # the (expensive macOS) runner load; the tag push is now the single
+            # trigger. `workflow_dispatch` on those workflows stays for manual runs.

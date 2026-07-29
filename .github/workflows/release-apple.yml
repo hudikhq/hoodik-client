@@ -1,0 +1,199 @@
+name: Release Apple
+
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+
+jobs:
+    require-green-ci:
+        name: Require green CI for this SHA
+        # Skip on manual triggers — when the operator runs `gh workflow run`
+        # or clicks "Run workflow" they're explicitly opting in, no need
+        # to second-guess them via a CI-status query (which the GitHub
+        # API has been unreliable about anyway: the head_sha filter on
+        # /actions/runs returned [] for SHAs that demonstrably had a
+        # green CI run, blocking releases on a phantom "missing" state).
+        # The guard remains for tag-push triggers so an automated tag
+        # can't sneak past CI.
+        if: github.event_name != 'workflow_dispatch'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Check ci.yml status for tagged SHA
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  status=$(gh run list \
+                    --workflow=ci.yml \
+                    --commit="$GITHUB_SHA" \
+                    --json conclusion,status \
+                    --jq '[.[] | select(.status == "completed")][0].conclusion // "missing"')
+                  echo "ci.yml status for $GITHUB_SHA: $status"
+                  if [ "$status" != "success" ]; then
+                    echo "Release blocked: ci.yml is not green for $GITHUB_SHA (status: $status)" >&2
+                    echo "Wait for the push to main to finish CI before tagging." >&2
+                    exit 1
+                  fi
+
+    # iOS + macOS share a macOS runner. One checkout, one Rust toolchain install
+    # (all Apple targets), one Flutter install, one `flutter pub get`, one Ruby +
+    # Fastlane setup, one Rust build-cache. iOS builds and uploads first so
+    # TestFlight gets the build as fast as possible even if macOS later fails;
+    # macOS follows in the same job. Billing drops roughly in half (macOS runners
+    # are billed at 10× Linux).
+    build-apple:
+        name: Build & Upload iOS + macOS
+        needs: require-green-ci
+        # Run when the guard passed OR was skipped (manual trigger). Default
+        # `needs:` semantics skip a dependent job when the parent skips, so
+        # we override with `always() && != 'failure'` to keep the manual-
+        # trigger short-circuit working.
+        if: always() && needs.require-green-ci.result != 'failure'
+        runs-on: macos-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: ruby/setup-ruby@v1
+              with:
+                  ruby-version: "3.2"
+                  bundler-cache: true
+
+            # Ask App Store Connect which legs of this build number are
+            # already uploaded, and skip everything a re-run doesn't need.
+            # A macOS-only re-run after a store-state failure used to
+            # rebuild the whole iOS leg first — ~30 minutes of 10×-billed
+            # macOS runner time spent producing an IPA that TestFlight
+            # already had. The lane fails open (lookup error → build all).
+            - name: Check store for existing uploads
+              id: store
+              run: |
+                  BUILD_NUMBER=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+                  bundle exec fastlane check_uploads build_number:"$BUILD_NUMBER"
+              env:
+                  APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+                  APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+                  APP_STORE_CONNECT_API_KEY: ${{ secrets.ASC_API_KEY }}
+
+            # Apple now refuses App Store uploads built with anything older
+            # than the iOS 26 SDK (Xcode 26+). macOS runners ship multiple
+            # Xcodes side-by-side and default to whichever Apple shipped
+            # alongside the runner image's macOS — pin the latest stable
+            # explicitly so a runner update doesn't silently regress us
+            # below Apple's threshold again.
+            - uses: maxim-lobanov/setup-xcode@v1
+              if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
+              with:
+                  xcode-version: latest-stable
+
+            - name: Clone hoodik (for shared Rust crates)
+              if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
+              run: git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+
+            - uses: dtolnay/rust-toolchain@stable
+              if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
+              with:
+                  targets: aarch64-apple-ios,aarch64-apple-darwin,x86_64-apple-darwin
+
+            - uses: Swatinem/rust-cache@v2
+              if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
+              with:
+                  workspaces: rust -> target
+                  key: apple-release
+
+            - uses: subosito/flutter-action@v2
+              if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
+              with:
+                  flutter-version: "3.41.x"
+                  channel: stable
+
+            # All three Apple certs go into one keychain. The iOS import creates the
+            # keychain; the two macOS imports reuse it with `create-keychain: false`.
+            # `keychain-password` is just a local key for the temporary keychain —
+            # reusing MACOS_CERTIFICATE_PASSWORD keeps it consistent across imports.
+            - name: Import iOS signing certificate
+              if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
+              uses: apple-actions/import-codesign-certs@v2
+              with:
+                  p12-file-base64: ${{ secrets.IOS_CERTIFICATE_P12 }}
+                  p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+                  keychain-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+            - name: Import macOS application certificate
+              if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
+              uses: apple-actions/import-codesign-certs@v2
+              with:
+                  p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+                  p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+                  create-keychain: false
+                  keychain-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+            - name: Import macOS installer certificate
+              if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
+              uses: apple-actions/import-codesign-certs@v2
+              with:
+                  p12-file-base64: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_P12 }}
+                  p12-password: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_PASSWORD }}
+                  create-keychain: false
+                  keychain-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+            - name: Install provisioning profiles
+              if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
+              run: |
+                  mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+                  echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/app.mobileprovision
+                  echo "${{ secrets.IOS_SHARE_EXTENSION_PROVISIONING_PROFILE }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/share_extension.mobileprovision
+                  echo "${{ secrets.MACOS_PROVISIONING_PROFILE }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/macos_app.provisionprofile
+
+            - run: flutter pub get
+              if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
+
+            # iOS: build + upload to TestFlight. Done first so TestFlight sees the
+            # build even if the macOS leg later fails. The store check above skips
+            # this leg entirely on re-runs; the grep below stays as a fallback for
+            # the window where an upload succeeded but the build isn't listed yet.
+            - name: Build iOS IPA
+              if: steps.store.outputs.ios_uploaded != 'true'
+              run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+            - name: Upload iOS to TestFlight
+              if: steps.store.outputs.ios_uploaded != 'true'
+              run: |
+                  set +e
+                  out="$(bundle exec fastlane ios beta 2>&1)"; code=$?
+                  echo "$out"
+                  if [ "$code" -ne 0 ]; then
+                    if echo "$out" | grep -qiE "ITMS-4238|already been used|Redundant Binary|already exists|same build number"; then
+                      echo "::notice::This build is already on TestFlight; skipping the iOS upload so the macOS leg can run."
+                      exit 0
+                    fi
+                    exit "$code"
+                  fi
+              env:
+                  APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+                  APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+                  APP_STORE_CONNECT_API_KEY: ${{ secrets.ASC_API_KEY }}
+
+            # macOS: build → wrap into signed .pkg → upload to App Store.
+            - name: Build macOS app
+              if: steps.store.outputs.macos_uploaded != 'true'
+              run: flutter build macos --release
+
+            - name: Build macOS installer package
+              if: steps.store.outputs.macos_uploaded != 'true'
+              run: |
+                  APP_PATH="build/macos/Build/Products/Release/Hoodik.app"
+                  PKG_PATH="build/macos/Build/Products/Release/Hoodik.pkg"
+                  INSTALLER_CERT=$(security find-identity -v | grep "3rd Party Mac Developer Installer" | head -1 | awk -F'"' '{print $2}')
+                  xcrun productbuild --component "$APP_PATH" /Applications --sign "$INSTALLER_CERT" "$PKG_PATH"
+
+            - name: Upload macOS to App Store
+              if: steps.store.outputs.macos_uploaded != 'true'
+              run: bundle exec fastlane mac release
+              env:
+                  APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+                  APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+                  APP_STORE_CONNECT_API_KEY: ${{ secrets.ASC_API_KEY }}
