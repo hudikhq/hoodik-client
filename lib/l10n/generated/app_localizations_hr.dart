@@ -463,7 +463,7 @@ class AppLocalizationsHr extends AppLocalizations {
   String get accountOfflineNoFiles => 'Nema keširanih datoteka';
 
   @override
-  String get accountOpenSourceLicenses => 'Licencije otvorenog koda';
+  String get accountOpenSourceLicenses => 'Licence otvorenog koda';
 
   @override
   String get accountPasscodeLock => 'Zaključavanje PIN-om';

@@ -50,7 +50,7 @@ void main() {
   testWidgets('the row is translated, not hardcoded English', (tester) async {
     await pump(tester, locale: const Locale('hr'));
 
-    expect(find.text('Licencije otvorenog koda'), findsOneWidget);
+    expect(find.text('Licence otvorenog koda'), findsOneWidget);
     expect(find.text('Open source licenses'), findsNothing);
   });
 }
