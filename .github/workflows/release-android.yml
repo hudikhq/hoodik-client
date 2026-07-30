@@ -48,6 +48,10 @@ jobs:
         # trigger short-circuit working.
         if: always() && needs.require-green-ci.result != 'failure'
         runs-on: ubuntu-latest
+        # Attaching the APK to the release needs contents:write; the default
+        # token on this repo is read-only.
+        permissions:
+            contents: write
         # A cold build recompiles cryptfns + transfer + hoodik_mobile for two
         # ABIs in release mode. At cargo's default parallelism that starves the
         # runner's RAM and GitHub kills the VM ("lost communication with the
@@ -142,3 +146,28 @@ jobs:
                   releaseFiles: build/app/outputs/bundle/release/app-release.aab
                   track: internal
                   status: draft
+
+            # Play processes the uploaded bundle into APKs signed with the app
+            # signing key. Attaching that universal APK (rather than one signed
+            # with the upload key) means a GitHub download carries the same
+            # signature as a store install, so either source can update the
+            # other. The release object already exists when a tag fires this
+            # workflow (auto-tag-release creates it after green CI); manual
+            # dispatch runs have no tag to attach to, hence the guards.
+            - name: Fetch Play-signed universal APK
+              if: startsWith(github.ref, 'refs/tags/')
+              env:
+                  GOOGLE_PLAY_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+              run: |
+                  python3 -m pip install --quiet google-auth requests
+                  version_code="$(sed -n 's/^version: .*+//p' pubspec.yaml)"
+                  python3 scripts/release/fetch_play_universal_apk.py \
+                      --package com.hudikhq.hoodik \
+                      --version-code "$version_code" \
+                      --output "hoodik-${GITHUB_REF_NAME//+/-}.apk"
+
+            - name: Attach APK to GitHub release
+              if: startsWith(github.ref, 'refs/tags/')
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: gh release upload "$GITHUB_REF_NAME" "hoodik-${GITHUB_REF_NAME//+/-}.apk" --clobber

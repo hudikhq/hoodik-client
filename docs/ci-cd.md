@@ -53,7 +53,8 @@ Triggered only on version tags (`v*`). Two jobs:
 - Decodes signing keystore from secrets
 - Creates `android/key.properties` from secrets
 - Builds: `flutter build appbundle --release`
-- Uploads to Google Play internal track (`r0adkll/upload-google-play@v1`)
+- Uploads the bundle to Google Play internal track (`r0adkll/upload-google-play@v1`)
+- Downloads the Play-signed universal APK (`generatedApks` API, `scripts/release/fetch_play_universal_apk.py`) and attaches it to the GitHub release
 
 ## Rust FFI in CI
 

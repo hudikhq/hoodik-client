@@ -20,13 +20,16 @@ stores ciphertext.
 
 | Platform | Distribution |
 |----------|--------------|
-| Android | [Google Play](https://play.google.com/store/apps/details?id=com.hudikhq.hoodik) |
+| Android | [Google Play](https://play.google.com/store/apps/details?id=com.hudikhq.hoodik) or the Play-signed APK from [GitHub Releases](https://github.com/hudikhq/hoodik-client/releases) |
 | iOS | [App Store](https://apps.apple.com/app/hoodik/id6761471179) |
 | macOS | [Mac App Store](https://apps.apple.com/app/hoodik/id6761471179) |
 
-Those listings are the only places we publish builds; anything downloadable
-elsewhere was built by someone else and may have been modified. If you want
-certainty instead of trust, build from source below.
+Those listings and the Android APK attached to each
+[GitHub release](https://github.com/hudikhq/hoodik-client/releases) are the
+only places we publish builds; anything downloadable elsewhere was built by
+someone else and may have been modified. The release APK carries the same
+signature as a Play install, so either source can update the other. If you
+want certainty instead of trust, build from source below.
 
 Windows and Linux are not shipped yet. The Flutter scaffolding for both is in
 the tree and the app builds, but the markdown editor renders in a WebView and
@@ -148,7 +151,7 @@ See the [Testing Guide](docs/testing.md).
 | Workflow | Trigger | What it does |
 |----------|---------|-------------|
 | [CI](.github/workflows/ci.yml) | Push/PR to `main` | format, analyze, invariants, unit tests, iOS build verify |
-| [Release Android](.github/workflows/release-android.yml) | Tag `v*` | build and upload the App Bundle to Play |
+| [Release Android](.github/workflows/release-android.yml) | Tag `v*` | build the App Bundle, upload to Play, attach the Play-signed APK to the release |
 | [Release Apple](.github/workflows/release-apple.yml) | Tag `v*` | build and upload iOS and macOS to App Store Connect |
 | [Version verify](.github/workflows/version-verify.yml) | Push/PR | pubspec version and build number must move together |
 
