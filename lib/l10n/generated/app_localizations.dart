@@ -1038,6 +1038,18 @@ abstract class AppLocalizations {
   /// **'Unlimited'**
   String get accountStorageUnlimited;
 
+  /// No description provided for @accountStorageUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} used'**
+  String accountStorageUsed(Object used);
+
+  /// No description provided for @accountStorageUsedOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {total} used'**
+  String accountStorageUsedOfTotal(Object used, Object total);
+
   /// No description provided for @accountTermsOfService.
   ///
   /// In en, this message translates to:

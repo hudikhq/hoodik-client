@@ -426,6 +426,15 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  /// Keep the cached quota in step with what the server reports. The row
+  /// is otherwise only written at login, so a plan change on the server
+  /// would show a stale limit until the next full re-login.
+  Future<void> updateAccountQuota(String accountId, int? quota) async {
+    await (update(accounts)..where((a) => a.id.equals(accountId))).write(
+      AccountsCompanion(quota: Value(quota)),
+    );
+  }
+
   Future<void> setActiveAccount(String accountId) async {
     await (update(accounts)..where((a) => a.isActive.equals(true))).write(
       const AccountsCompanion(isActive: Value(false)),

@@ -552,6 +552,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountStorageUnlimited => 'Unlimited';
 
   @override
+  String accountStorageUsed(Object used) {
+    return '$used used';
+  }
+
+  @override
+  String accountStorageUsedOfTotal(Object used, Object total) {
+    return '$used of $total used';
+  }
+
+  @override
   String get accountTermsOfService => 'Terms of Service';
 
   @override
