@@ -4793,6 +4793,15 @@ class $TrustedFingerprintsTable extends TrustedFingerprints
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _lastVerifiedAtMeta = const VerificationMeta(
     'lastVerifiedAt',
   );
@@ -4834,6 +4843,7 @@ class $TrustedFingerprintsTable extends TrustedFingerprints
     ownerUserId,
     userId,
     fingerprint,
+    email,
     lastVerifiedAt,
     verificationMethod,
     createdAt,
@@ -4880,6 +4890,12 @@ class $TrustedFingerprintsTable extends TrustedFingerprints
     } else if (isInserting) {
       context.missing(_fingerprintMeta);
     }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    }
     if (data.containsKey('last_verified_at')) {
       context.handle(
         _lastVerifiedAtMeta,
@@ -4925,6 +4941,10 @@ class $TrustedFingerprintsTable extends TrustedFingerprints
         DriftSqlType.string,
         data['${effectivePrefix}fingerprint'],
       )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      ),
       lastVerifiedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_verified_at'],
@@ -4954,6 +4974,12 @@ class TrustedFingerprint extends DataClass
   /// The peer's `sha256(hex(modulus))` fingerprint, hex-encoded.
   final String fingerprint;
 
+  /// The peer's email as last seen at discovery or share time. Feeds the
+  /// recipient-suggestion list; already server-visible metadata, so caching
+  /// it locally adds no exposure. Null on rows recorded before the column
+  /// existed, backfilled on the next successful lookup of that peer.
+  final String? email;
+
   /// When the user explicitly confirmed the fingerprint out of band. Null for
   /// a row that was only ever recorded on first sight.
   final DateTime? lastVerifiedAt;
@@ -4966,6 +4992,7 @@ class TrustedFingerprint extends DataClass
     required this.ownerUserId,
     required this.userId,
     required this.fingerprint,
+    this.email,
     this.lastVerifiedAt,
     required this.verificationMethod,
     required this.createdAt,
@@ -4976,6 +5003,9 @@ class TrustedFingerprint extends DataClass
     map['owner_user_id'] = Variable<String>(ownerUserId);
     map['user_id'] = Variable<String>(userId);
     map['fingerprint'] = Variable<String>(fingerprint);
+    if (!nullToAbsent || email != null) {
+      map['email'] = Variable<String>(email);
+    }
     if (!nullToAbsent || lastVerifiedAt != null) {
       map['last_verified_at'] = Variable<DateTime>(lastVerifiedAt);
     }
@@ -4989,6 +5019,9 @@ class TrustedFingerprint extends DataClass
       ownerUserId: Value(ownerUserId),
       userId: Value(userId),
       fingerprint: Value(fingerprint),
+      email: email == null && nullToAbsent
+          ? const Value.absent()
+          : Value(email),
       lastVerifiedAt: lastVerifiedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastVerifiedAt),
@@ -5006,6 +5039,7 @@ class TrustedFingerprint extends DataClass
       ownerUserId: serializer.fromJson<String>(json['ownerUserId']),
       userId: serializer.fromJson<String>(json['userId']),
       fingerprint: serializer.fromJson<String>(json['fingerprint']),
+      email: serializer.fromJson<String?>(json['email']),
       lastVerifiedAt: serializer.fromJson<DateTime?>(json['lastVerifiedAt']),
       verificationMethod: serializer.fromJson<String>(
         json['verificationMethod'],
@@ -5020,6 +5054,7 @@ class TrustedFingerprint extends DataClass
       'ownerUserId': serializer.toJson<String>(ownerUserId),
       'userId': serializer.toJson<String>(userId),
       'fingerprint': serializer.toJson<String>(fingerprint),
+      'email': serializer.toJson<String?>(email),
       'lastVerifiedAt': serializer.toJson<DateTime?>(lastVerifiedAt),
       'verificationMethod': serializer.toJson<String>(verificationMethod),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -5030,6 +5065,7 @@ class TrustedFingerprint extends DataClass
     String? ownerUserId,
     String? userId,
     String? fingerprint,
+    Value<String?> email = const Value.absent(),
     Value<DateTime?> lastVerifiedAt = const Value.absent(),
     String? verificationMethod,
     DateTime? createdAt,
@@ -5037,6 +5073,7 @@ class TrustedFingerprint extends DataClass
     ownerUserId: ownerUserId ?? this.ownerUserId,
     userId: userId ?? this.userId,
     fingerprint: fingerprint ?? this.fingerprint,
+    email: email.present ? email.value : this.email,
     lastVerifiedAt: lastVerifiedAt.present
         ? lastVerifiedAt.value
         : this.lastVerifiedAt,
@@ -5052,6 +5089,7 @@ class TrustedFingerprint extends DataClass
       fingerprint: data.fingerprint.present
           ? data.fingerprint.value
           : this.fingerprint,
+      email: data.email.present ? data.email.value : this.email,
       lastVerifiedAt: data.lastVerifiedAt.present
           ? data.lastVerifiedAt.value
           : this.lastVerifiedAt,
@@ -5068,6 +5106,7 @@ class TrustedFingerprint extends DataClass
           ..write('ownerUserId: $ownerUserId, ')
           ..write('userId: $userId, ')
           ..write('fingerprint: $fingerprint, ')
+          ..write('email: $email, ')
           ..write('lastVerifiedAt: $lastVerifiedAt, ')
           ..write('verificationMethod: $verificationMethod, ')
           ..write('createdAt: $createdAt')
@@ -5080,6 +5119,7 @@ class TrustedFingerprint extends DataClass
     ownerUserId,
     userId,
     fingerprint,
+    email,
     lastVerifiedAt,
     verificationMethod,
     createdAt,
@@ -5091,6 +5131,7 @@ class TrustedFingerprint extends DataClass
           other.ownerUserId == this.ownerUserId &&
           other.userId == this.userId &&
           other.fingerprint == this.fingerprint &&
+          other.email == this.email &&
           other.lastVerifiedAt == this.lastVerifiedAt &&
           other.verificationMethod == this.verificationMethod &&
           other.createdAt == this.createdAt);
@@ -5100,6 +5141,7 @@ class TrustedFingerprintsCompanion extends UpdateCompanion<TrustedFingerprint> {
   final Value<String> ownerUserId;
   final Value<String> userId;
   final Value<String> fingerprint;
+  final Value<String?> email;
   final Value<DateTime?> lastVerifiedAt;
   final Value<String> verificationMethod;
   final Value<DateTime> createdAt;
@@ -5108,6 +5150,7 @@ class TrustedFingerprintsCompanion extends UpdateCompanion<TrustedFingerprint> {
     this.ownerUserId = const Value.absent(),
     this.userId = const Value.absent(),
     this.fingerprint = const Value.absent(),
+    this.email = const Value.absent(),
     this.lastVerifiedAt = const Value.absent(),
     this.verificationMethod = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -5117,6 +5160,7 @@ class TrustedFingerprintsCompanion extends UpdateCompanion<TrustedFingerprint> {
     required String ownerUserId,
     required String userId,
     required String fingerprint,
+    this.email = const Value.absent(),
     this.lastVerifiedAt = const Value.absent(),
     this.verificationMethod = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -5128,6 +5172,7 @@ class TrustedFingerprintsCompanion extends UpdateCompanion<TrustedFingerprint> {
     Expression<String>? ownerUserId,
     Expression<String>? userId,
     Expression<String>? fingerprint,
+    Expression<String>? email,
     Expression<DateTime>? lastVerifiedAt,
     Expression<String>? verificationMethod,
     Expression<DateTime>? createdAt,
@@ -5137,6 +5182,7 @@ class TrustedFingerprintsCompanion extends UpdateCompanion<TrustedFingerprint> {
       if (ownerUserId != null) 'owner_user_id': ownerUserId,
       if (userId != null) 'user_id': userId,
       if (fingerprint != null) 'fingerprint': fingerprint,
+      if (email != null) 'email': email,
       if (lastVerifiedAt != null) 'last_verified_at': lastVerifiedAt,
       if (verificationMethod != null) 'verification_method': verificationMethod,
       if (createdAt != null) 'created_at': createdAt,
@@ -5148,6 +5194,7 @@ class TrustedFingerprintsCompanion extends UpdateCompanion<TrustedFingerprint> {
     Value<String>? ownerUserId,
     Value<String>? userId,
     Value<String>? fingerprint,
+    Value<String?>? email,
     Value<DateTime?>? lastVerifiedAt,
     Value<String>? verificationMethod,
     Value<DateTime>? createdAt,
@@ -5157,6 +5204,7 @@ class TrustedFingerprintsCompanion extends UpdateCompanion<TrustedFingerprint> {
       ownerUserId: ownerUserId ?? this.ownerUserId,
       userId: userId ?? this.userId,
       fingerprint: fingerprint ?? this.fingerprint,
+      email: email ?? this.email,
       lastVerifiedAt: lastVerifiedAt ?? this.lastVerifiedAt,
       verificationMethod: verificationMethod ?? this.verificationMethod,
       createdAt: createdAt ?? this.createdAt,
@@ -5175,6 +5223,9 @@ class TrustedFingerprintsCompanion extends UpdateCompanion<TrustedFingerprint> {
     }
     if (fingerprint.present) {
       map['fingerprint'] = Variable<String>(fingerprint.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
     }
     if (lastVerifiedAt.present) {
       map['last_verified_at'] = Variable<DateTime>(lastVerifiedAt.value);
@@ -5197,6 +5248,7 @@ class TrustedFingerprintsCompanion extends UpdateCompanion<TrustedFingerprint> {
           ..write('ownerUserId: $ownerUserId, ')
           ..write('userId: $userId, ')
           ..write('fingerprint: $fingerprint, ')
+          ..write('email: $email, ')
           ..write('lastVerifiedAt: $lastVerifiedAt, ')
           ..write('verificationMethod: $verificationMethod, ')
           ..write('createdAt: $createdAt, ')
@@ -7880,6 +7932,7 @@ typedef $$TrustedFingerprintsTableCreateCompanionBuilder =
       required String ownerUserId,
       required String userId,
       required String fingerprint,
+      Value<String?> email,
       Value<DateTime?> lastVerifiedAt,
       Value<String> verificationMethod,
       Value<DateTime> createdAt,
@@ -7890,6 +7943,7 @@ typedef $$TrustedFingerprintsTableUpdateCompanionBuilder =
       Value<String> ownerUserId,
       Value<String> userId,
       Value<String> fingerprint,
+      Value<String?> email,
       Value<DateTime?> lastVerifiedAt,
       Value<String> verificationMethod,
       Value<DateTime> createdAt,
@@ -7917,6 +7971,11 @@ class $$TrustedFingerprintsTableFilterComposer
 
   ColumnFilters<String> get fingerprint => $composableBuilder(
     column: $table.fingerprint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7960,6 +8019,11 @@ class $$TrustedFingerprintsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get lastVerifiedAt => $composableBuilder(
     column: $table.lastVerifiedAt,
     builder: (column) => ColumnOrderings(column),
@@ -7997,6 +8061,9 @@ class $$TrustedFingerprintsTableAnnotationComposer
     column: $table.fingerprint,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
 
   GeneratedColumn<DateTime> get lastVerifiedAt => $composableBuilder(
     column: $table.lastVerifiedAt,
@@ -8058,6 +8125,7 @@ class $$TrustedFingerprintsTableTableManager
                 Value<String> ownerUserId = const Value.absent(),
                 Value<String> userId = const Value.absent(),
                 Value<String> fingerprint = const Value.absent(),
+                Value<String?> email = const Value.absent(),
                 Value<DateTime?> lastVerifiedAt = const Value.absent(),
                 Value<String> verificationMethod = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -8066,6 +8134,7 @@ class $$TrustedFingerprintsTableTableManager
                 ownerUserId: ownerUserId,
                 userId: userId,
                 fingerprint: fingerprint,
+                email: email,
                 lastVerifiedAt: lastVerifiedAt,
                 verificationMethod: verificationMethod,
                 createdAt: createdAt,
@@ -8076,6 +8145,7 @@ class $$TrustedFingerprintsTableTableManager
                 required String ownerUserId,
                 required String userId,
                 required String fingerprint,
+                Value<String?> email = const Value.absent(),
                 Value<DateTime?> lastVerifiedAt = const Value.absent(),
                 Value<String> verificationMethod = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -8084,6 +8154,7 @@ class $$TrustedFingerprintsTableTableManager
                 ownerUserId: ownerUserId,
                 userId: userId,
                 fingerprint: fingerprint,
+                email: email,
                 lastVerifiedAt: lastVerifiedAt,
                 verificationMethod: verificationMethod,
                 createdAt: createdAt,

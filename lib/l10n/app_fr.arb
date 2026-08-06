@@ -779,6 +779,7 @@
   "sharesGroupRoleReaderDescription": "Lecteur — voit le groupe, rien de plus.",
   "sharesGroupsExplainer": "Les groupes vous permettent de partager avec tous leurs membres en une seule fois.",
   "sharesGroupsLoadFailed": "Impossible de charger vos groupes.",
+  "sharesInvalidEmail": "Cela ne ressemble pas \u00e0 une adresse e-mail.",
   "sharesItemCount": "{count, plural, one{{count} élément} other{{count} éléments}}",
   "sharesKeyFingerprintMismatch": "La clé et l’empreinte de ce compte ne correspondent pas. Le partage est bloqué — n’allez pas plus loin.",
   "sharesLookupFailed": "Impossible de trouver cet utilisateur.",

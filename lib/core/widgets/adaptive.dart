@@ -162,6 +162,7 @@ class AdaptiveTextField extends StatelessWidget {
     this.maxLength,
     this.onSubmitted,
     this.enabled = true,
+    this.focusNode,
   });
 
   final TextEditingController? controller;
@@ -177,6 +178,7 @@ class AdaptiveTextField extends StatelessWidget {
   final int? maxLength;
   final ValueChanged<String>? onSubmitted;
   final bool enabled;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -199,6 +201,7 @@ class AdaptiveTextField extends StatelessWidget {
           ],
           CupertinoTextField(
             controller: controller,
+            focusNode: focusNode,
             placeholder: placeholder ?? label,
             prefix: prefix != null
                 ? Padding(
@@ -233,6 +236,7 @@ class AdaptiveTextField extends StatelessWidget {
 
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       decoration: InputDecoration(
         labelText: label,
         hintText: placeholder,

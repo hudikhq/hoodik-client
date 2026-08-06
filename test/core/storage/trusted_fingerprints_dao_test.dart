@@ -222,4 +222,63 @@ void main() {
       );
     });
   });
+
+  group('peer email capture', () {
+    test('upsert stores the email and an email-less upsert keeps it', () async {
+      await db.upsertTrustedFingerprint(
+        ownerUserId: 'owner',
+        userId: 'peer',
+        fingerprint: 'aa',
+        email: 'peer@example.test',
+      );
+      expect(
+        (await db.getTrustedFingerprint('owner', 'peer'))!.email,
+        'peer@example.test',
+      );
+
+      // Re-recording the fingerprint without an email (e.g. from a roster
+      // that omits addresses) must not wipe the suggestion source.
+      await db.upsertTrustedFingerprint(
+        ownerUserId: 'owner',
+        userId: 'peer',
+        fingerprint: 'aa',
+      );
+      expect(
+        (await db.getTrustedFingerprint('owner', 'peer'))!.email,
+        'peer@example.test',
+      );
+    });
+
+    test(
+      'updateTrustedFingerprintEmail backfills existing rows only',
+      () async {
+        await db.upsertTrustedFingerprint(
+          ownerUserId: 'owner',
+          userId: 'peer',
+          fingerprint: 'aa',
+        );
+
+        await db.updateTrustedFingerprintEmail(
+          'owner',
+          'peer',
+          'p@example.test',
+        );
+        expect(
+          (await db.getTrustedFingerprint('owner', 'peer'))!.email,
+          'p@example.test',
+        );
+
+        await db.updateTrustedFingerprintEmail(
+          'owner',
+          'ghost',
+          'g@example.test',
+        );
+        expect(
+          await db.getTrustedFingerprint('owner', 'ghost'),
+          isNull,
+          reason: 'a lookup must never create a trust row',
+        );
+      },
+    );
+  });
 }

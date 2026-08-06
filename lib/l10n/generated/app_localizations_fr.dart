@@ -2884,6 +2884,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sharesGroupsLoadFailed => 'Impossible de charger vos groupes.';
 
   @override
+  String get sharesInvalidEmail =>
+      'Cela ne ressemble pas à une adresse e-mail.';
+
+  @override
   String sharesItemCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

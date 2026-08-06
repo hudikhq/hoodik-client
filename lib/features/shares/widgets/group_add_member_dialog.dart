@@ -9,6 +9,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../controllers/group_controller.dart';
 import 'group_role_selector.dart';
 import 'recipient_discovery.dart';
+import 'recipient_email_field.dart';
 import 'share_fingerprint_tile.dart';
 
 /// Add a member to the group named [groupName]. Discovers the recipient by
@@ -88,6 +89,10 @@ class _GroupAddMemberDialogState extends ConsumerState<_GroupAddMemberDialog> {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       setState(() => _discoverError = l10n.sharesEnterMemberEmailFirst);
+      return;
+    }
+    if (!looksLikeEmail(email)) {
+      setState(() => _discoverError = l10n.sharesInvalidEmail);
       return;
     }
     setState(() {
@@ -171,15 +176,13 @@ class _GroupAddMemberDialogState extends ConsumerState<_GroupAddMemberDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-              AdaptiveTextField(
+              RecipientEmailField(
                 controller: _emailController,
                 label: l10n.sharesMemberEmailLabel,
                 placeholder: l10n.sharesEmailPlaceholder,
-                keyboardType: TextInputType.emailAddress,
-                autocorrect: false,
-                textInputAction: TextInputAction.search,
                 enabled: !_submitting,
-                onSubmitted: (_) => _discover(),
+                onSelected: _discover,
+                onSubmitted: _discover,
               ),
               const SizedBox(height: 10),
               Align(

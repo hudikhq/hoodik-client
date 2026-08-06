@@ -43,11 +43,13 @@ extension TrustedFingerprintDao on AppDatabase {
   /// Record or overwrite the trusted fingerprint for one peer. Used both on
   /// first sight (TOFU) and when the user accepts a changed fingerprint.
   /// [verificationMethod] defaults to 'tofu'; pass 'manual' when the user
-  /// confirmed it out of band.
+  /// confirmed it out of band. [email] feeds the recipient-suggestion list;
+  /// null leaves any previously recorded address untouched.
   Future<void> upsertTrustedFingerprint({
     required String ownerUserId,
     required String userId,
     required String fingerprint,
+    String? email,
     String verificationMethod = 'tofu',
     DateTime? lastVerifiedAt,
   }) async {
@@ -56,10 +58,26 @@ extension TrustedFingerprintDao on AppDatabase {
         ownerUserId: ownerUserId,
         userId: userId,
         fingerprint: fingerprint,
+        email: email == null ? const Value.absent() : Value(email),
         verificationMethod: Value(verificationMethod),
         lastVerifiedAt: Value(lastVerifiedAt),
       ),
     );
+  }
+
+  /// Backfill or refresh a peer's email on an existing trust row without
+  /// touching the fingerprint or verification state. A no-op for peers the
+  /// owner has never recorded — trust rows are only ever created by
+  /// [upsertTrustedFingerprint], never by a lookup.
+  Future<void> updateTrustedFingerprintEmail(
+    String ownerUserId,
+    String userId,
+    String email,
+  ) async {
+    await (update(trustedFingerprints)..where(
+          (t) => t.ownerUserId.equals(ownerUserId) & t.userId.equals(userId),
+        ))
+        .write(TrustedFingerprintsCompanion(email: Value(email)));
   }
 
   /// Stamp an existing peer row as manually verified: set [lastVerifiedAt] to
