@@ -191,18 +191,15 @@ void main() {
     await open(tester);
     await discover(tester, 'bob@example.test');
 
-    expect(find.text('Allow them to add new files'), findsOneWidget);
-
-    Checkbox box() => tester.widget<Checkbox>(find.byType(Checkbox));
-
-    // Default role is Reader → view-only, the box reads unchecked with a hint.
-    expect(box().value, isFalse);
+    // Default role is Reader → view-only, so the caption points at the
+    // roles that can add files.
     expect(find.text('Pick Editor or Co-owner to enable'), findsOneWidget);
+    expect(find.text('Allow them to add new files'), findsNothing);
 
-    // Promoting to Editor flips it on — Editor/Co-owner may add files.
+    // Promoting to Editor flips the caption — Editor/Co-owner may add files.
     await tester.tap(find.text('Editor'));
     await tester.pumpAndSettle();
-    expect(box().value, isTrue);
+    expect(find.text('Allow them to add new files'), findsOneWidget);
     expect(find.text('Pick Editor or Co-owner to enable'), findsNothing);
   });
 }
