@@ -10,6 +10,7 @@ import 'file_actions_sheet.dart';
 class FilesFab extends StatelessWidget {
   final bool busy;
   final VoidCallback onCreateFolder;
+  final VoidCallback onCreateNote;
   final VoidCallback onUploadFile;
   final VoidCallback onUploadPhoto;
   final VoidCallback onTakePhoto;
@@ -18,6 +19,7 @@ class FilesFab extends StatelessWidget {
     super.key,
     required this.busy,
     required this.onCreateFolder,
+    required this.onCreateNote,
     required this.onUploadFile,
     required this.onUploadPhoto,
     required this.onTakePhoto,
@@ -35,6 +37,7 @@ class FilesFab extends StatelessWidget {
               showFabMenuSheet(
                 context: context,
                 onCreateFolder: onCreateFolder,
+                onCreateNote: onCreateNote,
                 onUploadFile: onUploadFile,
                 onUploadPhoto: isDesktop ? null : onUploadPhoto,
                 onTakePhoto: isDesktop ? null : onTakePhoto,

@@ -325,6 +325,12 @@ class MainShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<int?>(shellBranchRequestProvider, (_, index) {
+      if (index == null) return;
+      ref.read(shellBranchRequestProvider.notifier).state = null;
+      navigationShell.goBranch(index);
+    });
+
     final manager = ref.watch(transferManagerProvider);
     final hasTransfers = manager.hasTransfers;
     final failedCount = ref.watch(permanentlyFailedCountProvider).value ?? 0;

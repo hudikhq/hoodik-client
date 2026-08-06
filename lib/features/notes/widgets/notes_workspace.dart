@@ -29,6 +29,7 @@ import 'ios_editor_layout.dart' show injectIosCaretInset;
 import 'notes_main_area.dart';
 import 'notes_sidebar.dart';
 import 'recent_notes_panel.dart';
+import 'unsaved_changes_dialog.dart';
 
 const _log = Logger('NotesWorkspace');
 
@@ -75,6 +76,11 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
   bool _editorReady = false;
 
+  /// Set when the workspace was seeded from the Files branch; closing the
+  /// last tab then switches the shell back there instead of falling
+  /// through to the recent-notes landing state.
+  bool _returnToFilesOnLastClose = false;
+
   Timer? _autoSaveTimer;
   Completer<String>? _getMarkdownCompleter;
 
@@ -90,6 +96,13 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     if (widget.initialFileId != null) {
       _seedInitialTab(widget.initialFileId!);
       _loadTab(_activeTab);
+      // The request that seeded this workspace was set before the listener
+      // below existed, so its origin flag has to be read directly.
+      final req = ref.read(openNoteRequestProvider);
+      _returnToFilesOnLastClose =
+          req != null &&
+          req.fileId == widget.initialFileId &&
+          req.returnToFiles;
     }
 
     // Re-apply zoom to the webview whenever the host preference changes.
@@ -113,6 +126,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   }
 
   void _openFromRequest(OpenNoteRequest req) {
+    if (req.returnToFiles) _returnToFilesOnLastClose = true;
     final existing = _tabs.indexWhere((t) => t.fileId == req.fileId);
     if (existing >= 0) {
       if (existing != _activeTabIndex) {
@@ -388,22 +402,15 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     await captureActiveDraft(() => _activeTab, _getMarkdown);
   }
 
-  /// Falls back to the recent-notes empty state rather than popping the route.
-  Future<void> _closeTab(int index) async {
-    if (index < 0 || index >= _tabs.length) return;
-
-    final tab = _tabs[index];
-    if (tab.isDirty && !tab.isSaving) {
-      final ok = await _confirmDiscardTab(tab);
-      if (!ok) return;
-    }
-
+  /// Remove the tab at [index] and shift the active index. Returns true
+  /// when that was the last tab (the workspace is now empty).
+  bool _removeTabAt(int index) {
     if (_tabs.length == 1) {
       setState(() {
         _tabs.clear();
         _activeTabIndex = 0;
       });
-      return;
+      return true;
     }
 
     int newActive = _activeTabIndex;
@@ -417,8 +424,33 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       _tabs.removeAt(index);
       _activeTabIndex = newActive.clamp(0, _tabs.length - 1);
     });
+    return false;
+  }
 
-    if (index == _activeTabIndex || index <= _activeTabIndex) {
+  /// A workspace seeded from Files hands control back on last-tab close;
+  /// one opened from the Notes tab falls through to the recent-notes
+  /// empty state instead.
+  void _maybeReturnToFiles() {
+    if (!_returnToFilesOnLastClose) return;
+    _returnToFilesOnLastClose = false;
+    ref.read(shellBranchRequestProvider.notifier).state = filesBranchIndex;
+  }
+
+  Future<void> _closeTab(int index) async {
+    if (index < 0 || index >= _tabs.length) return;
+
+    final tab = _tabs[index];
+    if (tab.isDirty && !tab.isSaving) {
+      final ok = await _confirmDiscardTab(tab);
+      if (!ok) return;
+    }
+
+    if (_removeTabAt(index)) {
+      _maybeReturnToFiles();
+      return;
+    }
+
+    if (index <= _activeTabIndex) {
       final tab = _activeTab;
       if (!tab.loaded && !tab.loading) {
         await _loadTab(tab);
@@ -644,39 +676,14 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   Future<bool> _confirmDiscardTab(EditorTab tab) async {
     if (!tab.isDirty) return true;
 
-    final l10n = AppLocalizations.of(context);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.notesUnsavedChangesTitle(tab.fileName)),
-        content: Text(l10n.notesUnsavedChangesBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'cancel'),
-            child: Text(l10n.commonCancel),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: HoodikColors.redish400,
-            ),
-            onPressed: () => Navigator.pop(ctx, 'discard'),
-            child: Text(l10n.notesDiscard),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'save'),
-            child: Text(l10n.notesSaveAndClose),
-          ),
-        ],
-      ),
-    );
-
-    if (result == 'save') {
+    final choice = await showUnsavedChangesDialog(context, tab.fileName);
+    if (choice == UnsavedChangesChoice.save) {
       if (identical(tab, _activeTab)) {
         await _saveActiveContent();
       }
       return true;
     }
-    return result == 'discard';
+    return choice == UnsavedChangesChoice.discard;
   }
 
   Future<bool> _confirmDiscardAll() async {
@@ -702,25 +709,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     _tabs[idx].isDirty = false;
     _tabs[idx].isSaving = false;
 
-    if (_tabs.length == 1) {
-      setState(() {
-        _tabs.clear();
-        _activeTabIndex = 0;
-      });
-      return;
-    }
-
-    int newActive = _activeTabIndex;
-    if (idx == _activeTabIndex) {
-      newActive = idx > 0 ? idx - 1 : 0;
-    } else if (idx < _activeTabIndex) {
-      newActive = _activeTabIndex - 1;
-    }
-
-    setState(() {
-      _tabs.removeAt(idx);
-      _activeTabIndex = newActive.clamp(0, _tabs.length - 1);
-    });
+    if (_removeTabAt(idx)) return;
 
     if (idx <= _activeTabIndex + 1 && _editorReady) {
       final tab = _activeTab;

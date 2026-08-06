@@ -205,4 +205,48 @@ void main() {
       expect(forked, same(file));
     });
   });
+
+  group('FAB menu sheet', () {
+    Future<void> openFabSheet(
+      WidgetTester tester, {
+      required VoidCallback onCreateNote,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => showFabMenuSheet(
+                    context: context,
+                    onCreateFolder: () {},
+                    onCreateNote: onCreateNote,
+                    onUploadFile: () {},
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('offers New note under the Create section', (tester) async {
+      var created = false;
+      await openFabSheet(tester, onCreateNote: () => created = true);
+
+      expect(find.text('Create'), findsOneWidget);
+      expect(find.text('Upload'), findsOneWidget);
+
+      await tester.tap(find.text('New note'));
+      await tester.pumpAndSettle();
+      expect(created, isTrue);
+      expect(find.text('New note'), findsNothing);
+    });
+  });
 }

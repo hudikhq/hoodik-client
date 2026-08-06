@@ -14,23 +14,31 @@ class OpenNoteRequest {
   final String fileId;
   final int epoch;
 
-  const OpenNoteRequest({required this.fileId, required this.epoch});
+  /// True when the request came from the Files branch. Closing the last
+  /// workspace tab then switches the shell back to Files instead of
+  /// stranding the user on the Notes landing screen.
+  final bool returnToFiles;
+
+  const OpenNoteRequest({
+    required this.fileId,
+    required this.epoch,
+    this.returnToFiles = false,
+  });
 }
 
 final openNoteRequestProvider = StateProvider<OpenNoteRequest?>((ref) => null);
 
 /// Convenience: bump the epoch and set a fresh request. Used by callers
 /// that route a file tap into the editor.
-void requestOpenNote(Ref ref, String fileId) {
+void requestOpenNoteFromWidget(
+  WidgetRef ref,
+  String fileId, {
+  bool returnToFiles = false,
+}) {
   final prev = ref.read(openNoteRequestProvider);
-  final next = OpenNoteRequest(fileId: fileId, epoch: (prev?.epoch ?? 0) + 1);
-  ref.read(openNoteRequestProvider.notifier).state = next;
-}
-
-/// Same as [requestOpenNote] but for callers that have a [WidgetRef]
-/// (inside a Widget's build/event handler) rather than a plain [Ref].
-void requestOpenNoteFromWidget(WidgetRef ref, String fileId) {
-  final prev = ref.read(openNoteRequestProvider);
-  final next = OpenNoteRequest(fileId: fileId, epoch: (prev?.epoch ?? 0) + 1);
-  ref.read(openNoteRequestProvider.notifier).state = next;
+  ref.read(openNoteRequestProvider.notifier).state = OpenNoteRequest(
+    fileId: fileId,
+    epoch: (prev?.epoch ?? 0) + 1,
+    returnToFiles: returnToFiles,
+  );
 }
