@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoodik_app/core/providers.dart';
+import 'package:hoodik_app/l10n/generated/app_localizations.dart';
 import 'package:hoodik_app/router.dart';
 
 /// Mounts the real [MainShell] over stub branch screens so the
@@ -46,7 +47,11 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
       ),
     );
     expect(find.text('files-root'), findsOneWidget);
