@@ -258,9 +258,14 @@ class McpToolHandler implements McpToolDispatcher {
   }
 
   Future<Map<String, dynamic>> _storageStats() async {
+    // The listing endpoint carries no usage figures — the stats response is
+    // the only source of used_space and quota.
     final stats = await _gateway.getStats();
-    final root = await _gateway.listFiles();
-    return {'used_space': root.usedSpace, 'quota': root.quota, 'stats': stats};
+    return {
+      'used_space': stats['used_space'],
+      'quota': stats['quota'],
+      'stats': stats,
+    };
   }
 
   Future<List<Map<String, dynamic>>> _listNotes(

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/utils/error_copy.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../../core/auth/auth_service.dart';
@@ -230,7 +231,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = e.toString().replaceFirst('Exception: ', '');
+          _error = humanizeError(e);
         });
       }
     }

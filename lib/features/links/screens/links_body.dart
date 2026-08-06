@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/utils/error_copy.dart';
 import '../services/links_loader.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/l10n_lookup.dart';
@@ -94,7 +95,7 @@ class LinksBodyState extends ConsumerState<LinksBody> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString().replaceFirst('Exception: ', '');
+          _error = humanizeError(e);
           _loading = false;
         });
       }

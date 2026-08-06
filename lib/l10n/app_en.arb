@@ -639,6 +639,11 @@
   "commonUnknown": "Unknown",
   "commonUpload": "Upload",
   "commonYes": "Yes",
+  "errorNoConnection": "No connection. Check your network and try again.",
+  "errorNotAuthorized": "You’re not authorized for this action. Try signing in again.",
+  "errorRequestFailed": "Request failed ({status}).",
+  "@errorRequestFailed": {"placeholders": {"status": {}}},
+  "errorServerUnavailable": "The server is having trouble. Try again in a moment.",
   "filesAccountNotInitialized": "Account not fully initialized",
   "filesAvailableOffline": "{name} available offline",
   "@filesAvailableOffline": {

@@ -3,10 +3,8 @@ import 'shares_models.dart';
 
 class StorageResponse {
   final List<FileItem> children;
-  final int? usedSpace;
-  final int? quota;
 
-  StorageResponse({required this.children, this.usedSpace, this.quota});
+  StorageResponse({required this.children});
 
   factory StorageResponse.fromJson(Map<String, dynamic> json) {
     final items =
@@ -14,11 +12,7 @@ class StorageResponse {
             ?.map((e) => FileItem.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [];
-    return StorageResponse(
-      children: items,
-      usedSpace: json['used_space'] as int?,
-      quota: json['quota'] as int?,
-    );
+    return StorageResponse(children: items);
   }
 }
 

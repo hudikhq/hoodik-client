@@ -50,11 +50,7 @@ class FakeMcpGateway implements McpGateway {
       return true;
     }).toList();
 
-    return StorageResponse(
-      children: children,
-      usedSpace: bodies.values.fold<int>(0, (sum, b) => sum + b.length),
-      quota: 1024 * 1024 * 1024,
-    );
+    return StorageResponse(children: children);
   }
 
   @override
@@ -94,13 +90,22 @@ class FakeMcpGateway implements McpGateway {
 
   @override
   Future<Map<String, dynamic>> getStats() async {
+    // Mirrors the real /api/storage/stats response shape: a per-mime
+    // breakdown plus account-level used_space and quota.
     final byMime = <String, Map<String, int>>{};
     for (final f in files.values) {
       final bucket = byMime.putIfAbsent(f.mime, () => {'size': 0, 'count': 0});
       bucket['size'] = bucket['size']! + (f.size ?? 0);
       bucket['count'] = bucket['count']! + 1;
     }
-    return {'by_mime': byMime};
+    return {
+      'stats': [
+        for (final e in byMime.entries)
+          {'mime': e.key, 'size': e.value['size'], 'count': e.value['count']},
+      ],
+      'used_space': bodies.values.fold<int>(0, (sum, b) => sum + b.length),
+      'quota': 1024 * 1024 * 1024,
+    };
   }
 
   @override

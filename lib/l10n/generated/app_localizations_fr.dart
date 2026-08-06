@@ -1366,6 +1366,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get commonYes => 'Oui';
 
   @override
+  String get errorNoConnection =>
+      'Pas de connexion. Vérifiez votre réseau et réessayez.';
+
+  @override
+  String get errorNotAuthorized =>
+      'Vous n’êtes pas autorisé à effectuer cette action. Reconnectez-vous et réessayez.';
+
+  @override
+  String errorRequestFailed(Object status) {
+    return 'La requête a échoué ($status).';
+  }
+
+  @override
+  String get errorServerUnavailable =>
+      'Le serveur rencontre un problème. Réessayez dans un instant.';
+
+  @override
   String get filesAccountNotInitialized => 'Compte pas entièrement initialisé';
 
   @override

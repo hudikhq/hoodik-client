@@ -58,7 +58,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _onChanged(String value) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 1000), () {
+    _debounce = Timer(const Duration(milliseconds: 350), () {
       _search(value.trim());
     });
   }

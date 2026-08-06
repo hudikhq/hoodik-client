@@ -1356,6 +1356,23 @@ class AppLocalizationsHr extends AppLocalizations {
   String get commonYes => 'Da';
 
   @override
+  String get errorNoConnection =>
+      'Nema veze sa serverom. Provjeri mrežu i pokušaj ponovno.';
+
+  @override
+  String get errorNotAuthorized =>
+      'Nemaš ovlasti za ovu radnju. Prijavi se ponovno.';
+
+  @override
+  String errorRequestFailed(Object status) {
+    return 'Zahtjev nije uspio ($status).';
+  }
+
+  @override
+  String get errorServerUnavailable =>
+      'Server trenutno ima poteškoća. Pokušaj ponovno za koji trenutak.';
+
+  @override
   String get filesAccountNotInitialized => 'Račun nije potpuno inicijaliziran';
 
   @override
