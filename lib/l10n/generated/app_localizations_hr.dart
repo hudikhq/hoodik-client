@@ -2873,6 +2873,9 @@ class AppLocalizationsHr extends AppLocalizations {
   String get sharesGroupsLoadFailed => 'Grupe nije bilo moguće učitati.';
 
   @override
+  String get sharesInvalidEmail => 'To ne izgleda kao email adresa.';
+
+  @override
   String sharesItemCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

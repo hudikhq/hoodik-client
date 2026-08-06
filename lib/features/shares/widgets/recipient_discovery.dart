@@ -42,6 +42,12 @@ class RecipientLookupFailed extends RecipientLookup {
   final String? message;
 }
 
+/// Cheap shape check (`something@something.tld`) before a discovery
+/// round-trip. The server stays the authority on what exists; this only
+/// catches obvious typos before they cost a network call.
+bool looksLikeEmail(String value) =>
+    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
+
 /// Resolve [email] to a recipient and its trust state, scoped to [ownerId]'s
 /// trust store. Returns [RecipientLookupFailed] (never throws) so the caller
 /// renders a message rather than handling exceptions inline.
@@ -73,9 +79,8 @@ Future<RecipientLookup> resolveRecipient(WidgetRef ref, String email) async {
     return RecipientLookupFailed(ambientL10n.sharesKeyFingerprintMismatch);
   }
 
-  final trusted = await ref
-      .read(databaseProvider)
-      .getTrustedFingerprint(ownerId, user.userId);
+  final db = ref.read(databaseProvider);
+  final trusted = await db.getTrustedFingerprint(ownerId, user.userId);
   final formatted = shareCrypto.formatFingerprint(user.fingerprint);
   if (trusted == null) {
     return RecipientResolved(
@@ -83,6 +88,12 @@ Future<RecipientLookup> resolveRecipient(WidgetRef ref, String email) async {
       formattedFingerprint: formatted,
       status: ShareTrustStatus.firstSight,
     );
+  }
+  // Backfill the suggestion email on rows recorded before the column
+  // existed (or after an address change). Never creates a row — a missing
+  // row must keep meaning "never seen" for the TOFU rules.
+  if (trusted.email != user.email) {
+    await db.updateTrustedFingerprintEmail(ownerId, user.userId, user.email);
   }
   if (trusted.fingerprint.toLowerCase() == user.fingerprint.toLowerCase()) {
     return RecipientResolved(

@@ -11,7 +11,8 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/controllers/files_share_controller.dart';
 import '../../files/providers/files_notifier.dart';
-import '../services/trusted_fingerprint_dao.dart';
+import 'recipient_discovery.dart';
+import 'recipient_email_field.dart';
 import 'share_fingerprint_tile.dart';
 import 'share_recipients_list.dart';
 import 'share_role_selector.dart';
@@ -87,82 +88,29 @@ class _ShareDialogState extends ConsumerState<_ShareDialog> {
       setState(() => _discoverError = l10n.sharesEnterRecipientEmailFirst);
       return;
     }
-    final client = ref.read(apiClientProvider);
-    final shareCrypto = ref.read(shareCryptoProvider);
-    final ownerId = ref.read(activeServerUserIdProvider);
-    if (client == null || shareCrypto == null || ownerId == null) {
-      setState(() => _discoverError = l10n.sharesNotAuthenticated);
+    if (!looksLikeEmail(email)) {
+      setState(() => _discoverError = l10n.sharesInvalidEmail);
       return;
     }
-
     setState(() {
       _discovering = true;
       _discoverError = null;
       _clearRecipient();
     });
 
-    try {
-      final user = await client.shares.discoverUser(email);
-      if (!mounted) return;
-      if (user == null) {
-        setState(() => _discoverError = l10n.sharesNoUserWithEmail);
-        return;
-      }
-      await _onDiscovered(user, shareCrypto, ownerId);
-    } on DiscoverException catch (e) {
-      if (!mounted) return;
-      setState(() => _discoverError = _discoverMessage(l10n, e.kind));
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _discoverError = l10n.sharesLookupFailed);
-    } finally {
-      if (mounted) setState(() => _discovering = false);
-    }
-  }
-
-  /// Server's fingerprint claim must match the actual public key (hard stop),
-  /// then trust-on-first-use against the local store decides the banner.
-  Future<void> _onDiscovered(
-    DiscoveredUser user,
-    ShareCrypto shareCrypto,
-    String ownerId,
-  ) async {
-    final localFingerprint = shareCrypto.computeFingerprint(
-      user.pubkey,
-      keyType: user.keyType,
-    );
-    if (localFingerprint.toLowerCase() != user.fingerprint.toLowerCase()) {
-      setState(() {
-        _discoverError = AppLocalizations.of(
-          context,
-        ).sharesKeyFingerprintMismatch;
-      });
-      return;
-    }
-
-    final trusted = await ref
-        .read(databaseProvider)
-        .getTrustedFingerprint(ownerId, user.userId);
+    final result = await resolveRecipient(ref, email);
     if (!mounted) return;
-
-    final ShareTrustStatus status;
-    String? cached;
-    if (trusted == null) {
-      status = ShareTrustStatus.firstSight;
-    } else if (trusted.fingerprint.toLowerCase() ==
-        user.fingerprint.toLowerCase()) {
-      status = ShareTrustStatus.verified;
-    } else {
-      status = ShareTrustStatus.mismatch;
-      cached = shareCrypto.formatFingerprint(trusted.fingerprint);
-    }
-
     setState(() {
-      _recipient = user;
-      _formattedFingerprint = shareCrypto.formatFingerprint(user.fingerprint);
-      _trustStatus = status;
-      _cachedFingerprint = cached;
-      _mismatchAcknowledged = false;
+      _discovering = false;
+      switch (result) {
+        case RecipientResolved():
+          _recipient = result.user;
+          _formattedFingerprint = result.formattedFingerprint;
+          _trustStatus = result.status;
+          _cachedFingerprint = result.cachedFingerprint;
+        case RecipientLookupFailed(:final message):
+          _discoverError = message ?? l10n.sharesNoUserWithEmail;
+      }
     });
   }
 
@@ -225,15 +173,13 @@ class _ShareDialogState extends ConsumerState<_ShareDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AdaptiveTextField(
+              RecipientEmailField(
                 controller: _emailController,
                 label: l10n.sharesRecipientEmailLabel,
                 placeholder: l10n.sharesEmailPlaceholder,
-                keyboardType: TextInputType.emailAddress,
-                autocorrect: false,
-                textInputAction: TextInputAction.search,
                 enabled: !_submitting,
-                onSubmitted: (_) => _discover(),
+                onSelected: _discover,
+                onSubmitted: _discover,
               ),
               const SizedBox(height: 10),
               Align(
@@ -317,13 +263,4 @@ class _ShareDialogState extends ConsumerState<_ShareDialog> {
       ],
     );
   }
-
-  static String _discoverMessage(
-    AppLocalizations l10n,
-    DiscoverErrorKind kind,
-  ) => switch (kind) {
-    DiscoverErrorKind.cannotDiscoverSelf => l10n.sharesCannotShareWithSelf,
-    DiscoverErrorKind.rateLimited => l10n.sharesTooManyLookups,
-    DiscoverErrorKind.sharingDisabled => l10n.sharesSharingDisabled,
-  };
 }

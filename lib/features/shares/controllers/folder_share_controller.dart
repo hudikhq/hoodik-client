@@ -180,6 +180,7 @@ class FolderShareController {
             ownerUserId: deps.callerId,
             userId: recipient.userId,
             fingerprint: recipient.fingerprint,
+            email: recipient.email,
           );
 
       return const FolderShareOutcome.success();

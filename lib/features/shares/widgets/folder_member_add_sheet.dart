@@ -11,6 +11,7 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../controllers/folder_share_controller.dart';
 import 'recipient_discovery.dart';
+import 'recipient_email_field.dart';
 import 'share_fingerprint_tile.dart';
 import 'share_role_selector.dart';
 
@@ -108,6 +109,10 @@ class _FolderMemberAddSheetState extends ConsumerState<_FolderMemberAddSheet> {
       setState(() => _discoverError = l10n.sharesEnterRecipientEmailFirst);
       return;
     }
+    if (!looksLikeEmail(email)) {
+      setState(() => _discoverError = l10n.sharesInvalidEmail);
+      return;
+    }
     setState(() {
       _discovering = true;
       _discoverError = null;
@@ -203,15 +208,13 @@ class _FolderMemberAddSheetState extends ConsumerState<_FolderMemberAddSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              AdaptiveTextField(
+              RecipientEmailField(
                 controller: _emailController,
                 label: l10n.sharesRecipientEmailLabel,
                 placeholder: l10n.sharesEmailPlaceholder,
-                keyboardType: TextInputType.emailAddress,
-                autocorrect: false,
-                textInputAction: TextInputAction.search,
                 enabled: !_submitting && !_emailLocked,
-                onSubmitted: (_) => _discover(),
+                onSelected: _discover,
+                onSubmitted: _discover,
               ),
               if (!_emailLocked) ...[
                 const SizedBox(height: 10),

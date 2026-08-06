@@ -779,6 +779,7 @@
   "sharesGroupRoleReaderDescription": "Leser – sieht die Gruppe, mehr nicht.",
   "sharesGroupsExplainer": "Mit Gruppen teilen Sie mit allen Gruppenmitgliedern auf einmal.",
   "sharesGroupsLoadFailed": "Ihre Gruppen konnten nicht geladen werden.",
+  "sharesInvalidEmail": "Das sieht nicht wie eine E-Mail-Adresse aus.",
   "sharesItemCount": "{count, plural, one{1 Element} other{{count} Elemente}}",
   "sharesKeyFingerprintMismatch": "Schlüssel und Fingerabdruck dieses Kontos stimmen nicht überein. Das Teilen ist blockiert – fahren Sie nicht fort.",
   "sharesLookupFailed": "Dieser Benutzer konnte nicht gefunden werden.",

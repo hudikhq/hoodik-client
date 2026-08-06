@@ -1961,6 +1961,7 @@
   "sharesGroupRoleReaderDescription": "Reader — sees the group, nothing more.",
   "sharesGroupsExplainer": "Groups let you share with everyone in the group at once.",
   "sharesGroupsLoadFailed": "Could not load your groups.",
+  "sharesInvalidEmail": "That doesn\u2019t look like an email address.",
   "sharesItemCount": "{count, plural, =1{1 item} other{{count} items}}",
   "@sharesItemCount": {
     "placeholders": {

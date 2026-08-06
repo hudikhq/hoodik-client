@@ -779,6 +779,7 @@
   "sharesGroupRoleReaderDescription": "Čitatelj – vidi grupu, ništa više.",
   "sharesGroupsExplainer": "Grupe omogućuju dijeljenje sa svima u grupi odjednom.",
   "sharesGroupsLoadFailed": "Grupe nije bilo moguće učitati.",
+  "sharesInvalidEmail": "To ne izgleda kao email adresa.",
   "sharesItemCount": "{count, plural, one{{count} stavka} few{{count} stavke} other{{count} stavki}}",
   "sharesKeyFingerprintMismatch": "Ključ i fingerprint ovog računa se ne podudaraju. Dijeljenje je blokirano – nemoj nastaviti.",
   "sharesLookupFailed": "Korisnika nije bilo moguće pronaći.",

@@ -272,6 +272,7 @@ class FolderMembership {
           ownerUserId: ownerUserId,
           userId: m.userId,
           fingerprint: m.pubkeyFingerprint,
+          email: m.email,
         );
         continue;
       }

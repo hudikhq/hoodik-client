@@ -4780,6 +4780,12 @@ abstract class AppLocalizations {
   /// **'Could not load your groups.'**
   String get sharesGroupsLoadFailed;
 
+  /// No description provided for @sharesInvalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn’t look like an email address.'**
+  String get sharesInvalidEmail;
+
   /// No description provided for @sharesItemCount.
   ///
   /// In en, this message translates to:

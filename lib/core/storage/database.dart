@@ -236,6 +236,12 @@ class TrustedFingerprints extends Table {
   /// The peer's `sha256(hex(modulus))` fingerprint, hex-encoded.
   TextColumn get fingerprint => text()();
 
+  /// The peer's email as last seen at discovery or share time. Feeds the
+  /// recipient-suggestion list; already server-visible metadata, so caching
+  /// it locally adds no exposure. Null on rows recorded before the column
+  /// existed, backfilled on the next successful lookup of that peer.
+  TextColumn get email => text().nullable()();
+
   /// When the user explicitly confirmed the fingerprint out of band. Null for
   /// a row that was only ever recorded on first sight.
   DateTimeColumn get lastVerifiedAt => dateTime().nullable()();
@@ -269,7 +275,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -335,6 +341,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 18 && to >= 18) {
         // The app went free — the IAP/trial cache is gone for good.
         await m.deleteTable('subscriptions');
+      }
+      if (from < 19 && to >= 19) {
+        await m.addColumn(trustedFingerprints, trustedFingerprints.email);
       }
     },
   );

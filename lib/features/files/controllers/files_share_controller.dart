@@ -138,6 +138,7 @@ class FilesShareController {
             ownerUserId: senderId,
             userId: recipient.userId,
             fingerprint: recipient.fingerprint,
+            email: recipient.email,
           );
 
       return const ShareOutcome.success();
