@@ -169,6 +169,27 @@ void main() {
       expect(a1!.isActive, false);
       expect(a2!.isActive, true);
     });
+
+    test(
+      'updateAccountQuota writes through and can clear to unlimited',
+      () async {
+        await db.insertAccount(
+          AccountsCompanion(
+            id: const Value('a1'),
+            serverId: const Value('s1'),
+            userId: const Value('u1'),
+            email: const Value('test@test.com'),
+            quota: const Value(1000),
+          ),
+        );
+
+        await db.updateAccountQuota('a1', 5000);
+        expect((await db.getAccountById('a1'))!.quota, 5000);
+
+        await db.updateAccountQuota('a1', null);
+        expect((await db.getAccountById('a1'))!.quota, isNull);
+      },
+    );
   });
 
   // ── CachedFiles operations ─────────────────────────────────────────

@@ -557,6 +557,16 @@ class AppLocalizationsHr extends AppLocalizations {
   String get accountStorageUnlimited => 'Neograničeno';
 
   @override
+  String accountStorageUsed(Object used) {
+    return 'Iskorišteno $used';
+  }
+
+  @override
+  String accountStorageUsedOfTotal(Object used, Object total) {
+    return 'Iskorišteno $used od $total';
+  }
+
+  @override
   String get accountTermsOfService => 'Uvjeti korištenja';
 
   @override

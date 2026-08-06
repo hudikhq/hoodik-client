@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' show Locale;
 
+import 'package:drift/drift.dart' as drift show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'storage/database.dart';
@@ -441,6 +442,37 @@ const int filesBranchIndex = 0;
 /// would instead navigate that branch to a fixed location, losing the
 /// folder the user was in. Reset to null after handling.
 final shellBranchRequestProvider = StateProvider<int?>((ref) => null);
+
+/// Account-level storage usage from `POST /api/storage/stats`, refreshed
+/// each time a listener mounts (the Account screen). The listing endpoint
+/// does not carry usage figures, so this is the one place they come from.
+///
+/// Side effect: when the reported quota disagrees with the cached Account
+/// row — a plan change on a Hoodik Cloud instance, an admin edit — the row
+/// and the in-memory account are updated so every quota consumer sees the
+/// fresh limit without a re-login. Errors (including servers without the
+/// stats route) resolve to null and leave the cached quota rendering.
+final storageUsageProvider = FutureProvider.autoDispose<StorageUsage?>((
+  ref,
+) async {
+  final client = ref.watch(apiClientProvider);
+  final account = ref.watch(activeAccountProvider);
+  if (client == null || account == null) return null;
+  try {
+    final usage = StorageUsage.fromJson(await client.storage.getStats());
+    if (usage.quota != account.quota) {
+      await ref
+          .read(databaseProvider)
+          .updateAccountQuota(account.id, usage.quota);
+      ref.read(activeAccountProvider.notifier).state = account.copyWith(
+        quota: drift.Value(usage.quota),
+      );
+    }
+    return usage;
+  } catch (_) {
+    return null;
+  }
+});
 
 /// Session-scoped preview cache. Keeps decrypted file bytes in memory so
 /// re-opening a preview is instant. Cleared on logout.

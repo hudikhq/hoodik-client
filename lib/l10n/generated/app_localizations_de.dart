@@ -558,6 +558,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get accountStorageUnlimited => 'Unbegrenzt';
 
   @override
+  String accountStorageUsed(Object used) {
+    return '$used belegt';
+  }
+
+  @override
+  String accountStorageUsedOfTotal(Object used, Object total) {
+    return '$used von $total belegt';
+  }
+
+  @override
   String get accountTermsOfService => 'Nutzungsbedingungen';
 
   @override

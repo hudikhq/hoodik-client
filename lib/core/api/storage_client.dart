@@ -1,5 +1,23 @@
 import 'package:dio/dio.dart';
 
+/// Account-level usage figures from `POST /api/storage/stats`.
+class StorageUsage {
+  /// Bytes stored by files the caller owns, counted against [quota].
+  final int usedSpace;
+
+  /// Byte limit for the account; null means unlimited.
+  final int? quota;
+
+  const StorageUsage({required this.usedSpace, this.quota});
+
+  factory StorageUsage.fromJson(Map<String, dynamic> json) {
+    return StorageUsage(
+      usedSpace: json['used_space'] as int? ?? 0,
+      quota: json['quota'] as int?,
+    );
+  }
+}
+
 /// HTTP client scoped to storage-quota and editable-content routes —
 /// everything under `/api/storage/*` that is NOT per-file CRUD (see
 /// [FilesClient]), search (see [SearchClient]), or version history (see
