@@ -177,8 +177,13 @@ GoRouter buildRouter(bool Function() isLoggedIn) {
               ),
               GoRoute(
                 path: '/files/:dirId',
-                builder: (context, state) =>
-                    FilesScreen(dirId: state.pathParameters['dirId']),
+                // `extra` carries the folder's decrypted name from the tap
+                // site; cold deep-links have no extra and fall back to the
+                // generic title until the listing resolves.
+                builder: (context, state) => FilesScreen(
+                  dirId: state.pathParameters['dirId'],
+                  dirName: state.extra is String ? state.extra as String : null,
+                ),
               ),
             ],
           ),

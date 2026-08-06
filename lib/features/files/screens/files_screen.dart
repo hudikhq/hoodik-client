@@ -13,6 +13,7 @@ import '../../../core/widgets/outdated_server_warning.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../notes/helpers/create_note_flow.dart';
 import '../../preview/providers/preview_providers.dart';
+import '../../shares/shared_constants.dart';
 import '../helpers/fork_surface.dart';
 import '../helpers/share_surface.dart';
 import '../controllers/files_action_result.dart';
@@ -40,7 +41,13 @@ import '../widgets/files_list.dart';
 
 class FilesScreen extends ConsumerStatefulWidget {
   final String? dirId;
-  const FilesScreen({super.key, this.dirId});
+
+  /// Decrypted name of [dirId], handed over by the tap site. Null on the
+  /// root listing and on cold deep-links, where the app bar falls back to
+  /// the generic title.
+  final String? dirName;
+
+  const FilesScreen({super.key, this.dirId, this.dirName});
 
   @override
   ConsumerState<FilesScreen> createState() => _FilesScreenState();
@@ -390,7 +397,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     if (state.selectionMode) {
       _notifier.toggleSelection(file.id);
     } else if (file.isDir) {
-      context.push('/files/${file.id}');
+      context.push('/files/${file.id}', extra: state.displayName(file));
     } else if (isPreviewable(file)) {
       _openPreview(file);
     } else {
@@ -424,14 +431,36 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     }
   }
 
+  /// What this listing contributes to the window title: null on the root
+  /// (the shell falls back to the branch label) and the decrypted folder
+  /// name below it.
+  String? get _branchTitle {
+    if (widget.dirId == null) return null;
+    if (widget.dirId == sharedWithMeDirId) return sharedWithMeDirName;
+    return widget.dirName;
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(filesNotifierProvider(widget.dirId));
     final account = ref.watch(activeAccountProvider);
 
+    // Publish the visible folder to the window title. GoRouter rebuilds
+    // the whole page stack on navigation, so the screen that ends up on
+    // top always runs this last.
+    if (ModalRoute.of(context)?.isCurrent ?? false) {
+      final title = _branchTitle;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final notifier = ref.read(filesBranchTitleProvider.notifier);
+        if (notifier.state != title) notifier.state = title;
+      });
+    }
+
     return Scaffold(
       appBar: FilesAppBar(
         dirId: widget.dirId,
+        dirName: widget.dirName,
         selectionMode: state.selectionMode,
         selectionCount: state.selectedIds.length,
         busy: _busy,

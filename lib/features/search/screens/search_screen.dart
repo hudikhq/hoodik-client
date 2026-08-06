@@ -218,7 +218,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _onResultTap(FileItem file) {
     if (file.isDir) {
-      context.push('/files/${file.id}');
+      context.push('/files/${file.id}', extra: _decryptedNames[file.id]);
     } else if (isPreviewable(file)) {
       _openPreview(file);
     }
