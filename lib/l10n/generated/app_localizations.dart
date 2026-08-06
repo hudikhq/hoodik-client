@@ -2658,11 +2658,11 @@ abstract class AppLocalizations {
   /// **'Empty folder'**
   String get filesEmptyFolder;
 
-  /// No description provided for @filesEmptyHint.
+  /// No description provided for @filesEmptyAction.
   ///
   /// In en, this message translates to:
-  /// **'Tap + to create a folder or upload a file'**
-  String get filesEmptyHint;
+  /// **'Add your first file'**
+  String get filesEmptyAction;
 
   /// No description provided for @filesEmptyTitle.
   ///
@@ -3138,6 +3138,12 @@ abstract class AppLocalizations {
   /// **'Dismiss — transfers continue in background'**
   String get filesTransfersDismissTooltip;
 
+  /// No description provided for @filesTransfersMinimizeTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimize'**
+  String get filesTransfersMinimizeTooltip;
+
   /// No description provided for @filesTransfersTitle.
   ///
   /// In en, this message translates to:
@@ -3179,6 +3185,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Upload Media'**
   String get filesUploadMedia;
+
+  /// No description provided for @filesUploadTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload to…'**
+  String get filesUploadTo;
 
   /// No description provided for @filesUploadingChunks.
   ///
@@ -5342,6 +5354,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{first} and {second}'**
   String sharesTwoNames(String first, String second);
+
+  /// No description provided for @tabAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get tabAccount;
+
+  /// No description provided for @tabFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get tabFiles;
+
+  /// No description provided for @tabNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get tabNotes;
+
+  /// No description provided for @tabSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get tabSearch;
+
+  /// No description provided for @tabShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get tabShare;
 
   /// No description provided for @widgetDismiss.
   ///

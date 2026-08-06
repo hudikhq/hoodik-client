@@ -1514,8 +1514,7 @@ class AppLocalizationsHr extends AppLocalizations {
   String get filesEmptyFolder => 'Prazan folder';
 
   @override
-  String get filesEmptyHint =>
-      'Dodirni + za kreiranje foldera ili upload datoteke';
+  String get filesEmptyAction => 'Dodaj prvu datoteku';
 
   @override
   String get filesEmptyTitle => 'Još nema datoteka';
@@ -1839,6 +1838,9 @@ class AppLocalizationsHr extends AppLocalizations {
       'Zatvori – transferi se nastavljaju u pozadini';
 
   @override
+  String get filesTransfersMinimizeTooltip => 'Smanji';
+
+  @override
   String get filesTransfersTitle => 'Transferi';
 
   @override
@@ -1860,6 +1862,9 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get filesUploadMedia => 'Upload medija';
+
+  @override
+  String get filesUploadTo => 'Upload u…';
 
   @override
   String filesUploadingChunks(int stored, int total) {
@@ -3262,6 +3267,21 @@ class AppLocalizationsHr extends AppLocalizations {
   String sharesTwoNames(String first, String second) {
     return '$first i $second';
   }
+
+  @override
+  String get tabAccount => 'Račun';
+
+  @override
+  String get tabFiles => 'Datoteke';
+
+  @override
+  String get tabNotes => 'Bilješke';
+
+  @override
+  String get tabSearch => 'Pretraga';
+
+  @override
+  String get tabShare => 'Dijeljenje';
 
   @override
   String get widgetDismiss => 'Zatvori';

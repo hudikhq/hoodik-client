@@ -749,7 +749,7 @@
   "filesDownloadingForOffline": "Downloading for offline access...",
   "filesDropToUpload": "Drop files to upload",
   "filesEmptyFolder": "Empty folder",
-  "filesEmptyHint": "Tap + to create a folder or upload a file",
+  "filesEmptyAction": "Add your first file",
   "filesEmptyTitle": "No files yet",
   "filesEncryptedFallback": "(encrypted)",
   "filesEncryptedPlaceholder": "[Encrypted] {id}...",
@@ -1034,6 +1034,7 @@
     }
   },
   "filesTransfersDismissTooltip": "Dismiss — transfers continue in background",
+  "filesTransfersMinimizeTooltip": "Minimize",
   "filesTransfersTitle": "Transfers",
   "filesTypeLabel": "Type",
   "filesUnknownError": "Unknown error",
@@ -1048,6 +1049,7 @@
   "filesUploadFile": "Upload File",
   "filesUploadHere": "Upload here",
   "filesUploadMedia": "Upload Media",
+  "filesUploadTo": "Upload to…",
   "filesUploadingChunks": "Uploading... {stored}/{total} chunks",
   "@filesUploadingChunks": {
     "placeholders": {
@@ -2262,6 +2264,11 @@
       }
     }
   },
+  "tabAccount": "Account",
+  "tabFiles": "Files",
+  "tabNotes": "Notes",
+  "tabSearch": "Search",
+  "tabShare": "Share",
   "widgetDismiss": "Dismiss",
   "widgetOutdatedServer": "Your Hoodik server is {version}. Upgrade to v{latest} to get the latest features and bug fixes.",
   "@widgetOutdatedServer": {

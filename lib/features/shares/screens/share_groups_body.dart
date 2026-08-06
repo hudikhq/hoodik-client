@@ -67,46 +67,52 @@ class _GroupsList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      children: [
-        _sectionLabel(l10n.sharesOwnedGroupsHeader),
-        const SizedBox(height: 8),
-        if (groups.owned.isEmpty)
-          _emptyCard(
-            l10n.sharesNoOwnedGroups,
-            key: const ValueKey('owned-empty'),
-          )
-        else
-          for (final group in groups.owned)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: ShareGroupOwnedCard(
-                group: group,
-                onAddMember: () => _addMember(context, ref, group),
-                onRename: () => _renameGroup(context, ref, group),
-                onDelete: () => _deleteGroup(context, ref, group),
-                onRemoveMember: (member) =>
-                    _removeMember(context, ref, group, member),
-                onSetRole: (member, role) =>
-                    _setMemberRole(context, ref, group, member, role),
+    return RefreshIndicator(
+      onRefresh: () => ref.read(groupsNotifierProvider.notifier).refresh(),
+      child: ListView(
+        // Keep the list draggable even when it fits the viewport, so the
+        // refresh gesture always works.
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: [
+          _sectionLabel(l10n.sharesOwnedGroupsHeader),
+          const SizedBox(height: 8),
+          if (groups.owned.isEmpty)
+            _emptyCard(
+              l10n.sharesNoOwnedGroups,
+              key: const ValueKey('owned-empty'),
+            )
+          else
+            for (final group in groups.owned)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: ShareGroupOwnedCard(
+                  group: group,
+                  onAddMember: () => _addMember(context, ref, group),
+                  onRename: () => _renameGroup(context, ref, group),
+                  onDelete: () => _deleteGroup(context, ref, group),
+                  onRemoveMember: (member) =>
+                      _removeMember(context, ref, group, member),
+                  onSetRole: (member, role) =>
+                      _setMemberRole(context, ref, group, member, role),
+                ),
               ),
-            ),
-        const SizedBox(height: 16),
-        _sectionLabel(l10n.sharesMemberOfHeader),
-        const SizedBox(height: 8),
-        if (groups.memberOf.isEmpty)
-          _emptyCard(
-            l10n.sharesNoMemberOfGroups,
-            key: const ValueKey('member-of-empty'),
-          )
-        else
-          for (final group in groups.memberOf)
-            MemberOfGroupTile(
-              group: group,
-              onAddMember: () => _addMemberOf(context, ref, group),
-            ),
-      ],
+          const SizedBox(height: 16),
+          _sectionLabel(l10n.sharesMemberOfHeader),
+          const SizedBox(height: 8),
+          if (groups.memberOf.isEmpty)
+            _emptyCard(
+              l10n.sharesNoMemberOfGroups,
+              key: const ValueKey('member-of-empty'),
+            )
+          else
+            for (final group in groups.memberOf)
+              MemberOfGroupTile(
+                group: group,
+                onAddMember: () => _addMemberOf(context, ref, group),
+              ),
+        ],
+      ),
     );
   }
 

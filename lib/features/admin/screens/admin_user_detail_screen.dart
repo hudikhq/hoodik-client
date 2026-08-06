@@ -299,6 +299,7 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
           title: Text(l10n.adminEmailLabel),
           subtitle: Text(user.email),
           trailing: IconButton(
+            tooltip: l10n.commonCopy,
             icon: Icon(
               isApplePlatform ? CupertinoIcons.doc_on_doc : Icons.copy,
               size: 16,

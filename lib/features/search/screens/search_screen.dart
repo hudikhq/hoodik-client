@@ -270,6 +270,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         actions: [
           if (_controller.text.isNotEmpty)
             IconButton(
+              tooltip: MaterialLocalizations.of(context).clearButtonTooltip,
               icon: const Icon(Icons.clear),
               onPressed: () {
                 _controller.clear();

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
@@ -286,6 +287,21 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     );
   }
 
+  /// Opens the create/upload sheet — the FAB's action, also offered by the
+  /// empty state so a fresh folder doesn't depend on spotting the FAB.
+  void _openCreateSheet() {
+    final isDesktop =
+        Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+    showFabMenuSheet(
+      context: context,
+      onCreateFolder: _createFolder,
+      onCreateNote: _createNote,
+      onUploadFile: _uploadFile,
+      onUploadPhoto: isDesktop ? null : _uploadPhoto,
+      onTakePhoto: isDesktop ? null : _takePhoto,
+    );
+  }
+
   Future<void> _createNote() => createNoteAndOpen(
     context: context,
     ref: ref,
@@ -501,14 +517,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       ),
       floatingActionButton: state.selectionMode
           ? null
-          : FilesFab(
-              busy: _busy,
-              onCreateFolder: _createFolder,
-              onCreateNote: _createNote,
-              onUploadFile: _uploadFile,
-              onUploadPhoto: _uploadPhoto,
-              onTakePhoto: _takePhoto,
-            ),
+          : FilesFab(busy: _busy, onPressed: _openCreateSheet),
     );
   }
 
@@ -520,7 +529,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       return FilesErrorState(message: state.error!, onRetry: _loadFiles);
     }
     final files = state.files ?? [];
-    if (files.isEmpty) return const FilesEmptyState();
+    if (files.isEmpty) return FilesEmptyState(onAdd: _openCreateSheet);
 
     return FilesList(
       dirId: widget.dirId,

@@ -365,6 +365,9 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                   ),
                 // Minimize button
                 IconButton(
+                  tooltip: AppLocalizations.of(
+                    context,
+                  ).filesTransfersMinimizeTooltip,
                   icon: const Icon(
                     Icons.keyboard_arrow_down,
                     color: HoodikColors.brownish300,

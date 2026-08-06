@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/widgets/adaptive.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'features/auth/screens/add_server_screen.dart';
 import 'features/auth/screens/key_login_screen.dart';
 import 'features/auth/screens/login_screen.dart';
@@ -249,12 +250,12 @@ const String _kAppTitle = 'Hoodik';
 
 /// Default title for each branch when no per-branch subtitle is set.
 /// Index matches the bottom-nav order.
-const List<String> _kBranchTitles = [
-  'Files',
-  'Notes',
-  'Search',
-  'Share',
-  'Account',
+List<String> _branchTitles(AppLocalizations l10n) => [
+  l10n.tabFiles,
+  l10n.tabNotes,
+  l10n.tabSearch,
+  l10n.tabShare,
+  l10n.tabAccount,
 ];
 
 /// Strips the bottom safe-area padding for the branch subtree on Apple
@@ -308,7 +309,11 @@ class MainShell extends ConsumerWidget {
   /// Pick the current window title from the active branch, preferring
   /// any per-branch subtitle (e.g. the active note's filename) over the
   /// plain tab label.
-  String _composeWindowTitle(WidgetRef ref, int currentIndex) {
+  String _composeWindowTitle(
+    WidgetRef ref,
+    AppLocalizations l10n,
+    int currentIndex,
+  ) {
     String? subtitle;
     switch (currentIndex) {
       case 0:
@@ -318,9 +323,9 @@ class MainShell extends ConsumerWidget {
       default:
         subtitle = null;
     }
-    final branchLabel =
-        currentIndex >= 0 && currentIndex < _kBranchTitles.length
-        ? _kBranchTitles[currentIndex]
+    final titles = _branchTitles(l10n);
+    final branchLabel = currentIndex >= 0 && currentIndex < titles.length
+        ? titles[currentIndex]
         : _kAppTitle;
     if (subtitle == null || subtitle.isEmpty) {
       return '$_kAppTitle — $branchLabel';
@@ -342,9 +347,11 @@ class MainShell extends ConsumerWidget {
     final showOverlay = hasTransfers || failedCount > 0;
     final currentIndex = navigationShell.currentIndex;
 
+    final l10n = AppLocalizations.of(context);
+
     // Push the composed title to the native window / task switcher.
     // Post-frame so we don't mutate during build.
-    final windowTitle = _composeWindowTitle(ref, currentIndex);
+    final windowTitle = _composeWindowTitle(ref, l10n, currentIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setWindowTitle(windowTitle);
     });
@@ -378,31 +385,31 @@ class MainShell extends ConsumerWidget {
                 currentIndex: currentIndex,
                 onTap: _onTap,
                 activeColor: CupertinoTheme.of(context).primaryColor,
-                items: const [
+                items: [
                   BottomNavigationBarItem(
-                    icon: Icon(CupertinoIcons.folder),
-                    activeIcon: Icon(CupertinoIcons.folder_fill),
-                    label: 'Files',
+                    icon: const Icon(CupertinoIcons.folder),
+                    activeIcon: const Icon(CupertinoIcons.folder_fill),
+                    label: l10n.tabFiles,
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(CupertinoIcons.doc_text),
-                    activeIcon: Icon(CupertinoIcons.doc_text_fill),
-                    label: 'Notes',
+                    icon: const Icon(CupertinoIcons.doc_text),
+                    activeIcon: const Icon(CupertinoIcons.doc_text_fill),
+                    label: l10n.tabNotes,
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(CupertinoIcons.search),
-                    activeIcon: Icon(CupertinoIcons.search),
-                    label: 'Search',
+                    icon: const Icon(CupertinoIcons.search),
+                    activeIcon: const Icon(CupertinoIcons.search),
+                    label: l10n.tabSearch,
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(CupertinoIcons.share),
-                    activeIcon: Icon(CupertinoIcons.share_solid),
-                    label: 'Share',
+                    icon: const Icon(CupertinoIcons.share),
+                    activeIcon: const Icon(CupertinoIcons.share_solid),
+                    label: l10n.tabShare,
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(CupertinoIcons.person),
-                    activeIcon: Icon(CupertinoIcons.person_fill),
-                    label: 'Account',
+                    icon: const Icon(CupertinoIcons.person),
+                    activeIcon: const Icon(CupertinoIcons.person_fill),
+                    label: l10n.tabAccount,
                   ),
                 ],
               ),
@@ -424,31 +431,31 @@ class MainShell extends ConsumerWidget {
           : NavigationBar(
               selectedIndex: currentIndex,
               onDestinationSelected: _onTap,
-              destinations: const [
+              destinations: [
                 NavigationDestination(
-                  icon: Icon(Icons.folder_outlined),
-                  selectedIcon: Icon(Icons.folder),
-                  label: 'Files',
+                  icon: const Icon(Icons.folder_outlined),
+                  selectedIcon: const Icon(Icons.folder),
+                  label: l10n.tabFiles,
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.sticky_note_2_outlined),
-                  selectedIcon: Icon(Icons.sticky_note_2),
-                  label: 'Notes',
+                  icon: const Icon(Icons.sticky_note_2_outlined),
+                  selectedIcon: const Icon(Icons.sticky_note_2),
+                  label: l10n.tabNotes,
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.search_outlined),
-                  selectedIcon: Icon(Icons.search),
-                  label: 'Search',
+                  icon: const Icon(Icons.search_outlined),
+                  selectedIcon: const Icon(Icons.search),
+                  label: l10n.tabSearch,
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.share_outlined),
-                  selectedIcon: Icon(Icons.share),
-                  label: 'Share',
+                  icon: const Icon(Icons.share_outlined),
+                  selectedIcon: const Icon(Icons.share),
+                  label: l10n.tabShare,
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
-                  label: 'Account',
+                  icon: const Icon(Icons.person_outline),
+                  selectedIcon: const Icon(Icons.person),
+                  label: l10n.tabAccount,
                 ),
               ],
             ),

@@ -156,6 +156,7 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
         appBar: AppBar(
           title: Text(widget.title),
           leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.pop(context),
           ),

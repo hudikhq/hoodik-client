@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 
-/// Rendered when a directory returns zero items. Includes a hint
-/// pointing at the FAB so first-run users know what to do next.
+/// Rendered when a directory returns zero items, with a direct route into
+/// the create sheet so the first action doesn't depend on spotting the FAB.
 class FilesEmptyState extends StatelessWidget {
-  const FilesEmptyState({super.key});
+  const FilesEmptyState({super.key, required this.onAdd});
+
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -28,12 +30,10 @@ class FilesEmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            AppLocalizations.of(context).filesEmptyHint,
-            style: TextStyle(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-              fontSize: 13,
-            ),
+          ElevatedButton.icon(
+            onPressed: onAdd,
+            icon: const Icon(Icons.add),
+            label: Text(AppLocalizations.of(context).filesEmptyAction),
           ),
         ],
       ),
