@@ -28,6 +28,11 @@ class FilesList extends ConsumerWidget {
   final Future<void> Function(List<String> ids, String? targetDirId)
   onPerformMove;
 
+  /// Swipe-to-delete on list rows (touch platforms only — desktop rows
+  /// start an immediate drag on horizontal mouse movement, which would
+  /// fight the swipe gesture).
+  final void Function(FileItem file) onDelete;
+
   const FilesList({
     super.key,
     required this.dirId,
@@ -37,6 +42,7 @@ class FilesList extends ConsumerWidget {
     required this.onToggleSelection,
     required this.onContextMenu,
     required this.onPerformMove,
+    required this.onDelete,
   });
 
   @override
@@ -90,8 +96,33 @@ class FilesList extends ConsumerWidget {
         if (file.isDir) {
           row = _wrapDropTarget(folder: file, child: row);
         }
+        if (!_usesImmediateDrag &&
+            !state.selectionMode &&
+            file.id != sharedWithMeDirId) {
+          row = _wrapSwipeToDelete(file: file, child: row);
+        }
         return row;
       },
+    );
+  }
+
+  /// Trailing swipe reveals delete; the row snaps back and the regular
+  /// confirm flow takes over, so a swipe can never destroy silently.
+  Widget _wrapSwipeToDelete({required FileItem file, required Widget child}) {
+    return Dismissible(
+      key: ValueKey('swipe-${file.id}'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) async {
+        onDelete(file);
+        return false;
+      },
+      background: Container(
+        color: HoodikColors.redish400,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        child: const Icon(Icons.delete_outline, color: Colors.white),
+      ),
+      child: child,
     );
   }
 

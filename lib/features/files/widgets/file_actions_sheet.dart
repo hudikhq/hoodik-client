@@ -1,7 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/hoodik_colors.dart';
+import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../../shares/shared_constants.dart';
@@ -51,7 +53,30 @@ class FileActionCallbacks {
   });
 }
 
-/// Show a bottom sheet with actions for a single file.
+/// One row in a sheet, platform-neutral. [sectionBreak] renders as a
+/// divider (Material) or a plain action-list continuation (Cupertino,
+/// where action sheets carry no separators).
+class _SheetAction {
+  const _SheetAction(
+    this.label,
+    this.icon,
+    this.iconColor,
+    this.onTap, {
+    this.isDestructive = false,
+    this.sectionBreak = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback onTap;
+  final bool isDestructive;
+  final bool sectionBreak;
+}
+
+/// Show the per-file action sheet: a Cupertino action sheet on Apple
+/// platforms, a Material bottom sheet elsewhere. Both render the same
+/// gated action list.
 void showFileActionsSheet({
   required BuildContext context,
   required FileItem file,
@@ -63,11 +88,205 @@ void showFileActionsSheet({
   // The "Shared with me" virtual folder is a navigation aid, not real content —
   // it has no per-file actions.
   if (file.id == sharedWithMeDirId) return;
-  showModalBottomSheet(
+
+  final l10n = AppLocalizations.of(context);
+  final actions = <_SheetAction>[
+    if (!file.isDir && isPreviewable(file))
+      _SheetAction(
+        l10n.filesPreview,
+        Icons.visibility,
+        HoodikColors.greeny400,
+        () => callbacks.onPreview(file),
+      ),
+    if (!file.isDir && file.mime == 'text/markdown' && !file.editable)
+      _SheetAction(
+        l10n.filesConvertToNote,
+        Icons.edit_note,
+        HoodikColors.orangy400,
+        () => callbacks.onConvertToNote(file),
+      ),
+    if (!file.isDir) ...[
+      _SheetAction(
+        l10n.filesExport,
+        Icons.save_alt,
+        HoodikColors.blueish300,
+        () => callbacks.onDownload(file),
+      ),
+      if (isOffline)
+        _SheetAction(
+          l10n.filesRemoveOfflineCopy,
+          Icons.cloud_off,
+          HoodikColors.brownish200,
+          () => callbacks.onRemoveOffline(file),
+        )
+      else
+        _SheetAction(
+          l10n.filesMakeAvailableOffline,
+          Icons.cloud_download,
+          HoodikColors.greeny400,
+          () => callbacks.onMakeOffline(file),
+        ),
+    ],
+    _SheetAction(
+      l10n.commonRename,
+      Icons.edit,
+      HoodikColors.orangy400,
+      () => callbacks.onRename(file),
+    ),
+    _SheetAction(
+      l10n.commonDelete,
+      Icons.delete_outline,
+      HoodikColors.redish400,
+      () => callbacks.onDelete(file),
+      isDestructive: true,
+    ),
+    if (callbacks.onLeave != null &&
+        canLeaveFile(file, sharingEnabled: sharingEnabled))
+      _SheetAction(
+        l10n.filesLeave,
+        Icons.logout,
+        HoodikColors.redish400,
+        () => callbacks.onLeave!(file),
+        isDestructive: true,
+      ),
+    if (file.isDir &&
+        callbacks.onShare != null &&
+        canShareFolder(file, sharingEnabled: sharingEnabled))
+      _SheetAction(
+        l10n.filesMembers,
+        Icons.group_outlined,
+        HoodikColors.greeny400,
+        () => callbacks.onShare!(file),
+      ),
+    if (!file.isDir) ...[
+      _SheetAction(
+        l10n.filesCreateLink,
+        Icons.link,
+        HoodikColors.blueish400,
+        () => callbacks.onCreateLink(file),
+        sectionBreak: true,
+      ),
+      if (callbacks.onShare != null &&
+          canShareFile(file, sharingEnabled: sharingEnabled))
+        _SheetAction(
+          l10n.commonShare,
+          Icons.group_add_outlined,
+          HoodikColors.greeny400,
+          () => callbacks.onShare!(file),
+        ),
+      if (callbacks.onFork != null &&
+          canFork(file, sharingEnabled: sharingEnabled))
+        _SheetAction(
+          l10n.filesSaveToMyDrive,
+          Icons.drive_file_move_outline,
+          HoodikColors.blueish300,
+          () => callbacks.onFork!(file),
+        ),
+      _SheetAction(
+        l10n.filesDetails,
+        Icons.info_outline,
+        HoodikColors.brownish100,
+        () => callbacks.onDetails(file),
+      ),
+    ],
+  ];
+
+  _showActionSheet(context, title: displayName, actions: actions);
+}
+
+/// Show the FAB sheet, grouped into a Create section (folder, note) and an
+/// Upload section (file, media, camera — the latter two hidden on desktop
+/// platforms). On Apple the groups flatten into one action sheet, which is
+/// the HIG idiom.
+void showFabMenuSheet({
+  required BuildContext context,
+  required VoidCallback onCreateFolder,
+  required VoidCallback onCreateNote,
+  required VoidCallback onUploadFile,
+  VoidCallback? onUploadPhoto,
+  VoidCallback? onTakePhoto,
+}) {
+  final l10n = AppLocalizations.of(context);
+  final actions = <_SheetAction>[
+    _SheetAction(
+      l10n.filesCreateFolder,
+      Icons.create_new_folder,
+      HoodikColors.orangy600,
+      onCreateFolder,
+    ),
+    _SheetAction(
+      l10n.notesNewNote,
+      Icons.edit_note,
+      HoodikColors.orangy400,
+      onCreateNote,
+    ),
+    _SheetAction(
+      l10n.filesUploadFile,
+      Icons.upload_file,
+      HoodikColors.blueish400,
+      onUploadFile,
+      sectionBreak: true,
+    ),
+    if (onUploadPhoto != null)
+      _SheetAction(
+        l10n.filesUploadMedia,
+        Icons.photo_library,
+        HoodikColors.greeny400,
+        onUploadPhoto,
+      ),
+    if (onTakePhoto != null)
+      _SheetAction(
+        l10n.filesTakePhoto,
+        Icons.camera_alt,
+        HoodikColors.redish500,
+        onTakePhoto,
+      ),
+  ];
+
+  _showActionSheet(
+    context,
+    actions: actions,
+    sectionHeaders: [l10n.commonCreate, l10n.commonUpload],
+  );
+}
+
+void _showActionSheet(
+  BuildContext context, {
+  String? title,
+  required List<_SheetAction> actions,
+  List<String> sectionHeaders = const [],
+}) {
+  if (isApplePlatform) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: title != null ? Text(title) : null,
+        actions: [
+          for (final action in actions)
+            CupertinoActionSheetAction(
+              isDestructiveAction: action.isDestructive,
+              onPressed: () {
+                Navigator.pop(ctx);
+                action.onTap();
+              },
+              child: Text(action.label),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(ctx),
+          child: Text(AppLocalizations.of(ctx).commonCancel),
+        ),
+      ),
+    );
+    return;
+  }
+
+  showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     builder: (ctx) {
-      final l10n = AppLocalizations.of(ctx);
+      var headerIndex = 0;
       return SafeArea(
         child: ConstrainedBox(
           constraints: BoxConstraints(
@@ -86,181 +305,35 @@ void showFileActionsSheet({
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    displayName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: HoodikColors.dirtyWhite,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (!file.isDir && isPreviewable(file))
-                  ListTile(
-                    leading: const Icon(
-                      Icons.visibility,
-                      color: HoodikColors.greeny400,
-                    ),
-                    title: Text(l10n.filesPreview),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      callbacks.onPreview(file);
-                    },
-                  ),
-                if (!file.isDir &&
-                    file.mime == 'text/markdown' &&
-                    !file.editable)
-                  ListTile(
-                    leading: const Icon(
-                      Icons.edit_note,
-                      color: HoodikColors.orangy400,
-                    ),
-                    title: Text(l10n.filesConvertToNote),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      callbacks.onConvertToNote(file);
-                    },
-                  ),
-                if (!file.isDir) ...[
-                  ListTile(
-                    leading: const Icon(
-                      Icons.save_alt,
-                      color: HoodikColors.blueish300,
-                    ),
-                    title: Text(l10n.filesExport),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      callbacks.onDownload(file);
-                    },
-                  ),
-                  if (isOffline)
-                    ListTile(
-                      leading: const Icon(
-                        Icons.cloud_off,
-                        color: HoodikColors.brownish200,
+                if (title != null) ...[
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: HoodikColors.dirtyWhite,
                       ),
-                      title: Text(l10n.filesRemoveOfflineCopy),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        callbacks.onRemoveOffline(file);
-                      },
-                    )
-                  else
-                    ListTile(
-                      leading: const Icon(
-                        Icons.cloud_download,
-                        color: HoodikColors.greeny400,
-                      ),
-                      title: Text(l10n.filesMakeAvailableOffline),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        callbacks.onMakeOffline(file);
-                      },
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
                 ],
-                ListTile(
-                  leading: const Icon(
-                    Icons.edit,
-                    color: HoodikColors.orangy400,
-                  ),
-                  title: Text(l10n.commonRename),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    callbacks.onRename(file);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(
-                    Icons.delete_outline,
-                    color: HoodikColors.redish400,
-                  ),
-                  title: Text(l10n.commonDelete),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    callbacks.onDelete(file);
-                  },
-                ),
-                if (callbacks.onLeave != null &&
-                    canLeaveFile(file, sharingEnabled: sharingEnabled))
+                const SizedBox(height: 8),
+                for (final action in actions) ...[
+                  if (action.sectionBreak && sectionHeaders.isEmpty)
+                    const Divider(height: 1),
+                  if (sectionHeaders.isNotEmpty &&
+                      (identical(action, actions.first) || action.sectionBreak))
+                    _sheetSectionHeader(sectionHeaders[headerIndex++]),
                   ListTile(
-                    leading: const Icon(
-                      Icons.logout,
-                      color: HoodikColors.redish400,
-                    ),
-                    title: Text(l10n.filesLeave),
+                    leading: Icon(action.icon, color: action.iconColor),
+                    title: Text(action.label),
                     onTap: () {
                       Navigator.pop(ctx);
-                      callbacks.onLeave!(file);
-                    },
-                  ),
-                if (file.isDir &&
-                    callbacks.onShare != null &&
-                    canShareFolder(file, sharingEnabled: sharingEnabled))
-                  ListTile(
-                    leading: const Icon(
-                      Icons.group_outlined,
-                      color: HoodikColors.greeny400,
-                    ),
-                    title: Text(l10n.filesMembers),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      callbacks.onShare!(file);
-                    },
-                  ),
-                if (!file.isDir) ...[
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.link,
-                      color: HoodikColors.blueish400,
-                    ),
-                    title: Text(l10n.filesCreateLink),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      callbacks.onCreateLink(file);
-                    },
-                  ),
-                  if (callbacks.onShare != null &&
-                      canShareFile(file, sharingEnabled: sharingEnabled))
-                    ListTile(
-                      leading: const Icon(
-                        Icons.group_add_outlined,
-                        color: HoodikColors.greeny400,
-                      ),
-                      title: Text(l10n.commonShare),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        callbacks.onShare!(file);
-                      },
-                    ),
-                  if (callbacks.onFork != null &&
-                      canFork(file, sharingEnabled: sharingEnabled))
-                    ListTile(
-                      leading: const Icon(
-                        Icons.drive_file_move_outline,
-                        color: HoodikColors.blueish300,
-                      ),
-                      title: Text(l10n.filesSaveToMyDrive),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        callbacks.onFork!(file);
-                      },
-                    ),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.info_outline,
-                      color: HoodikColors.brownish100,
-                    ),
-                    title: Text(l10n.filesDetails),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      callbacks.onDetails(file);
+                      action.onTap();
                     },
                   ),
                 ],
@@ -268,91 +341,6 @@ void showFileActionsSheet({
               ],
             ),
           ),
-        ),
-      );
-    },
-  );
-}
-
-/// Show the FAB bottom sheet, grouped into a Create section (folder, note)
-/// and an Upload section (file, media, camera — the latter two hidden on
-/// desktop platforms).
-void showFabMenuSheet({
-  required BuildContext context,
-  required VoidCallback onCreateFolder,
-  required VoidCallback onCreateNote,
-  required VoidCallback onUploadFile,
-  VoidCallback? onUploadPhoto,
-  VoidCallback? onTakePhoto,
-}) {
-  showModalBottomSheet(
-    context: context,
-    builder: (ctx) {
-      final l10n = AppLocalizations.of(ctx);
-      void run(VoidCallback action) {
-        Navigator.pop(ctx);
-        action();
-      }
-
-      return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: HoodikColors.brownish400,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            _sheetSectionHeader(l10n.commonCreate),
-            ListTile(
-              leading: const Icon(
-                Icons.create_new_folder,
-                color: HoodikColors.orangy600,
-              ),
-              title: Text(l10n.filesCreateFolder),
-              onTap: () => run(onCreateFolder),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.edit_note,
-                color: HoodikColors.orangy400,
-              ),
-              title: Text(l10n.notesNewNote),
-              onTap: () => run(onCreateNote),
-            ),
-            _sheetSectionHeader(l10n.commonUpload),
-            ListTile(
-              leading: const Icon(
-                Icons.upload_file,
-                color: HoodikColors.blueish400,
-              ),
-              title: Text(l10n.filesUploadFile),
-              onTap: () => run(onUploadFile),
-            ),
-            if (onUploadPhoto != null)
-              ListTile(
-                leading: const Icon(
-                  Icons.photo_library,
-                  color: HoodikColors.greeny400,
-                ),
-                title: Text(l10n.filesUploadMedia),
-                onTap: () => run(onUploadPhoto),
-              ),
-            if (onTakePhoto != null)
-              ListTile(
-                leading: const Icon(
-                  Icons.camera_alt,
-                  color: HoodikColors.redish500,
-                ),
-                title: Text(l10n.filesTakePhoto),
-                onTap: () => run(onTakePhoto),
-              ),
-            const SizedBox(height: 8),
-          ],
         ),
       );
     },

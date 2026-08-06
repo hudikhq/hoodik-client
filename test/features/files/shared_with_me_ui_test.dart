@@ -1,8 +1,10 @@
 import 'package:drift/native.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
+import 'package:hoodik_app/core/widgets/adaptive.dart';
 import 'package:hoodik_app/core/crypto/share_crypto.dart' show ShareRole;
 import 'package:hoodik_app/core/providers.dart';
 import 'package:hoodik_app/core/storage/database.dart';
@@ -114,6 +116,13 @@ Future<_SpyFilesNotifier> _pumpRefreshAppBar(
   await tester.pump();
   return spy;
 }
+
+/// The refresh glyph is adaptive — resolve the same variant the app bar
+/// renders on this host.
+final IconData _refreshIcon = adaptiveIcon(
+  material: Icons.refresh,
+  cupertino: CupertinoIcons.arrow_clockwise,
+);
 
 void main() {
   group('FileListItem share badges', () {
@@ -260,7 +269,7 @@ void main() {
     ) async {
       await _pumpRefreshAppBar(tester, platform: TargetPlatform.android);
 
-      expect(find.byIcon(Icons.refresh), findsNothing);
+      expect(find.byIcon(_refreshIcon), findsNothing);
     });
 
     testWidgets('is disabled on desktop while busy', (tester) async {
@@ -272,7 +281,7 @@ void main() {
 
       final button = tester.widget<IconButton>(
         find.ancestor(
-          of: find.byIcon(Icons.refresh),
+          of: find.byIcon(_refreshIcon),
           matching: find.byType(IconButton),
         ),
       );

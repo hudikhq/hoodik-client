@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/hoodik_colors.dart';
 
@@ -27,6 +28,17 @@ class AppNotification {
   }) {
     // Dismiss any existing notification immediately.
     dismiss();
+
+    // A light tick for confirmations, a firm one for failures — the banner
+    // is the app's single feedback surface, so this covers every flow.
+    switch (type) {
+      case NotificationType.success:
+        HapticFeedback.lightImpact();
+      case NotificationType.error:
+        HapticFeedback.heavyImpact();
+      case NotificationType.info:
+        break;
+    }
 
     final overlay = Overlay.of(context);
 

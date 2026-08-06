@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -51,29 +53,23 @@ Future<bool?> showConfirmDeleteDialog({
   required BuildContext context,
   required String title,
   required String message,
-}) {
-  return showDialog<bool>(
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final confirmed = await showAdaptiveAlert<bool>(
     context: context,
-    builder: (ctx) {
-      return AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocalizations.of(ctx).commonCancel),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: HoodikColors.redish400,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppLocalizations.of(ctx).commonDelete),
-          ),
-        ],
-      );
-    },
+    title: title,
+    content: message,
+    actions: [
+      AdaptiveDialogAction(label: l10n.commonCancel, value: false),
+      AdaptiveDialogAction(
+        label: l10n.commonDelete,
+        value: true,
+        isDestructive: true,
+      ),
+    ],
   );
+  if (confirmed == true) unawaited(HapticFeedback.mediumImpact());
+  return confirmed;
 }
 
 /// Confirm a recipient self-removing from a share. Returns true when the user

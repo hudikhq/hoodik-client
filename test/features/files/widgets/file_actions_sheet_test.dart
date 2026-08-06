@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
@@ -5,6 +8,9 @@ import 'package:hoodik_app/core/crypto/share_crypto.dart';
 import 'package:hoodik_app/features/files/widgets/file_actions_sheet.dart';
 import 'package:hoodik_app/features/shares/shared_constants.dart';
 import 'package:hoodik_app/l10n/generated/app_localizations.dart';
+
+/// Whether this test runs on an Apple host (Cupertino sheet variant).
+final _apple = Platform.isIOS || Platform.isMacOS;
 
 FileActionCallbacks _callbacks({
   void Function(FileItem)? onShare,
@@ -240,8 +246,13 @@ void main() {
       var created = false;
       await openFabSheet(tester, onCreateNote: () => created = true);
 
-      expect(find.text('Create'), findsOneWidget);
-      expect(find.text('Upload'), findsOneWidget);
+      if (_apple) {
+        // Cupertino action sheets carry no section headers.
+        expect(find.byType(CupertinoActionSheet), findsOneWidget);
+      } else {
+        expect(find.text('Create'), findsOneWidget);
+        expect(find.text('Upload'), findsOneWidget);
+      }
 
       await tester.tap(find.text('New note'));
       await tester.pumpAndSettle();
