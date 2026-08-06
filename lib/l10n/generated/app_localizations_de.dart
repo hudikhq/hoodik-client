@@ -1525,8 +1525,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get filesEmptyFolder => 'Leerer Ordner';
 
   @override
-  String get filesEmptyHint =>
-      'Tippen Sie auf +, um einen Ordner zu erstellen oder eine Datei hochzuladen';
+  String get filesEmptyAction => 'Erste Datei hinzufügen';
 
   @override
   String get filesEmptyTitle => 'Noch keine Dateien';
@@ -1849,6 +1848,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ausblenden – Übertragungen laufen im Hintergrund weiter';
 
   @override
+  String get filesTransfersMinimizeTooltip => 'Minimieren';
+
+  @override
   String get filesTransfersTitle => 'Übertragungen';
 
   @override
@@ -1870,6 +1872,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get filesUploadMedia => 'Medien hochladen';
+
+  @override
+  String get filesUploadTo => 'Hochladen nach…';
 
   @override
   String filesUploadingChunks(int stored, int total) {
@@ -3278,6 +3283,21 @@ class AppLocalizationsDe extends AppLocalizations {
   String sharesTwoNames(String first, String second) {
     return '$first und $second';
   }
+
+  @override
+  String get tabAccount => 'Konto';
+
+  @override
+  String get tabFiles => 'Dateien';
+
+  @override
+  String get tabNotes => 'Notizen';
+
+  @override
+  String get tabSearch => 'Suche';
+
+  @override
+  String get tabShare => 'Teilen';
 
   @override
   String get widgetDismiss => 'Ausblenden';

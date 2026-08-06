@@ -288,12 +288,10 @@ class _FolderMemberAddSheetState extends ConsumerState<_FolderMemberAddSheet> {
   }
 }
 
-/// "Allow them to add new files" affordance for a folder share, mirroring the
-/// web. The permission is already carried by the role — Editor and Co-owner on
-/// a folder may upload new files, Reader is view-only — so this checkbox is a
-/// read-only reflection of that, not a separate wire field. It reads checked
-/// for Editor/Co-owner and disabled-with-a-hint for Reader, so the user sees
-/// what the picked role grants.
+/// States what the picked role grants for adding files. The permission is
+/// carried by the role itself — Editor and Co-owner may upload, Reader is
+/// view-only — so this is a plain caption, not a control. (It used to
+/// render a permanently disabled checkbox, which read as broken.)
 class _AllowAddFilesHint extends StatelessWidget {
   const _AllowAddFilesHint({required this.role});
 
@@ -303,41 +301,29 @@ class _AllowAddFilesHint extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final canAddFiles = role != ShareRole.reader;
-    return Opacity(
-      opacity: canAddFiles ? 1 : 0.5,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Checkbox(
-            value: canAddFiles,
-            onChanged: null,
-            visualDensity: VisualDensity.compact,
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(
-                    l10n.sharesAllowAddFiles,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-                if (!canAddFiles)
-                  Text(
-                    l10n.sharesPickEditorToEnable,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: HoodikColors.brownish100,
-                    ),
-                  ),
-              ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          canAddFiles ? Icons.check_circle_outline : Icons.block,
+          size: 16,
+          color: canAddFiles
+              ? HoodikColors.greeny300
+              : HoodikColors.brownish200,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            canAddFiles
+                ? l10n.sharesAllowAddFiles
+                : l10n.sharesPickEditorToEnable,
+            style: const TextStyle(
+              fontSize: 12,
+              color: HoodikColors.brownish100,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

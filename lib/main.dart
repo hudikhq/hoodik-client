@@ -336,12 +336,13 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
     final fileCrypto = ref.read(fileCryptoProvider);
     if (client == null) return;
 
+    final l10n = AppLocalizations.of(context);
     final result = await showFolderPicker(
       context: context,
       client: client,
       fileCrypto: fileCrypto,
-      title: 'Upload to...',
-      confirmLabel: 'Upload here',
+      title: l10n.filesUploadTo,
+      confirmLabel: l10n.filesUploadHere,
     );
     if (result == null) return; // user cancelled
 

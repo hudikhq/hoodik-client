@@ -132,6 +132,7 @@ class _AddServerScreenState extends ConsumerState<AddServerScreen> {
       appBar: canGoBack
           ? AppBar(
               leading: IconButton(
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                 icon: Icon(
                   isApplePlatform ? CupertinoIcons.back : Icons.arrow_back,
                 ),

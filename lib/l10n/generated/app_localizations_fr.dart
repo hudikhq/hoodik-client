@@ -1523,8 +1523,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get filesEmptyFolder => 'Dossier vide';
 
   @override
-  String get filesEmptyHint =>
-      'Touchez + pour créer un dossier ou téléverser un fichier';
+  String get filesEmptyAction => 'Ajoutez votre premier fichier';
 
   @override
   String get filesEmptyTitle => 'Aucun fichier pour l’instant';
@@ -1845,6 +1844,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Fermer — les transferts continuent en arrière-plan';
 
   @override
+  String get filesTransfersMinimizeTooltip => 'Réduire';
+
+  @override
   String get filesTransfersTitle => 'Transferts';
 
   @override
@@ -1866,6 +1868,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get filesUploadMedia => 'Téléverser des médias';
+
+  @override
+  String get filesUploadTo => 'Importer vers…';
 
   @override
   String filesUploadingChunks(int stored, int total) {
@@ -3270,6 +3275,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String sharesTwoNames(String first, String second) {
     return '$first et $second';
   }
+
+  @override
+  String get tabAccount => 'Compte';
+
+  @override
+  String get tabFiles => 'Fichiers';
+
+  @override
+  String get tabNotes => 'Notes';
+
+  @override
+  String get tabSearch => 'Recherche';
+
+  @override
+  String get tabShare => 'Partage';
 
   @override
   String get widgetDismiss => 'Ignorer';

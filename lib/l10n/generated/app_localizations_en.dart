@@ -1495,7 +1495,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filesEmptyFolder => 'Empty folder';
 
   @override
-  String get filesEmptyHint => 'Tap + to create a folder or upload a file';
+  String get filesEmptyAction => 'Add your first file';
 
   @override
   String get filesEmptyTitle => 'No files yet';
@@ -1816,6 +1816,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Dismiss — transfers continue in background';
 
   @override
+  String get filesTransfersMinimizeTooltip => 'Minimize';
+
+  @override
   String get filesTransfersTitle => 'Transfers';
 
   @override
@@ -1837,6 +1840,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filesUploadMedia => 'Upload Media';
+
+  @override
+  String get filesUploadTo => 'Upload to…';
 
   @override
   String filesUploadingChunks(int stored, int total) {
@@ -3224,6 +3230,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String sharesTwoNames(String first, String second) {
     return '$first and $second';
   }
+
+  @override
+  String get tabAccount => 'Account';
+
+  @override
+  String get tabFiles => 'Files';
+
+  @override
+  String get tabNotes => 'Notes';
+
+  @override
+  String get tabSearch => 'Search';
+
+  @override
+  String get tabShare => 'Share';
 
   @override
   String get widgetDismiss => 'Dismiss';

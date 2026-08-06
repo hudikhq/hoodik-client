@@ -119,6 +119,9 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab>
               prefixIcon: const Icon(Icons.search, size: 20),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).clearButtonTooltip,
                       icon: const Icon(Icons.clear, size: 20),
                       onPressed: () {
                         _searchController.clear();
@@ -307,11 +310,13 @@ class PaginationBar extends StatelessWidget {
           Row(
             children: [
               IconButton(
+                tooltip: MaterialLocalizations.of(context).previousPageTooltip,
                 icon: const Icon(Icons.chevron_left, size: 20),
                 onPressed: onPrev,
                 visualDensity: VisualDensity.compact,
               ),
               IconButton(
+                tooltip: MaterialLocalizations.of(context).nextPageTooltip,
                 icon: const Icon(Icons.chevron_right, size: 20),
                 onPressed: onNext,
                 visualDensity: VisualDensity.compact,
