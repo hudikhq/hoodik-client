@@ -1366,6 +1366,23 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonYes => 'Ja';
 
   @override
+  String get errorNoConnection =>
+      'Keine Verbindung. Prüfen Sie Ihr Netzwerk und versuchen Sie es erneut.';
+
+  @override
+  String get errorNotAuthorized =>
+      'Sie sind für diese Aktion nicht autorisiert. Melden Sie sich erneut an.';
+
+  @override
+  String errorRequestFailed(Object status) {
+    return 'Anfrage fehlgeschlagen ($status).';
+  }
+
+  @override
+  String get errorServerUnavailable =>
+      'Der Server hat gerade Probleme. Versuchen Sie es gleich noch einmal.';
+
+  @override
   String get filesAccountNotInitialized =>
       'Konto ist nicht vollständig initialisiert';
 

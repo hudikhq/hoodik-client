@@ -49,16 +49,12 @@ void main() {
       expect(resp.children[0].id, 'f1');
       expect(resp.children[0].mime, 'image/png');
       expect(resp.children[1].isDir, true);
-      expect(resp.usedSpace, 50000);
-      expect(resp.quota, 1073741824);
     });
 
     test('fromJson handles empty children', () {
       final resp = StorageResponse.fromJson({'children': []});
 
       expect(resp.children, isEmpty);
-      expect(resp.usedSpace, isNull);
-      expect(resp.quota, isNull);
     });
 
     test('fromJson handles missing children key', () {

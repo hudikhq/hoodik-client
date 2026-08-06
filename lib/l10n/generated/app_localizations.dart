@@ -2424,6 +2424,30 @@ abstract class AppLocalizations {
   /// **'Yes'**
   String get commonYes;
 
+  /// No description provided for @errorNoConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection. Check your network and try again.'**
+  String get errorNoConnection;
+
+  /// No description provided for @errorNotAuthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'You’re not authorized for this action. Try signing in again.'**
+  String get errorNotAuthorized;
+
+  /// No description provided for @errorRequestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Request failed ({status}).'**
+  String errorRequestFailed(Object status);
+
+  /// No description provided for @errorServerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is having trouble. Try again in a moment.'**
+  String get errorServerUnavailable;
+
   /// No description provided for @filesAccountNotInitialized.
   ///
   /// In en, this message translates to:

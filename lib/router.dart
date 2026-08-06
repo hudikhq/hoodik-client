@@ -441,8 +441,8 @@ class MainShell extends ConsumerWidget {
                   label: 'Search',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.ios_share_outlined),
-                  selectedIcon: Icon(Icons.ios_share),
+                  icon: Icon(Icons.share_outlined),
+                  selectedIcon: Icon(Icons.share),
                   label: 'Share',
                 ),
                 NavigationDestination(
