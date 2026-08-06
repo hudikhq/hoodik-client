@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,7 @@ import 'package:hoodik_app/core/api/shares_models.dart';
 import 'package:hoodik_app/core/crypto/file_crypto.dart';
 import 'package:hoodik_app/core/crypto/share_crypto.dart' show ShareRole;
 import 'package:hoodik_app/core/providers.dart';
+import 'package:hoodik_app/core/widgets/adaptive.dart';
 import 'package:hoodik_app/features/shares/providers/audit_log_notifier.dart';
 import 'package:hoodik_app/features/shares/providers/groups_notifier.dart';
 import 'package:hoodik_app/features/shares/screens/share_hub_screen.dart';
@@ -86,8 +88,16 @@ void main() {
     return links;
   }
 
-  Finder tab(String label) =>
-      find.descendant(of: find.byType(TabBar), matching: find.text(label));
+  // The hub's switcher is a segmented control on Apple platforms and a
+  // Material TabBar elsewhere — resolve the host's variant.
+  final switcherType = isApplePlatform
+      ? CupertinoSlidingSegmentedControl<int>
+      : TabBar;
+
+  Finder tab(String label) => find.descendant(
+    of: find.byType(switcherType),
+    matching: find.text(label),
+  );
 
   testWidgets('the Public links tab is always present', (tester) async {
     await pumpHub(
@@ -119,7 +129,7 @@ void main() {
       tester,
       _caps(sharingEnabled: false, auditLog: true, shareGroups: true),
     );
-    expect(find.byType(TabBar), findsNothing);
+    expect(find.byType(switcherType), findsNothing);
     expect(find.text('No shared links'), findsOneWidget);
   });
 
@@ -127,7 +137,7 @@ void main() {
       'TabBar', (tester) async {
     await pumpHub(tester, _caps(auditLog: false, shareGroups: false));
 
-    expect(find.byType(TabBar), findsNothing);
+    expect(find.byType(switcherType), findsNothing);
     // The lone Public-links body is rendered directly.
     expect(find.text('No shared links'), findsOneWidget);
     // The hub header is always the plain "Share" title.
