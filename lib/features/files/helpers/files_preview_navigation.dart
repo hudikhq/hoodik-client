@@ -60,7 +60,7 @@ void openEditor({
   // Tell the workspace to open this note. The provider's epoch-bumped
   // signal fires even when the URL doesn't change (re-tap of a note the
   // user just closed), which a plain `?open=` query wouldn't.
-  requestOpenNoteFromWidget(ref, file.id);
+  requestOpenNoteFromWidget(ref, file.id, returnToFiles: true);
 
   context.go('/editor/${file.id}');
 }

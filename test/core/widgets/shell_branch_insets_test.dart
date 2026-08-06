@@ -10,9 +10,7 @@ Widget _shell({required bool resizeToAvoidBottomInset, required Widget probe}) {
     home: CupertinoPageScaffold(
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       child: Column(
-        children: [
-          Expanded(child: ShellBranchInsets(child: probe)),
-        ],
+        children: [Expanded(child: ShellBranchInsets(child: probe))],
       ),
     ),
   );

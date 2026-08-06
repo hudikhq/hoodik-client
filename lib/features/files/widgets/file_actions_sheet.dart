@@ -274,11 +274,13 @@ void showFileActionsSheet({
   );
 }
 
-/// Show the FAB bottom sheet with Create Folder, Upload File, and optionally
-/// Upload Media and Take Photo (hidden on desktop platforms).
+/// Show the FAB bottom sheet, grouped into a Create section (folder, note)
+/// and an Upload section (file, media, camera — the latter two hidden on
+/// desktop platforms).
 void showFabMenuSheet({
   required BuildContext context,
   required VoidCallback onCreateFolder,
+  required VoidCallback onCreateNote,
   required VoidCallback onUploadFile,
   VoidCallback? onUploadPhoto,
   VoidCallback? onTakePhoto,
@@ -287,6 +289,11 @@ void showFabMenuSheet({
     context: context,
     builder: (ctx) {
       final l10n = AppLocalizations.of(ctx);
+      void run(VoidCallback action) {
+        Navigator.pop(ctx);
+        action();
+      }
+
       return SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -300,28 +307,31 @@ void showFabMenuSheet({
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 8),
+            _sheetSectionHeader(l10n.commonCreate),
             ListTile(
               leading: const Icon(
                 Icons.create_new_folder,
                 color: HoodikColors.orangy600,
               ),
               title: Text(l10n.filesCreateFolder),
-              onTap: () {
-                Navigator.pop(ctx);
-                onCreateFolder();
-              },
+              onTap: () => run(onCreateFolder),
             ),
+            ListTile(
+              leading: const Icon(
+                Icons.edit_note,
+                color: HoodikColors.greeny400,
+              ),
+              title: Text(l10n.notesNewNote),
+              onTap: () => run(onCreateNote),
+            ),
+            _sheetSectionHeader(l10n.commonUpload),
             ListTile(
               leading: const Icon(
                 Icons.upload_file,
                 color: HoodikColors.blueish400,
               ),
               title: Text(l10n.filesUploadFile),
-              onTap: () {
-                Navigator.pop(ctx);
-                onUploadFile();
-              },
+              onTap: () => run(onUploadFile),
             ),
             if (onUploadPhoto != null)
               ListTile(
@@ -330,10 +340,7 @@ void showFabMenuSheet({
                   color: HoodikColors.greeny400,
                 ),
                 title: Text(l10n.filesUploadMedia),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  onUploadPhoto();
-                },
+                onTap: () => run(onUploadPhoto),
               ),
             if (onTakePhoto != null)
               ListTile(
@@ -342,15 +349,29 @@ void showFabMenuSheet({
                   color: HoodikColors.redish500,
                 ),
                 title: Text(l10n.filesTakePhoto),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  onTakePhoto();
-                },
+                onTap: () => run(onTakePhoto),
               ),
             const SizedBox(height: 8),
           ],
         ),
       );
     },
+  );
+}
+
+Widget _sheetSectionHeader(String label) {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: HoodikColors.brownish100,
+        ),
+      ),
+    ),
   );
 }

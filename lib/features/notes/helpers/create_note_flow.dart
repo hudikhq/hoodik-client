@@ -28,6 +28,7 @@ Future<void> createNoteAndOpen({
   required BuildContext context,
   required WidgetRef ref,
   String? parentDirId,
+  bool returnToFiles = false,
 }) async {
   final l10n = AppLocalizations.of(context);
   final name = await showNewNoteDialog(context: context);
@@ -95,7 +96,7 @@ Future<void> createNoteAndOpen({
 
     // Tell the workspace to open this note. See the comment on
     // [OpenNoteRequest] for why the URL alone isn't enough.
-    requestOpenNoteFromWidget(ref, newId);
+    requestOpenNoteFromWidget(ref, newId, returnToFiles: returnToFiles);
 
     if (!context.mounted) return;
     context.go('/editor/$newId');

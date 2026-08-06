@@ -11,6 +11,7 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../core/widgets/app_update_nudge.dart';
 import '../../../core/widgets/outdated_server_warning.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../notes/helpers/create_note_flow.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../helpers/fork_surface.dart';
 import '../helpers/share_surface.dart';
@@ -278,6 +279,13 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     );
   }
 
+  Future<void> _createNote() => createNoteAndOpen(
+    context: context,
+    ref: ref,
+    parentDirId: widget.dirId,
+    returnToFiles: true,
+  );
+
   void _share(FileItem file) =>
       openShareSurface(context, ref, dirId: widget.dirId, file: file);
 
@@ -467,6 +475,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
           : FilesFab(
               busy: _busy,
               onCreateFolder: _createFolder,
+              onCreateNote: _createNote,
               onUploadFile: _uploadFile,
               onUploadPhoto: _uploadPhoto,
               onTakePhoto: _takePhoto,

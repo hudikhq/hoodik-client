@@ -432,6 +432,16 @@ final appLocaleProvider = NotifierProvider<AppLocaleNotifier, Locale?>(
 final filesBranchTitleProvider = StateProvider<String?>((ref) => null);
 final notesBranchTitleProvider = StateProvider<String?>((ref) => null);
 
+/// Bottom-nav branch indices, in bottom-nav order (see MainShell).
+const int filesBranchIndex = 0;
+
+/// A "switch the shell to this branch" signal for widgets deep inside a
+/// branch. MainShell listens and calls `goBranch`, which restores the
+/// target branch's own navigation stack — a cross-branch `context.go`
+/// would instead navigate that branch to a fixed location, losing the
+/// folder the user was in. Reset to null after handling.
+final shellBranchRequestProvider = StateProvider<int?>((ref) => null);
+
 /// Session-scoped preview cache. Keeps decrypted file bytes in memory so
 /// re-opening a preview is instant. Cleared on logout.
 final previewCacheProvider = Provider<PreviewCache>((ref) {
