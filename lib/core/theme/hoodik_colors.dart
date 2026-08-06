@@ -6,6 +6,7 @@ class HoodikColors {
 
   // Primary — Redish
   static const Color redish50 = Color(0xFFF58596);
+  static const Color redish200 = Color(0xFFD8566B);
   static const Color redish300 = Color(0xFFBA4054);
   static const Color redish400 = Color(0xFFA63446);
   static const Color redish500 = Color(0xFFA43144);

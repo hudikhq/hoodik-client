@@ -319,7 +319,7 @@ void showFabMenuSheet({
             ListTile(
               leading: const Icon(
                 Icons.edit_note,
-                color: HoodikColors.greeny400,
+                color: HoodikColors.orangy400,
               ),
               title: Text(l10n.notesNewNote),
               onTap: () => run(onCreateNote),

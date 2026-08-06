@@ -6,8 +6,10 @@ import 'hoodik_colors.dart';
 /// Hoodik's global theme.
 ///
 /// The palette is modelled after the notes editor: a `brownish900` body
-/// with `brownish800` chrome (app bars, bottom nav, dialogs, menus), and
-/// `orangy500`/`redish400` accents. Every component theme is filled in so
+/// with `brownish800` chrome (app bars, bottom nav, dialogs, menus). The
+/// redish family is the only action color — text buttons, indicators, and
+/// snackbar actions included; orangy is reserved for warnings and signals
+/// (dirty dots, saving spinners). Every component theme is filled in so
 /// screens never need to hardcode a backgroundColor — the rare exceptions
 /// should be commented explaining why the theme default wasn't enough.
 class HoodikTheme {
@@ -128,7 +130,7 @@ class HoodikTheme {
       ),
 
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: HoodikColors.orangy600),
+        style: TextButton.styleFrom(foregroundColor: HoodikColors.redish200),
       ),
 
       dividerTheme: const DividerThemeData(
@@ -176,7 +178,7 @@ class HoodikTheme {
       snackBarTheme: const SnackBarThemeData(
         backgroundColor: HoodikColors.brownish800,
         contentTextStyle: TextStyle(color: HoodikColors.dirtyWhite),
-        actionTextColor: HoodikColors.orangy500,
+        actionTextColor: HoodikColors.redish200,
         behavior: SnackBarBehavior.floating,
       ),
 
@@ -195,7 +197,7 @@ class HoodikTheme {
       tabBarTheme: const TabBarThemeData(
         labelColor: HoodikColors.dirtyWhite,
         unselectedLabelColor: HoodikColors.brownish100,
-        indicatorColor: HoodikColors.orangy500,
+        indicatorColor: HoodikColors.redish400,
         dividerColor: HoodikColors.brownish600,
       ),
 

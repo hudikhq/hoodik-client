@@ -858,7 +858,7 @@ class _SidebarHeader extends StatelessWidget {
                   child: Icon(
                     Icons.add,
                     size: 16,
-                    color: HoodikColors.orangy500,
+                    color: HoodikColors.redish200,
                   ),
                 ),
               ),
@@ -1197,7 +1197,7 @@ class _NoteRowState extends State<_NoteRow> {
                       Icons.sticky_note_2_outlined,
                       size: 14,
                       color: widget.isActive
-                          ? HoodikColors.orangy500
+                          ? HoodikColors.redish300
                           : HoodikColors.brownish300,
                     ),
                     const SizedBox(width: 6),
