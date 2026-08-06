@@ -252,6 +252,35 @@ const List<String> _kBranchTitles = [
   'Account',
 ];
 
+/// Strips the bottom safe-area padding for the branch subtree on Apple
+/// platforms. The CupertinoTabBar below the branch already draws itself into
+/// the home-indicator safe area (it SafeArea-wraps internally); children that
+/// apply their own SafeArea would reserve that indicator space a second time,
+/// which showed up as a visible gap between the notes formatting toolbar and
+/// the tab bar.
+///
+/// This must be its own widget so `MediaQuery.removePadding` derives from a
+/// context *inside* the CupertinoPageScaffold. Deriving from the shell's
+/// outer context rebuilds MediaQuery from pre-scaffold data, re-injecting
+/// the keyboard inset the scaffold already consumed via
+/// `resizeToAvoidBottomInset` — the branch then padded by the keyboard
+/// height a second time, pushing sheet content to the top of the screen
+/// with a keyboard-sized void below it.
+class ShellBranchInsets extends StatelessWidget {
+  const ShellBranchInsets({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return MediaQuery.removePadding(
+      context: context,
+      removeBottom: true,
+      child: child,
+    );
+  }
+}
+
 /// Bottom-nav host for the main five tabs. Renders its child branch
 /// inside an `IndexedStack` (provided by GoRouter's `navigationShell`) so
 /// tab switches are instant and stateful.
@@ -331,22 +360,7 @@ class MainShell extends ConsumerWidget {
         resizeToAvoidBottomInset: !notesActive,
         child: Column(
           children: [
-            // The CupertinoTabBar below already draws itself into the
-            // home-indicator safe area (it SafeArea-wraps internally).
-            // Its siblings in the Column, however, still see the full
-            // `MediaQuery.padding.bottom` — children that apply their
-            // own SafeArea then reserve that indicator space a second
-            // time, which showed up as the visible gap between the
-            // notes formatting toolbar and the tab bar. Strip the
-            // bottom padding here so descendants see a zero bottom
-            // inset and SafeArea becomes a no-op.
-            Expanded(
-              child: MediaQuery.removePadding(
-                context: context,
-                removeBottom: true,
-                child: navigationShell,
-              ),
-            ),
+            Expanded(child: ShellBranchInsets(child: navigationShell)),
             if (showOverlay && !notesActive) const TransferOverlay(),
             if (!hideTabBar)
               CupertinoTabBar(
