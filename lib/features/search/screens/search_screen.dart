@@ -336,6 +336,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
 
     return ListView.builder(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       itemCount: _results!.length,
       itemBuilder: (context, index) {
         final file = _results![index];

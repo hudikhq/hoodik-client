@@ -2167,6 +2167,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get notesHideSidebar => 'Seitenleiste ausblenden';
 
   @override
+  String get notesHideKeyboard => 'Tastatur ausblenden';
+
+  @override
   String get notesHistory => 'Versionsverlauf';
 
   @override

@@ -3642,6 +3642,12 @@ abstract class AppLocalizations {
   /// **'Hide sidebar'**
   String get notesHideSidebar;
 
+  /// No description provided for @notesHideKeyboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide keyboard'**
+  String get notesHideKeyboard;
+
   /// No description provided for @notesHistory.
   ///
   /// In en, this message translates to:

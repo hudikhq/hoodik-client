@@ -137,65 +137,62 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final l10n = AppLocalizations.of(context);
     final server = ref.watch(selectedServerProvider);
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        appBar: AppBar(
-          leading: BackButton(onPressed: () => context.go('/auth/login')),
-          title: Text(server?.name ?? l10n.authCreateAccount),
-          centerTitle: isApplePlatform,
-        ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  AdaptiveTextField(
-                    key: const Key('emailField'),
-                    controller: _emailController,
-                    label: l10n.authEmailLabel,
-                    prefix: Icon(
-                      isApplePlatform
-                          ? CupertinoIcons.mail
-                          : Icons.email_outlined,
-                      size: 18,
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    autocorrect: false,
-                    textInputAction: TextInputAction.next,
+    return Scaffold(
+      appBar: AppBar(
+        leading: BackButton(onPressed: () => context.go('/auth/login')),
+        title: Text(server?.name ?? l10n.authCreateAccount),
+        centerTitle: isApplePlatform,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AdaptiveTextField(
+                  key: const Key('emailField'),
+                  controller: _emailController,
+                  label: l10n.authEmailLabel,
+                  prefix: Icon(
+                    isApplePlatform
+                        ? CupertinoIcons.mail
+                        : Icons.email_outlined,
+                    size: 18,
                   ),
-                  const SizedBox(height: 16),
-                  AdaptivePasswordField(
-                    key: const Key('passwordField'),
-                    controller: _passwordController,
-                    label: l10n.authPasswordLabel,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const SizedBox(height: 16),
-                  AdaptivePasswordField(
-                    key: const Key('confirmPasswordField'),
-                    controller: _confirmController,
-                    label: l10n.authConfirmPasswordLabel,
-                    textInputAction: TextInputAction.go,
-                    onSubmitted: (_) => _register(),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    ErrorBanner(message: _error!),
-                  ],
-                  const SizedBox(height: 24),
-                  AdaptiveButton(
-                    key: const Key('createAccountButton'),
-                    onPressed: _loading ? null : _register,
-                    child: _loading
-                        ? const AdaptiveLoadingIndicator(radius: 10)
-                        : Text(l10n.authCreateAccount),
-                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  autocorrect: false,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
+                AdaptivePasswordField(
+                  key: const Key('passwordField'),
+                  controller: _passwordController,
+                  label: l10n.authPasswordLabel,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
+                AdaptivePasswordField(
+                  key: const Key('confirmPasswordField'),
+                  controller: _confirmController,
+                  label: l10n.authConfirmPasswordLabel,
+                  textInputAction: TextInputAction.go,
+                  onSubmitted: (_) => _register(),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  ErrorBanner(message: _error!),
                 ],
-              ),
+                const SizedBox(height: 24),
+                AdaptiveButton(
+                  key: const Key('createAccountButton'),
+                  onPressed: _loading ? null : _register,
+                  child: _loading
+                      ? const AdaptiveLoadingIndicator(radius: 10)
+                      : Text(l10n.authCreateAccount),
+                ),
+              ],
             ),
           ),
         ),

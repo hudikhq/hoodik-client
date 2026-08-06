@@ -590,6 +590,7 @@
   "notesForkFailed": "Kopieren fehlgeschlagen: {error}",
   "notesHeading": "Überschrift {level}",
   "notesHideSidebar": "Seitenleiste ausblenden",
+  "notesHideKeyboard": "Tastatur ausblenden",
   "notesHistory": "Versionsverlauf",
   "notesHistoryNamed": "Verlauf · {name}",
   "notesItalic": "Kursiv",

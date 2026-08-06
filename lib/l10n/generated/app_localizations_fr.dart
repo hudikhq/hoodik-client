@@ -2163,6 +2163,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get notesHideSidebar => 'Masquer la barre latérale';
 
   @override
+  String get notesHideKeyboard => 'Masquer le clavier';
+
+  @override
   String get notesHistory => 'Historique des versions';
 
   @override

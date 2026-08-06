@@ -907,8 +907,15 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       onCommand: _runCommand,
       onHistory: _openHistory,
       onExportPdf: _exportActiveAsPdf,
+      onHideKeyboard: _hideKeyboard,
     );
   }
+
+  /// The WebView holds native focus while typing, so the keyboard drops by
+  /// blurring the editor's active element, not by unfocusing Flutter nodes.
+  void _hideKeyboard() => _webViewController.runJavaScript(
+    'document.activeElement && document.activeElement.blur()',
+  );
 
   Widget _buildEditorContent() {
     final tab = _activeTab;

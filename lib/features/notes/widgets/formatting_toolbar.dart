@@ -71,11 +71,18 @@ class FormattingToolbar extends ConsumerWidget {
   /// it to the platform share sheet.
   final VoidCallback? onExportPdf;
 
+  /// Optional — when set and the keyboard is open, renders a hide-keyboard
+  /// button at the leading edge. The WebView holds native focus, so the
+  /// host dismisses by blurring the editor's active element rather than
+  /// unfocusing a Flutter node.
+  final VoidCallback? onHideKeyboard;
+
   const FormattingToolbar({
     super.key,
     required this.onCommand,
     this.onHistory,
     this.onExportPdf,
+    this.onHideKeyboard,
   });
 
   @override
@@ -84,6 +91,10 @@ class FormattingToolbar extends ConsumerWidget {
     final zoom = ref.watch(editorZoomProvider);
     void setZoom(double next) =>
         ref.read(editorZoomProvider.notifier).state = next;
+    final hideKeyboard =
+        onHideKeyboard != null && MediaQuery.viewInsetsOf(context).bottom > 0
+        ? onHideKeyboard
+        : null;
 
     return Container(
       decoration: const BoxDecoration(
@@ -98,8 +109,8 @@ class FormattingToolbar extends ConsumerWidget {
           builder: (context, constraints) {
             final compact = constraints.maxWidth < _kCompactThreshold;
             return compact
-                ? _buildCompact(l10n, zoom, setZoom)
-                : _buildFull(l10n, zoom, setZoom);
+                ? _buildCompact(l10n, zoom, setZoom, hideKeyboard)
+                : _buildFull(l10n, zoom, setZoom, hideKeyboard);
           },
         ),
       ),
@@ -111,12 +122,21 @@ class FormattingToolbar extends ConsumerWidget {
     AppLocalizations l10n,
     double zoom,
     ValueChanged<double> setZoom,
+    VoidCallback? hideKeyboard,
   ) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
         children: [
+          if (hideKeyboard != null) ...[
+            _iconButton(
+              Icons.keyboard_hide_outlined,
+              l10n.notesHideKeyboard,
+              onTap: hideKeyboard,
+            ),
+            _divider(),
+          ],
           _iconButton(Icons.format_bold, l10n.notesBold, onTap: _boldTap),
           _iconButton(Icons.format_italic, l10n.notesItalic, onTap: _italicTap),
           _iconButton(
@@ -182,12 +202,21 @@ class FormattingToolbar extends ConsumerWidget {
     AppLocalizations l10n,
     double zoom,
     ValueChanged<double> setZoom,
+    VoidCallback? hideKeyboard,
   ) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
         children: [
+          if (hideKeyboard != null) ...[
+            _iconButton(
+              Icons.keyboard_hide_outlined,
+              l10n.notesHideKeyboard,
+              onTap: hideKeyboard,
+            ),
+            _divider(),
+          ],
           _iconButton(Icons.format_bold, l10n.notesBold, onTap: _boldTap),
           _iconButton(Icons.format_italic, l10n.notesItalic, onTap: _italicTap),
           _headingButton(l10n, 2),

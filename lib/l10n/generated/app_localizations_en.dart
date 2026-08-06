@@ -2130,6 +2130,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesHideSidebar => 'Hide sidebar';
 
   @override
+  String get notesHideKeyboard => 'Hide keyboard';
+
+  @override
   String get notesHistory => 'Version history';
 
   @override

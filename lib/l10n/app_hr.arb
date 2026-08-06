@@ -590,6 +590,7 @@
   "notesForkFailed": "Fork nije uspio: {error}",
   "notesHeading": "Naslov {level}",
   "notesHideSidebar": "Sakrij bočnu traku",
+  "notesHideKeyboard": "Sakrij tipkovnicu",
   "notesHistory": "Povijest verzija",
   "notesHistoryNamed": "Povijest · {name}",
   "notesItalic": "Kurziv",
