@@ -125,7 +125,7 @@ class _TabItem extends StatelessWidget {
                 width: 0.5,
               ),
               bottom: BorderSide(
-                color: isActive ? HoodikColors.orangy500 : Colors.transparent,
+                color: isActive ? HoodikColors.redish400 : Colors.transparent,
                 width: 2,
               ),
             ),
