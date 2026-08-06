@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/widgets/adaptive.dart';
 import '../../../core/storage/database.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -78,25 +80,38 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    if (selectionMode) return _buildSelectionAppBar(l10n);
+    if (selectionMode) return _buildSelectionAppBar(context, l10n);
     return _buildNormalAppBar(context, ref, l10n);
   }
 
-  Widget _buildSelectionAppBar(AppLocalizations l10n) {
+  Widget _buildSelectionAppBar(BuildContext context, AppLocalizations l10n) {
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.close),
+        tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+        icon: Icon(
+          adaptiveIcon(material: Icons.close, cupertino: CupertinoIcons.xmark),
+        ),
         onPressed: onExitSelection,
       ),
       title: Text(l10n.filesSelectedCount(selectionCount)),
       actions: [
         IconButton(
-          icon: const Icon(Icons.drive_file_move_outline),
+          icon: Icon(
+            adaptiveIcon(
+              material: Icons.drive_file_move_outline,
+              cupertino: CupertinoIcons.folder_badge_plus,
+            ),
+          ),
           tooltip: l10n.commonMove,
           onPressed: busy ? null : onMoveSelected,
         ),
         IconButton(
-          icon: const Icon(Icons.delete_outline),
+          icon: Icon(
+            adaptiveIcon(
+              material: Icons.delete_outline,
+              cupertino: CupertinoIcons.trash,
+            ),
+          ),
           tooltip: l10n.commonDelete,
           onPressed: busy ? null : onDeleteSelected,
         ),
@@ -114,20 +129,36 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
       title: Text(_title(l10n)),
       leading: dirId != null
           ? IconButton(
-              icon: const Icon(Icons.arrow_back),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              icon: Icon(
+                adaptiveIcon(
+                  material: Icons.arrow_back,
+                  cupertino: CupertinoIcons.back,
+                ),
+              ),
               onPressed: () => context.pop(),
             )
           : null,
       actions: [
         const FailedUploadsBadge(),
         IconButton(
-          icon: const Icon(Icons.search),
+          icon: Icon(
+            adaptiveIcon(
+              material: Icons.search,
+              cupertino: CupertinoIcons.search,
+            ),
+          ),
           tooltip: l10n.commonSearch,
           onPressed: () => context.go('/search'),
         ),
         if (_showsRefreshAction(theme.platform))
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(
+              adaptiveIcon(
+                material: Icons.refresh,
+                cupertino: CupertinoIcons.arrow_clockwise,
+              ),
+            ),
             tooltip: l10n.filesRefresh,
             onPressed: busy
                 ? null
@@ -159,7 +190,12 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
             onFieldSelected: onSortFieldSelected,
           ),
           IconButton(
-            icon: const Icon(Icons.checklist),
+            icon: Icon(
+              adaptiveIcon(
+                material: Icons.checklist,
+                cupertino: CupertinoIcons.checkmark_circle,
+              ),
+            ),
             tooltip: l10n.filesSelectFilesTooltip,
             onPressed: onEnterSelection,
           ),
@@ -194,8 +230,14 @@ class _ViewModeButton extends ConsumerWidget {
     final current = ref.watch(filesViewModeProvider);
     final l10n = AppLocalizations.of(context);
     IconData iconFor(FilesViewMode m) => switch (m) {
-      FilesViewMode.list => Icons.view_list,
-      FilesViewMode.icons => Icons.grid_view,
+      FilesViewMode.list => adaptiveIcon(
+        material: Icons.view_list,
+        cupertino: CupertinoIcons.list_bullet,
+      ),
+      FilesViewMode.icons => adaptiveIcon(
+        material: Icons.grid_view,
+        cupertino: CupertinoIcons.square_grid_2x2,
+      ),
       FilesViewMode.tree => Icons.account_tree_outlined,
     };
     String labelFor(FilesViewMode m) => switch (m) {

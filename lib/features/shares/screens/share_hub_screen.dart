@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -100,6 +101,37 @@ class _ShareHubViewState extends State<_ShareHubView>
     _ShareTab.groups => const ShareGroupsBody(),
   };
 
+  /// iOS-idiom tab switcher: a segmented control in the nav-bar's bottom
+  /// slot instead of a Material TabBar. Drives the same TabController so
+  /// swiping the TabBarView keeps both platforms in sync.
+  PreferredSizeWidget _segmentedSwitcher(
+    AppLocalizations l10n,
+    List<_ShareTab> tabs,
+  ) {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(44),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+        child: SizedBox(
+          width: double.infinity,
+          child: CupertinoSlidingSegmentedControl<int>(
+            groupValue: _controller.index.clamp(0, tabs.length - 1),
+            children: {
+              for (final (i, tab) in tabs.indexed)
+                i: Text(
+                  _label(l10n, tab),
+                  style: const TextStyle(fontSize: 13),
+                ),
+            },
+            onValueChanged: (index) {
+              if (index != null) _controller.animateTo(index);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -117,14 +149,16 @@ class _ShareHubViewState extends State<_ShareHubView>
             onRefreshLinks: () => _linksKey.currentState?.reload(),
           ),
         ],
-        bottom: showTabBar
-            ? TabBar(
+        bottom: !showTabBar
+            ? null
+            : isApplePlatform
+            ? _segmentedSwitcher(l10n, tabs)
+            : TabBar(
                 controller: _controller,
                 isScrollable: true,
                 tabAlignment: TabAlignment.start,
                 tabs: [for (final tab in tabs) Tab(text: _label(l10n, tab))],
-              )
-            : null,
+              ),
       ),
       body: TabBarView(
         controller: _controller,

@@ -539,6 +539,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       onToggleSelection: _notifier.toggleSelection,
       onContextMenu: _showContextMenu,
       onPerformMove: _performMove,
+      onDelete: _deleteFile,
     );
   }
 }
