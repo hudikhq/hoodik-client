@@ -26,6 +26,7 @@ class NotesMainArea extends StatelessWidget {
   final void Function(String command, [dynamic payload]) onCommand;
   final VoidCallback onHistory;
   final VoidCallback onExportPdf;
+  final VoidCallback onHideKeyboard;
 
   const NotesMainArea({
     super.key,
@@ -40,6 +41,7 @@ class NotesMainArea extends StatelessWidget {
     required this.onCommand,
     required this.onHistory,
     required this.onExportPdf,
+    required this.onHideKeyboard,
   });
 
   @override
@@ -58,6 +60,7 @@ class NotesMainArea extends StatelessWidget {
             onCommand: onCommand,
             onHistory: onHistory,
             onExportPdf: onExportPdf,
+            onHideKeyboard: onHideKeyboard,
           )
         : null;
     if (Platform.isIOS) {

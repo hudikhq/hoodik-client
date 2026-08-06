@@ -590,6 +590,7 @@
   "notesForkFailed": "Échec de la duplication : {error}",
   "notesHeading": "Titre {level}",
   "notesHideSidebar": "Masquer la barre latérale",
+  "notesHideKeyboard": "Masquer le clavier",
   "notesHistory": "Historique des versions",
   "notesHistoryNamed": "Historique · {name}",
   "notesItalic": "Italique",

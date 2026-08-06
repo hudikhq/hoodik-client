@@ -152,72 +152,69 @@ class _LockOverlayState extends ConsumerState<LockOverlay> {
     final l10n = AppLocalizations.of(context);
     final account = ref.watch(activeAccountProvider);
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (account != null) ...[
-                      UserAvatar(email: account.email, radius: 28),
-                      const SizedBox(height: 12),
-                      Text(
-                        account.email,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.7,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                    ],
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (account != null) ...[
+                    UserAvatar(email: account.email, radius: 28),
+                    const SizedBox(height: 12),
                     Text(
-                      l10n.authEnterPasscode,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    AdaptivePasswordField(
-                      controller: _pinController,
-                      label: l10n.authPinLabel,
-                      autofocus: !_biometricAvailable,
-                      textInputAction: TextInputAction.go,
-                      onSubmitted: (_) => _unlock(),
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 12),
-                      ErrorBanner(message: _error!),
-                    ],
-                    const SizedBox(height: 24),
-                    AdaptiveButton(
-                      onPressed: _loading ? null : _unlock,
-                      child: _loading
-                          ? const AdaptiveLoadingIndicator(radius: 10)
-                          : Text(l10n.authUnlock),
-                    ),
-                    if (_biometricAvailable) ...[
-                      const SizedBox(height: 16),
-                      AdaptiveTextButton(
-                        onPressed: _loading ? null : _authenticateWithBiometric,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(biometricIcon(), size: 20),
-                            const SizedBox(width: 8),
-                            Text(biometricLabel(withUsePrefix: true)),
-                          ],
+                      account.email,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
                         ),
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: 4),
                   ],
-                ),
+                  Text(
+                    l10n.authEnterPasscode,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  AdaptivePasswordField(
+                    controller: _pinController,
+                    label: l10n.authPinLabel,
+                    autofocus: !_biometricAvailable,
+                    textInputAction: TextInputAction.go,
+                    onSubmitted: (_) => _unlock(),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    ErrorBanner(message: _error!),
+                  ],
+                  const SizedBox(height: 24),
+                  AdaptiveButton(
+                    onPressed: _loading ? null : _unlock,
+                    child: _loading
+                        ? const AdaptiveLoadingIndicator(radius: 10)
+                        : Text(l10n.authUnlock),
+                  ),
+                  if (_biometricAvailable) ...[
+                    const SizedBox(height: 16),
+                    AdaptiveTextButton(
+                      onPressed: _loading ? null : _authenticateWithBiometric,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(biometricIcon(), size: 20),
+                          const SizedBox(width: 8),
+                          Text(biometricLabel(withUsePrefix: true)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),

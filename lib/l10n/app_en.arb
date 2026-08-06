@@ -1310,6 +1310,7 @@
     }
   },
   "notesHideSidebar": "Hide sidebar",
+  "notesHideKeyboard": "Hide keyboard",
   "notesHistory": "Version history",
   "notesHistoryNamed": "History · {name}",
   "@notesHistoryNamed": {

@@ -21,6 +21,7 @@ import 'core/utils/log_redact.dart';
 import 'core/utils/logger.dart';
 import 'package:intl/intl.dart' show Intl;
 import 'core/widgets/adaptive.dart';
+import 'core/widgets/keyboard_dismiss.dart';
 import 'core/widgets/privacy_shield.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'core/auth/auth_service.dart';
@@ -440,9 +441,11 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
           routerConfig: appRouter,
           // Wrap every navigator child with the privacy shield so the
           // app switcher snapshot (and any brief out-of-focus moment
-          // on mobile) hides sensitive content behind a blur.
-          builder: (context, child) =>
-              PrivacyShield(child: child ?? const SizedBox.shrink()),
+          // on mobile) hides sensitive content behind a blur, and with
+          // tap-to-dismiss so any tap on empty space drops the keyboard.
+          builder: (context, child) => KeyboardDismissOnTap(
+            child: PrivacyShield(child: child ?? const SizedBox.shrink()),
+          ),
         ),
         if (isLocked)
           MaterialApp(
@@ -453,6 +456,8 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
             locale: appLocale,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) =>
+                KeyboardDismissOnTap(child: child ?? const SizedBox.shrink()),
             home: const LockOverlay(),
           ),
       ],

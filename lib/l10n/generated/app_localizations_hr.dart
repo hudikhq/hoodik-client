@@ -2156,6 +2156,9 @@ class AppLocalizationsHr extends AppLocalizations {
   String get notesHideSidebar => 'Sakrij bočnu traku';
 
   @override
+  String get notesHideKeyboard => 'Sakrij tipkovnicu';
+
+  @override
   String get notesHistory => 'Povijest verzija';
 
   @override

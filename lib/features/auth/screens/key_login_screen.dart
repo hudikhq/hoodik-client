@@ -102,66 +102,61 @@ class _KeyLoginScreenState extends ConsumerState<KeyLoginScreen> {
     final l10n = AppLocalizations.of(context);
     final server = ref.watch(selectedServerProvider);
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        appBar: AppBar(
-          leading: BackButton(onPressed: () => context.go('/auth/login')),
-          title: Text(server?.name ?? l10n.authKeyLoginTitle),
-          centerTitle: isApplePlatform,
-        ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    l10n.authKeyLoginIntro,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
+    return Scaffold(
+      appBar: AppBar(
+        leading: BackButton(onPressed: () => context.go('/auth/login')),
+        title: Text(server?.name ?? l10n.authKeyLoginTitle),
+        centerTitle: isApplePlatform,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.authKeyLoginIntro,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    key: const Key('recoveryKeyField'),
-                    controller: _keyController,
-                    maxLines: 8,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontFamily: 'monospace',
-                    ),
-                    decoration: InputDecoration(
-                      labelText: l10n.authRecoveryKeyLabel,
-                      alignLabelWithHint: true,
-                      border: const OutlineInputBorder(),
-                    ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  key: const Key('recoveryKeyField'),
+                  controller: _keyController,
+                  maxLines: 8,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontFamily: 'monospace',
                   ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    ErrorBanner(message: _error!),
-                  ],
-                  const SizedBox(height: 24),
-                  AdaptiveButton(
-                    key: const Key('keyLoginButton'),
-                    onPressed: _loading ? null : _login,
-                    child: _loading
-                        ? const AdaptiveLoadingIndicator(radius: 10)
-                        : Text(l10n.authLogIn),
+                  decoration: InputDecoration(
+                    labelText: l10n.authRecoveryKeyLabel,
+                    alignLabelWithHint: true,
+                    border: const OutlineInputBorder(),
                   ),
+                ),
+                if (_error != null) ...[
                   const SizedBox(height: 12),
-                  TextButton(
-                    key: const Key('passwordLoginLink'),
-                    onPressed: _loading
-                        ? null
-                        : () => context.go('/auth/login'),
-                    child: Text(l10n.authLogInWithPassword),
-                  ),
+                  ErrorBanner(message: _error!),
                 ],
-              ),
+                const SizedBox(height: 24),
+                AdaptiveButton(
+                  key: const Key('keyLoginButton'),
+                  onPressed: _loading ? null : _login,
+                  child: _loading
+                      ? const AdaptiveLoadingIndicator(radius: 10)
+                      : Text(l10n.authLogIn),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  key: const Key('passwordLoginLink'),
+                  onPressed: _loading ? null : () => context.go('/auth/login'),
+                  child: Text(l10n.authLogInWithPassword),
+                ),
+              ],
             ),
           ),
         ),

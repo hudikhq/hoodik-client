@@ -242,140 +242,133 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final l10n = AppLocalizations.of(context);
     final server = ref.watch(selectedServerProvider);
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        // Back button to return to server selection
-        appBar: AppBar(
-          leading: BackButton(onPressed: () => context.go('/setup/server')),
-          title: Text(server?.name ?? l10n.authSignIn),
-          centerTitle: isApplePlatform,
-        ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Existing accounts for this server
-                  if (_serverAccounts.isNotEmpty) ...[
-                    AdaptiveListSection(
-                      header: l10n.authExistingAccounts,
-                      children: _serverAccounts.map((account) {
-                        return AdaptiveListTile(
-                          leading: UserAvatar(email: account.email, radius: 16),
-                          title: Text(account.email),
-                          subtitle: account.lastUsedAt != null
-                              ? Text(
-                                  l10n.authLastUsed(
-                                    fmt.formatRelativeTime(
-                                      account.lastUsedAt,
-                                      fallback: '',
-                                    ),
+    return Scaffold(
+      // Back button to return to server selection
+      appBar: AppBar(
+        leading: BackButton(onPressed: () => context.go('/setup/server')),
+        title: Text(server?.name ?? l10n.authSignIn),
+        centerTitle: isApplePlatform,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Existing accounts for this server
+                if (_serverAccounts.isNotEmpty) ...[
+                  AdaptiveListSection(
+                    header: l10n.authExistingAccounts,
+                    children: _serverAccounts.map((account) {
+                      return AdaptiveListTile(
+                        leading: UserAvatar(email: account.email, radius: 16),
+                        title: Text(account.email),
+                        subtitle: account.lastUsedAt != null
+                            ? Text(
+                                l10n.authLastUsed(
+                                  fmt.formatRelativeTime(
+                                    account.lastUsedAt,
+                                    fallback: '',
                                   ),
-                                )
-                              : Text(l10n.authNeverUsed),
-                          onTap: _loading
-                              ? null
-                              : () => _switchToAccount(account),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 24),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        l10n.authSignInDifferentAccount,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.5,
-                          ),
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
+                                ),
+                              )
+                            : Text(l10n.authNeverUsed),
+                        onTap: _loading
+                            ? null
+                            : () => _switchToAccount(account),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      l10n.authSignInDifferentAccount,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
                         ),
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                  ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
-                  // Login form
+                // Login form
+                AdaptiveTextField(
+                  key: const Key('emailField'),
+                  controller: _emailController,
+                  label: l10n.authEmailLabel,
+                  prefix: Icon(
+                    isApplePlatform
+                        ? CupertinoIcons.mail
+                        : Icons.email_outlined,
+                    size: 18,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  autocorrect: false,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
+                AdaptivePasswordField(
+                  key: const Key('passwordField'),
+                  controller: _passwordController,
+                  label: l10n.authPasswordLabel,
+                  textInputAction: _showTfa
+                      ? TextInputAction.next
+                      : TextInputAction.go,
+                  onSubmitted: _showTfa ? null : (_) => _login(),
+                ),
+                if (_showTfa) ...[
+                  const SizedBox(height: 16),
                   AdaptiveTextField(
-                    key: const Key('emailField'),
-                    controller: _emailController,
-                    label: l10n.authEmailLabel,
+                    controller: _tfaController,
+                    label: l10n.authTfaCodeLabel,
+                    placeholder: '000000',
                     prefix: Icon(
-                      isApplePlatform
-                          ? CupertinoIcons.mail
-                          : Icons.email_outlined,
+                      isApplePlatform ? CupertinoIcons.shield : Icons.security,
                       size: 18,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
-                    keyboardType: TextInputType.emailAddress,
-                    autocorrect: false,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const SizedBox(height: 16),
-                  AdaptivePasswordField(
-                    key: const Key('passwordField'),
-                    controller: _passwordController,
-                    label: l10n.authPasswordLabel,
-                    textInputAction: _showTfa
-                        ? TextInputAction.next
-                        : TextInputAction.go,
-                    onSubmitted: _showTfa ? null : (_) => _login(),
-                  ),
-                  if (_showTfa) ...[
-                    const SizedBox(height: 16),
-                    AdaptiveTextField(
-                      controller: _tfaController,
-                      label: l10n.authTfaCodeLabel,
-                      placeholder: '000000',
-                      prefix: Icon(
-                        isApplePlatform
-                            ? CupertinoIcons.shield
-                            : Icons.security,
-                        size: 18,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.4,
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      textInputAction: TextInputAction.go,
-                      onSubmitted: (_) => _login(),
-                    ),
-                  ],
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    ErrorBanner(message: _error!),
-                  ],
-                  const SizedBox(height: 24),
-                  AdaptiveButton(
-                    key: const Key('signInButton'),
-                    onPressed: _loading ? null : _login,
-                    child: _loading
-                        ? const AdaptiveLoadingIndicator(radius: 10)
-                        : Text(l10n.authSignIn),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    key: const Key('createAccountLink'),
-                    onPressed: _loading
-                        ? null
-                        : () => context.go('/auth/register'),
-                    child: Text(l10n.authCreateAnAccount),
-                  ),
-                  TextButton(
-                    key: const Key('keyLoginLink'),
-                    onPressed: _loading
-                        ? null
-                        : () => context.go('/auth/key-login'),
-                    child: Text(l10n.authLogInWithKey),
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    textInputAction: TextInputAction.go,
+                    onSubmitted: (_) => _login(),
                   ),
                 ],
-              ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  ErrorBanner(message: _error!),
+                ],
+                const SizedBox(height: 24),
+                AdaptiveButton(
+                  key: const Key('signInButton'),
+                  onPressed: _loading ? null : _login,
+                  child: _loading
+                      ? const AdaptiveLoadingIndicator(radius: 10)
+                      : Text(l10n.authSignIn),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  key: const Key('createAccountLink'),
+                  onPressed: _loading
+                      ? null
+                      : () => context.go('/auth/register'),
+                  child: Text(l10n.authCreateAnAccount),
+                ),
+                TextButton(
+                  key: const Key('keyLoginLink'),
+                  onPressed: _loading
+                      ? null
+                      : () => context.go('/auth/key-login'),
+                  child: Text(l10n.authLogInWithKey),
+                ),
+              ],
             ),
           ),
         ),

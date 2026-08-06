@@ -377,105 +377,102 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Account avatar + identity
-                    if (_storedAccount != null) ...[
-                      UserAvatar(email: _storedAccount!.email, radius: 28),
-                      const SizedBox(height: 12),
-                      Text(
-                        _storedAccount!.email,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.7,
-                          ),
-                        ),
-                      ),
-                      if (_currentServer != null)
-                        Text(
-                          _currentServer!.name,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.4,
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 4),
-                    ],
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Account avatar + identity
+                  if (_storedAccount != null) ...[
+                    UserAvatar(email: _storedAccount!.email, radius: 28),
+                    const SizedBox(height: 12),
                     Text(
-                      l10n.authEnterPasscode,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    AdaptivePasswordField(
-                      controller: _pinController,
-                      label: l10n.authPinLabel,
-                      autofocus: !_biometricAvailable,
-                      textInputAction: TextInputAction.go,
-                      onSubmitted: (_) => _unlock(),
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 12),
-                      ErrorBanner(message: _error!),
-                    ],
-                    const SizedBox(height: 24),
-                    AdaptiveButton(
-                      onPressed: _loading ? null : _unlock,
-                      child: _loading
-                          ? const AdaptiveLoadingIndicator(radius: 10)
-                          : Text(l10n.authUnlock),
-                    ),
-
-                    // Biometric button
-                    if (_biometricAvailable) ...[
-                      const SizedBox(height: 16),
-                      AdaptiveTextButton(
-                        onPressed: _loading ? null : _authenticateWithBiometric,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(biometricIcon(), size: 20),
-                            const SizedBox(width: 8),
-                            Text(biometricLabel(withUsePrefix: true)),
-                          ],
+                      _storedAccount!.email,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
                         ),
                       ),
-                    ],
-
-                    const SizedBox(height: 24),
-
-                    // Secondary actions — clear escape routes
-                    AdaptiveTextButton(
-                      onPressed: _loading ? null : _addAnotherAccount,
-                      child: Text(l10n.authAddAnotherAccount),
                     ),
+                    if (_currentServer != null)
+                      Text(
+                        _currentServer!.name,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 4),
-                    AdaptiveTextButton(
-                      onPressed: _loading ? null : _forgetAccount,
-                      isDestructive: true,
-                      child: Text(l10n.authForgetThisAccount),
+                  ],
+                  Text(
+                    l10n.authEnterPasscode,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  AdaptivePasswordField(
+                    controller: _pinController,
+                    label: l10n.authPinLabel,
+                    autofocus: !_biometricAvailable,
+                    textInputAction: TextInputAction.go,
+                    onSubmitted: (_) => _unlock(),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    ErrorBanner(message: _error!),
+                  ],
+                  const SizedBox(height: 24),
+                  AdaptiveButton(
+                    onPressed: _loading ? null : _unlock,
+                    child: _loading
+                        ? const AdaptiveLoadingIndicator(radius: 10)
+                        : Text(l10n.authUnlock),
+                  ),
 
-                    // Other accounts to switch to (self-hides when empty).
-                    AccountSwitchList(
-                      accounts: _otherAccounts,
-                      loading: _loading,
-                      onSwitch: _switchToAccount,
+                  // Biometric button
+                  if (_biometricAvailable) ...[
+                    const SizedBox(height: 16),
+                    AdaptiveTextButton(
+                      onPressed: _loading ? null : _authenticateWithBiometric,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(biometricIcon(), size: 20),
+                          const SizedBox(width: 8),
+                          Text(biometricLabel(withUsePrefix: true)),
+                        ],
+                      ),
                     ),
                   ],
-                ),
+
+                  const SizedBox(height: 24),
+
+                  // Secondary actions — clear escape routes
+                  AdaptiveTextButton(
+                    onPressed: _loading ? null : _addAnotherAccount,
+                    child: Text(l10n.authAddAnotherAccount),
+                  ),
+                  const SizedBox(height: 4),
+                  AdaptiveTextButton(
+                    onPressed: _loading ? null : _forgetAccount,
+                    isDestructive: true,
+                    child: Text(l10n.authForgetThisAccount),
+                  ),
+
+                  // Other accounts to switch to (self-hides when empty).
+                  AccountSwitchList(
+                    accounts: _otherAccounts,
+                    loading: _loading,
+                    onSwitch: _switchToAccount,
+                  ),
+                ],
               ),
             ),
           ),

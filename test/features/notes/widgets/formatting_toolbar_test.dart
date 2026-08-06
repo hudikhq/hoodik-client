@@ -16,6 +16,8 @@ void main() {
     double width = narrowWidth,
     VoidCallback? onHistory,
     VoidCallback? onExportPdf,
+    VoidCallback? onHideKeyboard,
+    bool keyboardOpen = false,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -27,10 +29,22 @@ void main() {
               alignment: Alignment.bottomCenter,
               child: SizedBox(
                 width: width,
-                child: FormattingToolbar(
-                  onCommand: (_, [_]) {},
-                  onHistory: onHistory,
-                  onExportPdf: onExportPdf,
+                child: Builder(
+                  builder: (context) => MediaQuery(
+                    // The notes branch keeps resize off, so the toolbar
+                    // sees the raw keyboard inset in the real app.
+                    data: MediaQuery.of(context).copyWith(
+                      viewInsets: EdgeInsets.only(
+                        bottom: keyboardOpen ? 300 : 0,
+                      ),
+                    ),
+                    child: FormattingToolbar(
+                      onCommand: (_, [_]) {},
+                      onHistory: onHistory,
+                      onExportPdf: onExportPdf,
+                      onHideKeyboard: onHideKeyboard,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -69,5 +83,23 @@ void main() {
 
     expect(find.text('Export to PDF'), findsNothing);
     expect(find.text('Version history'), findsNothing);
+  });
+
+  testWidgets('hide-keyboard button appears only while the keyboard is up', (
+    tester,
+  ) async {
+    var hidden = false;
+    await pumpToolbar(tester, onHideKeyboard: () => hidden = true);
+    expect(find.byIcon(Icons.keyboard_hide_outlined), findsNothing);
+
+    await pumpToolbar(
+      tester,
+      onHideKeyboard: () => hidden = true,
+      keyboardOpen: true,
+    );
+    expect(find.byIcon(Icons.keyboard_hide_outlined), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.keyboard_hide_outlined));
+    expect(hidden, isTrue);
   });
 }

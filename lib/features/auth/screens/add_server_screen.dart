@@ -127,146 +127,139 @@ class _AddServerScreenState extends ConsumerState<AddServerScreen> {
 
     final canGoBack = Navigator.of(context).canPop();
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        appBar: canGoBack
-            ? AppBar(
-                leading: IconButton(
-                  icon: Icon(
-                    isApplePlatform ? CupertinoIcons.back : Icons.arrow_back,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
+    return Scaffold(
+      appBar: canGoBack
+          ? AppBar(
+              leading: IconButton(
+                icon: Icon(
+                  isApplePlatform ? CupertinoIcons.back : Icons.arrow_back,
                 ),
-                title: Text(l10n.authManageAccounts),
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-              )
-            : null,
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Compact branding
-                    Icon(
-                      isApplePlatform
-                          ? CupertinoIcons.cloud
-                          : Icons.cloud_outlined,
-                      size: 40,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              title: Text(l10n.authManageAccounts),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+            )
+          : null,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Compact branding
+                  Icon(
+                    isApplePlatform
+                        ? CupertinoIcons.cloud
+                        : Icons.cloud_outlined,
+                    size: 40,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Hoodik',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: theme.colorScheme.primary,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Hoodik',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.primary,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.authTagline,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.authTagline,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.5,
-                        ),
-                      ),
-                    ),
+                  ),
 
-                    // Saved servers
-                    if (_servers.isNotEmpty) ...[
-                      const SizedBox(height: 28),
-                      AdaptiveListSection(
-                        header: l10n.authSavedServers,
-                        children: _servers.map((server) {
-                          return AdaptiveListTile(
-                            leading: Icon(
-                              isApplePlatform
-                                  ? CupertinoIcons.desktopcomputer
-                                  : Icons.dns_outlined,
-                              color: theme.colorScheme.secondary,
-                              size: 22,
-                            ),
-                            title: Text(server.name),
-                            subtitle: Text(server.url),
-                            trailing: isApplePlatform
-                                ? const CupertinoListTileChevron()
-                                : IconButton(
-                                    icon: Icon(
-                                      Icons.delete_outline,
-                                      color: theme.colorScheme.error,
-                                      size: 20,
-                                    ),
-                                    onPressed: () => _deleteServer(server),
-                                  ),
-                            onTap: () => _selectServer(server),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-
-                    // Add server form
+                  // Saved servers
+                  if (_servers.isNotEmpty) ...[
                     const SizedBox(height: 28),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        _servers.isEmpty
-                            ? l10n.authConnectToServer
-                            : l10n.authAddNewServer,
-                        style: _servers.isEmpty
-                            ? theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              )
-                            : theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.5,
+                    AdaptiveListSection(
+                      header: l10n.authSavedServers,
+                      children: _servers.map((server) {
+                        return AdaptiveListTile(
+                          leading: Icon(
+                            isApplePlatform
+                                ? CupertinoIcons.desktopcomputer
+                                : Icons.dns_outlined,
+                            color: theme.colorScheme.secondary,
+                            size: 22,
+                          ),
+                          title: Text(server.name),
+                          subtitle: Text(server.url),
+                          trailing: isApplePlatform
+                              ? const CupertinoListTileChevron()
+                              : IconButton(
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    color: theme.colorScheme.error,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => _deleteServer(server),
                                 ),
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.5,
-                              ),
-                      ),
+                          onTap: () => _selectServer(server),
+                        );
+                      }).toList(),
                     ),
-                    const SizedBox(height: 12),
-                    AdaptiveTextField(
-                      key: const Key('serverUrlField'),
-                      controller: _urlController,
-                      label: l10n.authServerUrlLabel,
-                      placeholder: 'https://cloud.example.com',
-                      prefix: Icon(
-                        isApplePlatform
-                            ? CupertinoIcons.globe
-                            : Icons.dns_outlined,
-                        size: 18,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.4,
-                        ),
-                      ),
-                      keyboardType: TextInputType.url,
-                      autocorrect: false,
-                      textInputAction: TextInputAction.go,
-                      onSubmitted: (_) => _connect(),
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 12),
-                      ErrorBanner(message: _error!),
-                    ],
-                    const SizedBox(height: 16),
-                    AdaptiveButton(
-                      onPressed: _loading ? null : _connect,
-                      child: _loading
-                          ? const AdaptiveLoadingIndicator(radius: 10)
-                          : Text(l10n.authAddServer),
-                    ),
-
-                    const SizedBox(height: 24),
-                    const CloudNudge(),
                   ],
-                ),
+
+                  // Add server form
+                  const SizedBox(height: 28),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _servers.isEmpty
+                          ? l10n.authConnectToServer
+                          : l10n.authAddNewServer,
+                      style: _servers.isEmpty
+                          ? theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            )
+                          : theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.5,
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  AdaptiveTextField(
+                    key: const Key('serverUrlField'),
+                    controller: _urlController,
+                    label: l10n.authServerUrlLabel,
+                    placeholder: 'https://cloud.example.com',
+                    prefix: Icon(
+                      isApplePlatform
+                          ? CupertinoIcons.globe
+                          : Icons.dns_outlined,
+                      size: 18,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                    keyboardType: TextInputType.url,
+                    autocorrect: false,
+                    textInputAction: TextInputAction.go,
+                    onSubmitted: (_) => _connect(),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    ErrorBanner(message: _error!),
+                  ],
+                  const SizedBox(height: 16),
+                  AdaptiveButton(
+                    onPressed: _loading ? null : _connect,
+                    child: _loading
+                        ? const AdaptiveLoadingIndicator(radius: 10)
+                        : Text(l10n.authAddServer),
+                  ),
+
+                  const SizedBox(height: 24),
+                  const CloudNudge(),
+                ],
               ),
             ),
           ),
