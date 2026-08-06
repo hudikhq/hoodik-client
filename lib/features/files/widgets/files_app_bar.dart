@@ -20,6 +20,9 @@ import 'file_sort_controls.dart';
 /// and delegates to the parent for every user action.
 class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String? dirId;
+
+  /// Decrypted name of [dirId]; null falls back to the generic title.
+  final String? dirName;
   final bool selectionMode;
   final int selectionCount;
   final bool busy;
@@ -37,6 +40,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const FilesAppBar({
     super.key,
     required this.dirId,
+    this.dirName,
     required this.selectionMode,
     required this.selectionCount,
     required this.busy,
@@ -59,7 +63,9 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   String _title(AppLocalizations l10n) {
     if (dirId == sharedWithMeDirId) return sharedWithMeDirName;
-    return dirId == null ? l10n.filesMyFiles : l10n.filesTitle;
+    if (dirId == null) return l10n.filesMyFiles;
+    if (dirName != null && dirName!.isNotEmpty) return dirName!;
+    return l10n.filesTitle;
   }
 
   /// Mobile gets pull-to-refresh; desktop has no equivalent gesture, so
