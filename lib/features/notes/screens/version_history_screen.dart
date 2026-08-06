@@ -452,27 +452,16 @@ class _VersionRow extends StatelessWidget {
         '${_author(version, l10n)} · ${l10n.notesChunkCount(version.chunks)}',
         style: const TextStyle(color: HoodikColors.brownish300, fontSize: 12),
       ),
-      trailing: PopupMenuButton<String>(
+      trailing: PopupMenuButton<VoidCallback>(
         enabled: !busy,
         icon: const Icon(Icons.more_vert),
-        onSelected: (action) {
-          switch (action) {
-            case 'preview':
-              onPreview();
-            case 'restore':
-              onRestore();
-            case 'fork':
-              onFork();
-            case 'delete':
-              onDelete();
-          }
-        },
+        onSelected: (action) => action(),
         itemBuilder: (_) => [
-          PopupMenuItem(value: 'preview', child: Text(l10n.notesPreview)),
-          PopupMenuItem(value: 'restore', child: Text(l10n.notesRestoreHere)),
-          PopupMenuItem(value: 'fork', child: Text(l10n.notesRestoreAsNew)),
+          PopupMenuItem(value: onPreview, child: Text(l10n.notesPreview)),
+          PopupMenuItem(value: onRestore, child: Text(l10n.notesRestoreHere)),
+          PopupMenuItem(value: onFork, child: Text(l10n.notesRestoreAsNew)),
           PopupMenuItem(
-            value: 'delete',
+            value: onDelete,
             child: Text(
               l10n.notesDeleteThisVersion,
               style: const TextStyle(color: HoodikColors.redish400),
