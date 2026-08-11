@@ -16,7 +16,7 @@ import '../../../core/theme/hoodik_scheme.dart';
 import '../../../core/widgets/adaptive_menu.dart';
 
 /// App bar for the files screen with two modes:
-/// - Normal: title, search, refresh, offline chip, view mode, sort,
+/// - Normal: title, refresh, offline chip, view mode, sort,
 ///   select, and the account avatar shortcut.
 /// - Selection: close, count label, and Move/Delete batch actions.
 ///
@@ -146,16 +146,6 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
           : null,
       actions: [
         const FailedUploadsBadge(),
-        IconButton(
-          icon: Icon(
-            adaptiveIcon(
-              material: AppIcons.search,
-              cupertino: CupertinoIcons.search,
-            ),
-          ),
-          tooltip: l10n.commonSearch,
-          onPressed: () => context.go('/search'),
-        ),
         if (_showsRefreshAction(theme.platform))
           IconButton(
             icon: Icon(

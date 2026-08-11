@@ -1328,9 +1328,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonSave => 'Save';
 
   @override
-  String get commonSearch => 'Search';
-
-  @override
   String get commonSend => 'Send';
 
   @override

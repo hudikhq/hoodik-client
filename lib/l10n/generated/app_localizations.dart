@@ -2400,12 +2400,6 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get commonSave;
 
-  /// No description provided for @commonSearch.
-  ///
-  /// In en, this message translates to:
-  /// **'Search'**
-  String get commonSearch;
-
   /// No description provided for @commonSend.
   ///
   /// In en, this message translates to:
