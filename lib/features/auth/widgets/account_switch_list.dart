@@ -46,7 +46,6 @@ class AccountSwitchList extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               fontWeight: FontWeight.w500,
-              letterSpacing: 0.5,
             ),
           ),
         ),

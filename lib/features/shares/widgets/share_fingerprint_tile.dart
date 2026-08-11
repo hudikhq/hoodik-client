@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/theme/hoodik_type.dart';
 
 /// Trust outcome for a discovered recipient, derived by the share dialog from
 /// the local [TrustedFingerprintDao] row:
@@ -62,7 +63,8 @@ class ShareFingerprintTile extends StatelessWidget {
             formattedFingerprint,
             style: TextStyle(
               fontSize: 12,
-              fontFamily: 'monospace',
+              fontFamily: HoodikType.monoFamily,
+              fontFeatures: const [FontFeature.tabularFigures()],
               color: context.colors.textMuted,
             ),
           ),
@@ -187,16 +189,16 @@ class ShareFingerprintTile extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: HoodikType.minimumSize,
             color: context.colors.onCrimsonWash,
-            letterSpacing: 0.5,
           ),
         ),
         SelectableText(
           value,
           style: TextStyle(
             fontSize: 11,
-            fontFamily: 'monospace',
+            fontFamily: HoodikType.monoFamily,
+            fontFeatures: const [FontFeature.tabularFigures()],
             color: context.colors.text,
           ),
         ),

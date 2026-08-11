@@ -11,6 +11,7 @@ import '../../files/controllers/files_share_controller.dart';
 import '../../files/providers/files_notifier.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/theme/hoodik_type.dart';
 
 /// Recipient roster for a file the caller owns, with per-recipient revoke.
 ///
@@ -145,11 +146,7 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
           children: [
             Text(
               l10n.sharesPeopleWithAccess,
-              style: TextStyle(
-                fontSize: 12,
-                color: context.colors.textMuted,
-                letterSpacing: 0.5,
-              ),
+              style: TextStyle(fontSize: 12, color: context.colors.textMuted),
             ),
             const SizedBox(height: 8),
             for (final r in recipients) _row(r),
@@ -184,7 +181,8 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
                   fingerprint,
                   style: TextStyle(
                     fontSize: 11,
-                    fontFamily: 'monospace',
+                    fontFamily: HoodikType.monoFamily,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                     color: context.colors.textMuted,
                   ),
                   maxLines: 1,

@@ -6,6 +6,7 @@ import '../../../core/providers.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/theme/hoodik_type.dart';
 
 /// App-bar entry point for uploads that exhausted their retry budget.
 ///
@@ -92,9 +93,9 @@ class _CountBubble extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
+        style: TextStyle(
+          color: context.colors.onFill,
+          fontSize: HoodikType.minimumSize,
           fontWeight: FontWeight.w700,
           height: 1.0,
         ),

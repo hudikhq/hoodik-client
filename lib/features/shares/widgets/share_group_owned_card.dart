@@ -6,6 +6,7 @@ import 'folder_member_tile.dart' show FolderMemberTile;
 import 'group_role_selector.dart' show GroupRoleChip, groupRoleLabel;
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/theme/hoodik_type.dart';
 
 /// One owned-group card on the share-groups screen: the group name + member
 /// count, add/delete/rename actions, and the member roster with a per-member
@@ -145,7 +146,8 @@ class _MemberRow extends StatelessWidget {
                   _shortFingerprint(member.fingerprint),
                   style: TextStyle(
                     fontSize: 11,
-                    fontFamily: 'monospace',
+                    fontFamily: HoodikType.monoFamily,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                     color: context.colors.textMuted,
                   ),
                 ),

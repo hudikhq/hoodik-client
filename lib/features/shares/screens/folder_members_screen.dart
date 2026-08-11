@@ -163,11 +163,7 @@ class _MembersBody extends ConsumerWidget {
             Expanded(
               child: Text(
                 l10n.sharesMembersCount(loaded.members.length),
-                style: TextStyle(
-                  fontSize: 12,
-                  letterSpacing: 0.5,
-                  color: context.colors.textMuted,
-                ),
+                style: TextStyle(fontSize: 12, color: context.colors.textMuted),
               ),
             ),
             if (loaded.callerCanReshare) ...[

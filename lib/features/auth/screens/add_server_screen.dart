@@ -189,7 +189,7 @@ class _AddServerScreenState extends ConsumerState<AddServerScreen> {
                             isApplePlatform
                                 ? CupertinoIcons.desktopcomputer
                                 : Icons.dns_outlined,
-                            color: theme.colorScheme.secondary,
+                            color: context.colors.iconEmber,
                             size: 22,
                           ),
                           title: Text(server.name),
@@ -227,7 +227,6 @@ class _AddServerScreenState extends ConsumerState<AddServerScreen> {
                                 alpha: 0.5,
                               ),
                               fontWeight: FontWeight.w500,
-                              letterSpacing: 0.5,
                             ),
                     ),
                   ),

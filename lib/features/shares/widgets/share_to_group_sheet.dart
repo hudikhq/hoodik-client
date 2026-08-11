@@ -139,11 +139,7 @@ class _ShareToGroupSheetState extends ConsumerState<_ShareToGroupSheet> {
         else ...[
           Text(
             l10n.sharesGroupLabel,
-            style: TextStyle(
-              fontSize: 12,
-              color: context.colors.textMuted,
-              letterSpacing: 0.5,
-            ),
+            style: TextStyle(fontSize: 12, color: context.colors.textMuted),
           ),
           const SizedBox(height: 8),
           for (final g in groups) _groupOption(g),

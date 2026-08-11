@@ -8,6 +8,7 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../services/key_login_service.dart';
 import 'add_server_screen.dart';
+import '../../../core/theme/hoodik_type.dart';
 
 /// Sign in with a saved recovery key instead of a password — the mobile
 /// counterpart of the web client's private-key login. Accepts a v2 curve
@@ -130,7 +131,8 @@ class _KeyLoginScreenState extends ConsumerState<KeyLoginScreen> {
                   autocorrect: false,
                   enableSuggestions: false,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    fontFamily: 'monospace',
+                    fontFamily: HoodikType.monoFamily,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                   decoration: InputDecoration(
                     labelText: l10n.authRecoveryKeyLabel,

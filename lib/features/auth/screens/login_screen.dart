@@ -292,7 +292,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           alpha: 0.5,
                         ),
                         fontWeight: FontWeight.w500,
-                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
