@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/widgets/menu_anchor.dart';
 
 /// A single action in the file context menu.
 class FileMenuAction {
@@ -27,16 +28,9 @@ Future<void> showFileContextMenu({
 }) async {
   if (actions.isEmpty) return;
 
-  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-
   await showMenu<void>(
     context: context,
-    position: RelativeRect.fromLTRB(
-      position.dx,
-      position.dy,
-      overlay.size.width - position.dx,
-      overlay.size.height - position.dy,
-    ),
+    position: menuAnchorAt(context, position),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(8),
       side: BorderSide(color: context.colors.seam, width: 0.5),
