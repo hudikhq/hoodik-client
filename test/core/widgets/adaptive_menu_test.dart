@@ -73,22 +73,23 @@ void main() {
     expect(find.text('Delete'), findsOneWidget);
   });
 
-  testWidgets('an anchored menu still reads as the host platform', (
-    tester,
-  ) async {
+  testWidgets('touch ignores the anchor, a pointer honours it', (tester) async {
     await open(tester, anchor: const Offset(120, 200));
 
-    if (Platform.isIOS) {
-      // iOS has one answer for a list of choices whatever opened it, so the
-      // anchor is deliberately ignored rather than producing a dropdown.
-      expect(find.byType(CupertinoActionSheet), findsOneWidget);
+    if (isTouchPlatform) {
+      // A phone answers a list of choices one way whatever opened it, so a
+      // kebab does not get its own dropdown.
+      expect(find.byType(PopupMenuItem<void>), findsNothing);
+      expect(
+        apple ? find.byType(CupertinoActionSheet) : find.byType(BottomSheet),
+        findsOneWidget,
+      );
     } else {
-      expect(find.byType(CupertinoActionSheet), findsNothing);
       expect(find.byType(PopupMenuItem<void>), findsNWidgets(2));
     }
   });
 
-  testWidgets('an unanchored menu is a sheet everywhere', (tester) async {
+  testWidgets('a menu with no anchor is a sheet everywhere', (tester) async {
     await open(tester);
 
     if (apple) {
@@ -124,17 +125,15 @@ void main() {
     expect(find.byType(PopupMenuItem<void>), findsNothing);
   });
 
-  testWidgets('a pointer menu is dense, a touch menu keeps its target', (
-    tester,
-  ) async {
+  testWidgets('the pointer menu is drawn at AppKit density', (tester) async {
+    if (isTouchPlatform) return; // No anchored variant exists on touch.
     await open(tester, anchor: const Offset(120, 200));
-    if (Platform.isIOS) return; // iOS never renders the anchored variant.
 
     final item = tester.widget<PopupMenuItem<void>>(
       find.byType(PopupMenuItem<void>).first,
     );
-    // Mouse-driven platforms draw ~22pt rows; Material's 48dp default reads
-    // as a mobile sheet stuck to a button.
-    expect(item.height, Platform.isAndroid ? kMinTapTarget : 24.0);
+    // AppKit draws 22pt rows; Material's 48dp default reads as a mobile sheet
+    // stuck to a button.
+    expect(item.height, 24.0);
   });
 }
