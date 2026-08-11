@@ -1,6 +1,3 @@
-import 'dart:io' show Platform;
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
@@ -9,9 +6,6 @@ import 'package:hoodik_app/features/files/widgets/file_actions_sheet.dart';
 import 'package:hoodik_app/features/files/widgets/file_menu_actions_builder.dart';
 import 'package:hoodik_app/features/shares/shared_constants.dart';
 import 'package:hoodik_app/l10n/generated/app_localizations.dart';
-
-/// Whether this test runs on an Apple host (Cupertino sheet variant).
-final _apple = Platform.isIOS || Platform.isMacOS;
 
 FileMenuCallbacks _callbacks({
   void Function(FileItem)? onShare,
@@ -247,13 +241,10 @@ void main() {
       var created = false;
       await openFabSheet(tester, onCreateNote: () => created = true);
 
-      if (_apple) {
-        // Cupertino action sheets carry no section headers.
-        expect(find.byType(CupertinoActionSheet), findsOneWidget);
-      } else {
-        expect(find.text('Create'), findsOneWidget);
-        expect(find.text('Upload'), findsOneWidget);
-      }
+      // Both phones get the grouped sheet. A Cupertino action sheet is
+      // text-only and centred, so it would drop these headers entirely.
+      expect(find.text('Create'), findsOneWidget);
+      expect(find.text('Upload'), findsOneWidget);
 
       await tester.tap(find.text('New note'));
       await tester.pumpAndSettle();

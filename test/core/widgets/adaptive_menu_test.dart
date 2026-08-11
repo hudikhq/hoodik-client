@@ -1,6 +1,3 @@
-import 'dart:io' show Platform;
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/widgets/adaptive.dart';
@@ -12,8 +9,6 @@ import 'package:hoodik_app/l10n/generated/app_localizations.dart';
 /// Material dropdown — on the same device, with different entries, because
 /// each surface built its own list.
 void main() {
-  final apple = Platform.isIOS || Platform.isMacOS;
-
   final actions = [
     AdaptiveMenuAction(
       label: 'Rename',
@@ -80,23 +75,22 @@ void main() {
       // A phone answers a list of choices one way whatever opened it, so a
       // kebab does not get its own dropdown.
       expect(find.byType(PopupMenuItem<void>), findsNothing);
-      expect(
-        apple ? find.byType(CupertinoActionSheet) : find.byType(BottomSheet),
-        findsOneWidget,
-      );
+      expect(find.byType(BottomSheet), findsOneWidget);
     } else {
       expect(find.byType(PopupMenuItem<void>), findsNWidgets(2));
     }
   });
 
-  testWidgets('a menu with no anchor is a sheet everywhere', (tester) async {
+  testWidgets('a menu with no anchor is the same sheet everywhere', (
+    tester,
+  ) async {
+    // Both phones get icons and section headers. A Cupertino action sheet is
+    // text-only and centred, which would drop both.
     await open(tester);
 
-    if (apple) {
-      expect(find.byType(CupertinoActionSheet), findsOneWidget);
-    } else {
-      expect(find.byType(BottomSheet), findsOneWidget);
-    }
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.byIcon(Icons.edit), findsOneWidget);
+    expect(find.byIcon(Icons.delete), findsOneWidget);
   });
 
   testWidgets('an empty action list opens nothing', (tester) async {
@@ -120,7 +114,6 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(CupertinoActionSheet), findsNothing);
     expect(find.byType(BottomSheet), findsNothing);
     expect(find.byType(PopupMenuItem<void>), findsNothing);
   });

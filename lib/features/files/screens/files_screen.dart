@@ -288,11 +288,12 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
 
   /// Opens the create/upload sheet — the FAB's action, also offered by the
   /// empty state so a fresh folder doesn't depend on spotting the FAB.
-  void _openCreateSheet() {
+  void _openCreateSheet([Offset? anchor]) {
     final isDesktop =
         Platform.isMacOS || Platform.isWindows || Platform.isLinux;
     showFabMenuSheet(
       context: context,
+      anchor: anchor,
       onCreateFolder: _createFolder,
       onCreateNote: _createNote,
       onUploadFile: _uploadFile,

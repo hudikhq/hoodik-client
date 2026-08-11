@@ -1,7 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../l10n/generated/app_localizations.dart';
 import '../theme/hoodik_scheme.dart';
 import 'adaptive.dart';
 import 'app_icons.dart';
@@ -94,6 +92,11 @@ class AdaptiveMenuButton extends StatelessWidget {
 /// same menu whether the user tapped its row or its kebab. Only a pointer
 /// gets a menu under the cursor, and only when the gesture had somewhere to
 /// put it.
+///
+/// The sheet is the same on both phones. A Cupertino action sheet is
+/// text-only and centred, which loses every icon and both section headers of
+/// a Create/Upload menu — and modern iOS reaches for a detented sheet with
+/// icon rows for exactly this, keeping the alert style for confirmations.
 Future<void> showAdaptiveMenu({
   required BuildContext context,
   required List<AdaptiveMenuAction> actions,
@@ -106,45 +109,11 @@ Future<void> showAdaptiveMenu({
   if (!isTouchPlatform && anchor != null) {
     return _showAnchoredMenu(context, anchor: anchor, actions: actions);
   }
-  if (isApplePlatform) {
-    return _showActionSheet(context, title: title, actions: actions);
-  }
-  return _showBottomSheet(
+  return _showSheet(
     context,
     title: title,
     actions: actions,
     sectionHeaders: sectionHeaders,
-  );
-}
-
-Future<void> _showActionSheet(
-  BuildContext context, {
-  String? title,
-  required List<AdaptiveMenuAction> actions,
-}) {
-  return showCupertinoModalPopup<void>(
-    context: context,
-    builder: (ctx) => CupertinoActionSheet(
-      title: title != null ? Text(title) : null,
-      actions: [
-        for (final action in actions)
-          CupertinoActionSheetAction(
-            key: action.key,
-            isDestructiveAction: action.isDestructive,
-            isDefaultAction: action.isSelected,
-            onPressed: () {
-              Navigator.pop(ctx);
-              action.onTap();
-            },
-            child: Text(action.label),
-          ),
-      ],
-      cancelButton: CupertinoActionSheetAction(
-        isDefaultAction: true,
-        onPressed: () => Navigator.pop(ctx),
-        child: Text(AppLocalizations.of(ctx).commonCancel),
-      ),
-    ),
   );
 }
 
@@ -259,7 +228,7 @@ class _MenuRowState extends State<_MenuRow> {
   }
 }
 
-Future<void> _showBottomSheet(
+Future<void> _showSheet(
   BuildContext context, {
   String? title,
   required List<AdaptiveMenuAction> actions,
