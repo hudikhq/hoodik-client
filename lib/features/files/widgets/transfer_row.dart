@@ -4,6 +4,7 @@ import '../../../core/services/transfer_manager.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/adaptive.dart';
 
 /// A single row in the expanded transfer list.
 ///
@@ -68,7 +69,10 @@ class TransferRow extends StatelessWidget {
             icon: Icon(AppIcons.close, size: 16, color: HoodikColors.iconMuted),
             onPressed: () => manager.cancelTransfer(item.id),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            constraints: BoxConstraints(
+              minWidth: kMinTapTarget,
+              minHeight: kMinTapTarget,
+            ),
             tooltip: l10n.commonCancel,
           ),
       ],
