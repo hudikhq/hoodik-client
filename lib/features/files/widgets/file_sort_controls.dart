@@ -4,6 +4,7 @@ import '../../../core/api/api_client.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/widgets/adaptive_menu.dart';
 
 /// What field to sort files by.
 enum SortField { name, size, type, date }
@@ -82,83 +83,26 @@ class FileSortButton extends StatelessWidget {
         : AppIcons.sortDescending;
     final l10n = AppLocalizations.of(context);
 
-    return PopupMenuButton<SortField>(
-      icon: Icon(icon, size: 20),
+    return AdaptiveMenuButton(
+      icon: icon,
       tooltip: l10n.filesSortTooltip,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: context.colors.seam, width: 0.5),
-      ),
-      onSelected: onFieldSelected,
-      itemBuilder: (_) => [
-        _sortMenuItem(
-          context,
-          SortField.name,
-          Icons.sort_by_alpha,
-          l10n.filesNameLabel,
-        ),
-        _sortMenuItem(
-          context,
-          SortField.date,
-          AppIcons.schedule,
-          l10n.filesDateLabel,
-        ),
-        _sortMenuItem(
-          context,
-          SortField.size,
-          AppIcons.storage,
-          l10n.filesSizeLabel,
-        ),
-        _sortMenuItem(
-          context,
-          SortField.type,
-          Icons.category,
-          l10n.filesTypeLabel,
-        ),
+      builder: (ctx) => [
+        for (final (field, fieldIcon, label) in <(SortField, IconData, String)>[
+          (SortField.name, Icons.sort_by_alpha, l10n.filesNameLabel),
+          (SortField.date, AppIcons.schedule, l10n.filesDateLabel),
+          (SortField.size, AppIcons.storage, l10n.filesSizeLabel),
+          (SortField.type, Icons.category, l10n.filesTypeLabel),
+        ])
+          AdaptiveMenuAction(
+            icon: fieldIcon,
+            iconColor: field == currentField
+                ? ctx.colors.iconEmber
+                : ctx.colors.iconMuted,
+            label: label,
+            isSelected: field == currentField,
+            onTap: () => onFieldSelected(field),
+          ),
       ],
-    );
-  }
-
-  PopupMenuEntry<SortField> _sortMenuItem(
-    BuildContext context,
-    SortField field,
-    IconData icon,
-    String label,
-  ) {
-    final isActive = currentField == field;
-    return PopupMenuItem<SortField>(
-      value: field,
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 18,
-            color: isActive
-                ? context.colors.iconEmber
-                : context.colors.iconMuted,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isActive
-                    ? context.colors.iconEmber
-                    : context.colors.text,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ),
-          if (isActive)
-            Icon(
-              currentOrder == SortOrder.asc
-                  ? AppIcons.sortAscending
-                  : AppIcons.sortDescending,
-              size: 16,
-              color: context.colors.iconEmber,
-            ),
-        ],
-      ),
     );
   }
 }

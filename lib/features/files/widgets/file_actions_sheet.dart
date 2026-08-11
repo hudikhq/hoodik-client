@@ -1,198 +1,38 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/widgets/adaptive.dart';
-import '../../../l10n/generated/app_localizations.dart';
-import '../../preview/providers/preview_providers.dart';
-import '../../shares/shared_constants.dart';
-import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/widgets/adaptive_menu.dart';
+import '../../../core/widgets/app_icons.dart';
+import '../../../l10n/generated/app_localizations.dart';
+import 'file_menu_actions_builder.dart';
 
-/// Callbacks for file actions triggered from the bottom sheet.
-class FileActionCallbacks {
-  final void Function(FileItem file) onPreview;
-  final void Function(FileItem file) onDownload;
-  final void Function(FileItem file) onRename;
-  final void Function(FileItem file) onDelete;
-  final void Function(FileItem file) onCreateLink;
-
-  /// Opens the share dialog. Optional so a caller that hasn't wired sharing
-  /// yet simply omits the "Share" entry; [showFileActionsSheet] hides it when
-  /// this is null.
-  final void Function(FileItem file)? onShare;
-
-  /// Recipient self-remove from a share. Optional like [onShare]: a caller that
-  /// hasn't wired leaving omits the "Leave" entry; [showFileActionsSheet]
-  /// hides it when this is null.
-  final void Function(FileItem file)? onLeave;
-
-  /// Save a shared file into the caller's own drive (fork). Optional like
-  /// [onShare]: a caller that hasn't wired forking omits the "Save to my drive"
-  /// entry; [showFileActionsSheet] hides it when this is null.
-  final void Function(FileItem file)? onFork;
-  final void Function(FileItem file) onMakeOffline;
-  final void Function(FileItem file) onRemoveOffline;
-  final void Function(FileItem file) onDetails;
-  final void Function(FileItem file) onConvertToNote;
-  final void Function(String fileId) onSelect;
-
-  const FileActionCallbacks({
-    required this.onPreview,
-    required this.onDownload,
-    required this.onRename,
-    required this.onDelete,
-    required this.onCreateLink,
-    this.onShare,
-    this.onLeave,
-    this.onFork,
-    required this.onMakeOffline,
-    required this.onRemoveOffline,
-    required this.onDetails,
-    required this.onConvertToNote,
-    required this.onSelect,
-  });
-}
-
-/// One row in a sheet, platform-neutral. [sectionBreak] renders as a
-/// divider (Material) or a plain action-list continuation (Cupertino,
-/// where action sheets carry no separators).
-class _SheetAction {
-  const _SheetAction(
-    this.label,
-    this.icon,
-    this.iconColor,
-    this.onTap, {
-    this.isDestructive = false,
-    this.sectionBreak = false,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color iconColor;
-  final VoidCallback onTap;
-  final bool isDestructive;
-  final bool sectionBreak;
-}
-
-/// Show the per-file action sheet: a Cupertino action sheet on Apple
-/// platforms, a Material bottom sheet elsewhere. Both render the same
-/// gated action list.
+/// Show the per-file menu for [file].
+///
+/// [anchor] is the global point the gesture came from — a kebab, a
+/// right-click, a long-press. Row taps have no anchor, and the platform
+/// decides what that means: see [showAdaptiveMenu].
 void showFileActionsSheet({
   required BuildContext context,
   required FileItem file,
   required String displayName,
   required bool isOffline,
-  required FileActionCallbacks callbacks,
+  required FileMenuCallbacks callbacks,
   bool sharingEnabled = false,
+  Offset? anchor,
 }) {
-  // The "Shared with me" virtual folder is a navigation aid, not real content —
-  // it has no per-file actions.
-  if (file.id == sharedWithMeDirId) return;
-
-  final l10n = AppLocalizations.of(context);
-  final actions = <_SheetAction>[
-    if (!file.isDir && isPreviewable(file))
-      _SheetAction(
-        l10n.filesPreview,
-        AppIcons.preview,
-        context.colors.sageFill,
-        () => callbacks.onPreview(file),
-      ),
-    if (!file.isDir && file.mime == 'text/markdown' && !file.editable)
-      _SheetAction(
-        l10n.filesConvertToNote,
-        AppIcons.noteEdit,
-        context.colors.textEmber,
-        () => callbacks.onConvertToNote(file),
-      ),
-    if (!file.isDir) ...[
-      _SheetAction(
-        l10n.filesExport,
-        AppIcons.download,
-        context.colors.iconSlate,
-        () => callbacks.onDownload(file),
-      ),
-      if (isOffline)
-        _SheetAction(
-          l10n.filesRemoveOfflineCopy,
-          Icons.cloud_off,
-          context.colors.iconMuted,
-          () => callbacks.onRemoveOffline(file),
-        )
-      else
-        _SheetAction(
-          l10n.filesMakeAvailableOffline,
-          AppIcons.cloudDownload,
-          context.colors.sageFill,
-          () => callbacks.onMakeOffline(file),
-        ),
-    ],
-    _SheetAction(
-      l10n.commonRename,
-      AppIcons.edit,
-      context.colors.textEmber,
-      () => callbacks.onRename(file),
+  showAdaptiveMenu(
+    context: context,
+    title: displayName,
+    anchor: anchor,
+    actions: buildFileMenuActions(
+      context: context,
+      file: file,
+      isOffline: isOffline,
+      callbacks: callbacks,
+      sharingEnabled: sharingEnabled,
     ),
-    _SheetAction(
-      l10n.commonDelete,
-      AppIcons.delete,
-      context.colors.iconCrimson,
-      () => callbacks.onDelete(file),
-      isDestructive: true,
-    ),
-    if (callbacks.onLeave != null &&
-        canLeaveFile(file, sharingEnabled: sharingEnabled))
-      _SheetAction(
-        l10n.filesLeave,
-        AppIcons.signOut,
-        context.colors.iconCrimson,
-        () => callbacks.onLeave!(file),
-        isDestructive: true,
-      ),
-    if (file.isDir &&
-        callbacks.onShare != null &&
-        canShareFolder(file, sharingEnabled: sharingEnabled))
-      _SheetAction(
-        l10n.filesMembers,
-        AppIcons.members,
-        context.colors.sageFill,
-        () => callbacks.onShare!(file),
-      ),
-    if (!file.isDir) ...[
-      _SheetAction(
-        l10n.filesCreateLink,
-        AppIcons.link,
-        context.colors.iconSlate,
-        () => callbacks.onCreateLink(file),
-        sectionBreak: true,
-      ),
-      if (callbacks.onShare != null &&
-          canShareFile(file, sharingEnabled: sharingEnabled))
-        _SheetAction(
-          l10n.commonShare,
-          AppIcons.memberAdd,
-          context.colors.sageFill,
-          () => callbacks.onShare!(file),
-        ),
-      if (callbacks.onFork != null &&
-          canFork(file, sharingEnabled: sharingEnabled))
-        _SheetAction(
-          l10n.filesSaveToMyDrive,
-          AppIcons.move,
-          context.colors.iconSlate,
-          () => callbacks.onFork!(file),
-        ),
-      _SheetAction(
-        l10n.filesDetails,
-        AppIcons.info,
-        context.colors.iconMuted,
-        () => callbacks.onDetails(file),
-      ),
-    ],
-  ];
-
-  _showActionSheet(context, title: displayName, actions: actions);
+  );
 }
 
 /// Show the FAB sheet, grouped into a Create section (folder, note) and an
@@ -208,159 +48,44 @@ void showFabMenuSheet({
   VoidCallback? onTakePhoto,
 }) {
   final l10n = AppLocalizations.of(context);
-  final actions = <_SheetAction>[
-    _SheetAction(
-      l10n.filesCreateFolder,
-      Icons.create_new_folder,
-      context.colors.iconEmber,
-      onCreateFolder,
-    ),
-    _SheetAction(
-      l10n.notesNewNote,
-      AppIcons.noteEdit,
-      context.colors.textEmber,
-      onCreateNote,
-    ),
-    _SheetAction(
-      l10n.filesUploadFile,
-      AppIcons.cloudUpload,
-      context.colors.iconSlate,
-      onUploadFile,
-      sectionBreak: true,
-    ),
-    if (onUploadPhoto != null)
-      _SheetAction(
-        l10n.filesUploadMedia,
-        Icons.photo_library,
-        context.colors.sageFill,
-        onUploadPhoto,
-      ),
-    if (onTakePhoto != null)
-      _SheetAction(
-        l10n.filesTakePhoto,
-        Icons.camera_alt,
-        context.colors.dangerFill,
-        onTakePhoto,
-      ),
-  ];
 
-  _showActionSheet(
-    context,
-    actions: actions,
-    sectionHeaders: [l10n.commonCreate, l10n.commonUpload],
-  );
-}
-
-void _showActionSheet(
-  BuildContext context, {
-  String? title,
-  required List<_SheetAction> actions,
-  List<String> sectionHeaders = const [],
-}) {
-  if (isApplePlatform) {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: title != null ? Text(title) : null,
-        actions: [
-          for (final action in actions)
-            CupertinoActionSheetAction(
-              isDestructiveAction: action.isDestructive,
-              onPressed: () {
-                Navigator.pop(ctx);
-                action.onTap();
-              },
-              child: Text(action.label),
-            ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.pop(ctx),
-          child: Text(AppLocalizations.of(ctx).commonCancel),
-        ),
-      ),
-    );
-    return;
-  }
-
-  showModalBottomSheet<void>(
+  showAdaptiveMenu(
     context: context,
-    isScrollControlled: true,
-    builder: (ctx) {
-      var headerIndex = 0;
-      return SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(ctx).size.height * 0.7,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 8),
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: context.colors.track,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                if (title != null) ...[
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: context.colors.text,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 8),
-                for (final action in actions) ...[
-                  if (action.sectionBreak && sectionHeaders.isEmpty)
-                    const Divider(height: 1),
-                  if (sectionHeaders.isNotEmpty &&
-                      (identical(action, actions.first) || action.sectionBreak))
-                    _sheetSectionHeader(ctx, sectionHeaders[headerIndex++]),
-                  ListTile(
-                    leading: Icon(action.icon, color: action.iconColor),
-                    title: Text(action.label),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      action.onTap();
-                    },
-                  ),
-                ],
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
-
-Widget _sheetSectionHeader(BuildContext context, String label) {
-  return Padding(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-    child: Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: context.colors.textMuted,
-        ),
+    sectionHeaders: [l10n.commonCreate, l10n.commonUpload],
+    actions: [
+      AdaptiveMenuAction(
+        label: l10n.filesCreateFolder,
+        icon: Icons.create_new_folder,
+        iconColor: context.colors.iconEmber,
+        onTap: onCreateFolder,
       ),
-    ),
+      AdaptiveMenuAction(
+        label: l10n.notesNewNote,
+        icon: AppIcons.noteEdit,
+        iconColor: context.colors.textEmber,
+        onTap: onCreateNote,
+      ),
+      AdaptiveMenuAction(
+        label: l10n.filesUploadFile,
+        icon: AppIcons.cloudUpload,
+        iconColor: context.colors.iconSlate,
+        onTap: onUploadFile,
+        sectionBreak: true,
+      ),
+      if (onUploadPhoto != null)
+        AdaptiveMenuAction(
+          label: l10n.filesUploadMedia,
+          icon: Icons.photo_library,
+          iconColor: context.colors.sageFill,
+          onTap: onUploadPhoto,
+        ),
+      if (onTakePhoto != null)
+        AdaptiveMenuAction(
+          label: l10n.filesTakePhoto,
+          icon: Icons.camera_alt,
+          iconColor: context.colors.dangerFill,
+          onTap: onTakePhoto,
+        ),
+    ],
   );
 }

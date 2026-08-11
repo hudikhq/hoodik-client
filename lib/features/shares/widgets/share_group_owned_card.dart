@@ -7,6 +7,7 @@ import 'group_role_selector.dart' show GroupRoleChip, groupRoleLabel;
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
 import '../../../core/theme/hoodik_type.dart';
+import '../../../core/widgets/adaptive_menu.dart';
 
 /// One owned-group card on the share-groups screen: the group name + member
 /// count, add/delete/rename actions, and the member roster with a per-member
@@ -155,25 +156,25 @@ class _MemberRow extends StatelessWidget {
             ),
           ),
           GroupRoleChip(member.groupRole),
-          PopupMenuButton<GroupRole>(
+          AdaptiveMenuButton(
+            icon: AppIcons.expand,
+            iconSize: 18,
             tooltip: AppLocalizations.of(context).sharesSetGroupRole,
-            icon: Icon(
-              AppIcons.expand,
-              size: 18,
-              color: context.colors.iconMuted,
-            ),
-            onSelected: onSetRole,
-            itemBuilder: (context) => [
+            builder: (ctx) => [
               for (final role in const [
                 GroupRole.reader,
                 GroupRole.editor,
                 GroupRole.coOwner,
               ])
-                CheckedPopupMenuItem<GroupRole>(
+                AdaptiveMenuAction(
                   key: ValueKey('set-group-role-${role.wireString}'),
-                  value: role,
-                  checked: role == member.groupRole,
-                  child: Text(groupRoleLabel(role)),
+                  icon: AppIcons.members,
+                  iconColor: role == member.groupRole
+                      ? ctx.colors.iconEmber
+                      : ctx.colors.iconMuted,
+                  label: groupRoleLabel(role),
+                  isSelected: role == member.groupRole,
+                  onTap: () => onSetRole(role),
                 ),
             ],
           ),

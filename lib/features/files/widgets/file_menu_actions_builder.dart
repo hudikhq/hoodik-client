@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 import '../../../core/utils/l10n_lookup.dart';
+import '../../../core/widgets/adaptive_menu.dart';
+import '../../../core/widgets/app_icons.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../../shares/shared_constants.dart';
-import 'file_context_menu.dart';
-import '../../../core/widgets/app_icons.dart';
-import '../../../core/theme/hoodik_scheme.dart';
 
 /// Callbacks the menu-actions builder needs. Grouped so the call site
 /// passes one object instead of a long parameter list.
@@ -54,7 +54,7 @@ class FileMenuCallbacks {
   });
 }
 
-/// Produce the ordered list of context-menu entries for [file]. Rules:
+/// Produce the ordered list of menu entries for [file]. Rules:
 /// - Preview only for non-directory files that [isPreviewable].
 /// - "Convert to note" shows only for non-editable markdown files.
 /// - "Remove/Make Offline" toggles on [isOffline].
@@ -66,7 +66,11 @@ class FileMenuCallbacks {
 /// - "Save to my drive" only for co-owned non-dir shares when [sharingEnabled]
 ///   ([canFork]).
 /// - Links, details, and file-specific actions are hidden for folders.
-List<FileMenuAction> buildFileMenuActions({
+///
+/// One list feeds every surface — the row sheet, the kebab menu, right-click
+/// and long-press — so a file cannot offer different actions depending on how
+/// the user reached for them.
+List<AdaptiveMenuAction> buildFileMenuActions({
   required BuildContext context,
   required FileItem file,
   required bool isOffline,
@@ -78,80 +82,83 @@ List<FileMenuAction> buildFileMenuActions({
   if (file.id == sharedWithMeDirId) return const [];
   return [
     if (!file.isDir && isPreviewable(file))
-      FileMenuAction(
+      AdaptiveMenuAction(
         icon: AppIcons.preview,
         iconColor: context.colors.sageFill,
         label: ambientL10n.filesPreview,
         onTap: () => callbacks.onPreview(file),
       ),
     if (!file.isDir && file.mime == 'text/markdown' && !file.editable)
-      FileMenuAction(
+      AdaptiveMenuAction(
         icon: AppIcons.noteEdit,
         iconColor: context.colors.textEmber,
         label: ambientL10n.filesConvertToNote,
         onTap: () => callbacks.onConvertToNote(file),
       ),
     if (!file.isDir) ...[
-      FileMenuAction(
+      AdaptiveMenuAction(
         icon: AppIcons.download,
         iconColor: context.colors.iconSlate,
         label: ambientL10n.filesExport,
         onTap: () => callbacks.onDownload(file),
       ),
       if (isOffline)
-        FileMenuAction(
+        AdaptiveMenuAction(
           icon: Icons.cloud_off,
           iconColor: context.colors.iconMuted,
           label: ambientL10n.filesRemoveOfflineCopy,
           onTap: () => callbacks.onRemoveOffline(file),
         )
       else
-        FileMenuAction(
+        AdaptiveMenuAction(
           icon: AppIcons.cloudDownload,
           iconColor: context.colors.sageFill,
           label: ambientL10n.filesMakeAvailableOffline,
           onTap: () => callbacks.onMakeOffline(file),
         ),
     ],
-    FileMenuAction(
+    AdaptiveMenuAction(
       icon: AppIcons.edit,
       iconColor: context.colors.textEmber,
       label: ambientL10n.commonRename,
       onTap: () => callbacks.onRename(file),
     ),
-    FileMenuAction(
+    AdaptiveMenuAction(
       icon: AppIcons.delete,
       iconColor: context.colors.iconCrimson,
       label: ambientL10n.commonDelete,
       onTap: () => callbacks.onDelete(file),
+      isDestructive: true,
     ),
     if (callbacks.onLeave != null &&
         canLeaveFile(file, sharingEnabled: sharingEnabled))
-      FileMenuAction(
+      AdaptiveMenuAction(
         icon: AppIcons.signOut,
         iconColor: context.colors.iconCrimson,
         label: ambientL10n.filesLeave,
         onTap: () => callbacks.onLeave!(file),
+        isDestructive: true,
       ),
     if (file.isDir &&
         callbacks.onShare != null &&
         canShareFolder(file, sharingEnabled: sharingEnabled))
-      FileMenuAction(
+      AdaptiveMenuAction(
         icon: AppIcons.members,
         iconColor: context.colors.sageFill,
         label: ambientL10n.filesMembers,
         onTap: () => callbacks.onShare!(file),
       ),
     if (!file.isDir) ...[
-      FileMenuAction(
+      AdaptiveMenuAction(
         icon: AppIcons.link,
         iconColor: context.colors.iconSlate,
         label: ambientL10n.filesCreateLink,
         onTap: () => callbacks.onCreateLink(file),
+        sectionBreak: true,
       ),
       if (callbacks.onShare != null &&
           canShareFile(file, sharingEnabled: sharingEnabled))
-        FileMenuAction(
+        AdaptiveMenuAction(
           icon: AppIcons.memberAdd,
           iconColor: context.colors.sageFill,
           label: ambientL10n.commonShare,
@@ -159,20 +166,20 @@ List<FileMenuAction> buildFileMenuActions({
         ),
       if (callbacks.onFork != null &&
           canFork(file, sharingEnabled: sharingEnabled))
-        FileMenuAction(
+        AdaptiveMenuAction(
           icon: AppIcons.move,
           iconColor: context.colors.iconSlate,
           label: ambientL10n.filesSaveToMyDrive,
           onTap: () => callbacks.onFork!(file),
         ),
-      FileMenuAction(
+      AdaptiveMenuAction(
         icon: AppIcons.info,
         iconColor: context.colors.iconMuted,
         label: ambientL10n.filesDetails,
         onTap: () => callbacks.onDetails(file),
       ),
     ],
-    FileMenuAction(
+    AdaptiveMenuAction(
       icon: Icons.checklist,
       iconColor: context.colors.iconMuted,
       label: ambientL10n.filesSelect,
