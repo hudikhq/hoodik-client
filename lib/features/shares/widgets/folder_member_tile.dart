@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/api/shares_models.dart';
 import '../../../core/crypto/share_crypto.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/folder_members_notifier.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// One row in the folder members roster: email/id, role badge, the "added by"
 /// attribution, the abbreviated fingerprint, and a per-row signature badge.
@@ -51,9 +51,9 @@ class FolderMemberTile extends StatelessWidget {
                     Flexible(
                       child: Text(
                         member.email ?? member.userId,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: HoodikColors.dirtyWhite,
+                          color: context.colors.text,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -64,7 +64,10 @@ class FolderMemberTile extends StatelessWidget {
                     // role pill (the server reports the owner as co-owner)
                     // alongside "Owner" reads as a contradiction, so the owner
                     // gets only the Owner badge.
-                    if (member.isOwner) _ownerBadge(l10n) else _roleBadge(l10n),
+                    if (member.isOwner)
+                      _ownerBadge(context, l10n)
+                    else
+                      _roleBadge(context, l10n),
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -75,10 +78,10 @@ class FolderMemberTile extends StatelessWidget {
                         _abbreviate(
                           formatFingerprint(member.pubkeyFingerprint),
                         ),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontFamily: 'monospace',
-                          color: HoodikColors.textMuted,
+                          color: context.colors.textMuted,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -88,15 +91,15 @@ class FolderMemberTile extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         '· ${_addedByLabel(l10n)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: HoodikColors.textMuted,
+                          color: context.colors.textMuted,
                         ),
                       ),
                     ],
                     if (!member.isOwner) ...[
                       const SizedBox(width: 6),
-                      _signatureBadge(),
+                      _signatureBadge(context),
                     ],
                   ],
                 ),
@@ -108,11 +111,7 @@ class FolderMemberTile extends StatelessWidget {
               tooltip: member.email == null
                   ? l10n.sharesEmailUnknownCannotChangeRole
                   : l10n.sharesChangeRole,
-              icon: const Icon(
-                Icons.tune,
-                size: 18,
-                color: HoodikColors.iconMuted,
-              ),
+              icon: Icon(Icons.tune, size: 18, color: context.colors.iconMuted),
               onPressed: member.email == null ? null : onChangeRole,
             ),
             IconButton(
@@ -120,7 +119,7 @@ class FolderMemberTile extends StatelessWidget {
               icon: Icon(
                 AppIcons.memberRemove,
                 size: 18,
-                color: HoodikColors.iconCrimson,
+                color: context.colors.iconCrimson,
               ),
               onPressed: onRevoke,
             ),
@@ -130,37 +129,37 @@ class FolderMemberTile extends StatelessWidget {
     );
   }
 
-  Widget _roleBadge(AppLocalizations l10n) {
+  Widget _roleBadge(BuildContext context, AppLocalizations l10n) {
     final label = switch (member.shareRole) {
       ShareRole.reader => l10n.sharesRoleReader,
       ShareRole.editor => l10n.sharesRoleEditor,
       ShareRole.coOwner => l10n.sharesRoleCoOwner,
     };
-    return _pill(label, HoodikColors.brownish700, HoodikColors.textMuted);
+    return _pill(label, context.colors.recess, context.colors.textMuted);
   }
 
-  Widget _ownerBadge(AppLocalizations l10n) => _pill(
+  Widget _ownerBadge(BuildContext context, AppLocalizations l10n) => _pill(
     l10n.sharesRoleOwner,
-    HoodikColors.greeny900,
-    HoodikColors.greeny400,
+    context.colors.sageWash,
+    context.colors.sageFill,
   );
 
-  Widget _signatureBadge() {
+  Widget _signatureBadge(BuildContext context) {
     return switch (signatureStatus) {
-      MemberSignatureStatus.verified => const Icon(
+      MemberSignatureStatus.verified => Icon(
         Icons.verified_outlined,
         size: 13,
-        color: HoodikColors.greeny400,
+        color: context.colors.sageFill,
       ),
-      MemberSignatureStatus.failed => const Icon(
+      MemberSignatureStatus.failed => Icon(
         Icons.gpp_bad_outlined,
         size: 13,
-        color: HoodikColors.iconCrimson,
+        color: context.colors.iconCrimson,
       ),
-      MemberSignatureStatus.legacy => const Icon(
+      MemberSignatureStatus.legacy => Icon(
         Icons.help_outline,
         size: 13,
-        color: HoodikColors.iconMuted,
+        color: context.colors.iconMuted,
       ),
     };
   }

@@ -3,10 +3,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../shares/shared_constants.dart';
 import '../helpers/file_helpers.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Single cell in the icon/grid view of the files screen.
 ///
@@ -45,7 +45,7 @@ class FileGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = fileIconColor(file, displayName: displayName);
+    final color = fileIconColor(context, file, displayName: displayName);
     final shareIcon = shareIndicatorIcon(file, sharingEnabled: sharingEnabled);
 
     return GestureDetector(
@@ -59,7 +59,7 @@ class FileGridItem extends StatelessWidget {
       },
       child: Material(
         color: isSelected
-            ? HoodikColors.redish900.withValues(alpha: 0.3)
+            ? context.colors.crimsonWash.withValues(alpha: 0.3)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
@@ -81,13 +81,13 @@ class FileGridItem extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
-                              color: HoodikColors.brownish900,
+                              color: context.colors.canvas,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               AppIcons.offlineAvailable,
                               size: 12,
-                              color: HoodikColors.greeny400.withValues(
+                              color: context.colors.sageFill.withValues(
                                 alpha: 0.85,
                               ),
                             ),
@@ -100,13 +100,13 @@ class FileGridItem extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
-                              color: HoodikColors.brownish900,
+                              color: context.colors.canvas,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               Icons.cloud_sync_outlined,
                               size: 12,
-                              color: HoodikColors.orangy400.withValues(
+                              color: context.colors.textEmber.withValues(
                                 alpha: 0.9,
                               ),
                             ),
@@ -119,13 +119,13 @@ class FileGridItem extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
-                              color: HoodikColors.brownish900,
+                              color: context.colors.canvas,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               shareIcon,
                               size: 12,
-                              color: HoodikColors.blueish300,
+                              color: context.colors.iconSlate,
                             ),
                           ),
                         ),
@@ -135,7 +135,7 @@ class FileGridItem extends StatelessWidget {
                           top: 4,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: HoodikColors.brownish900.withValues(
+                              color: context.colors.canvas.withValues(
                                 alpha: 0.85,
                               ),
                               shape: BoxShape.circle,
@@ -147,8 +147,8 @@ class FileGridItem extends StatelessWidget {
                                   : Icons.radio_button_unchecked,
                               size: 18,
                               color: isSelected
-                                  ? HoodikColors.iconCrimson
-                                  : HoodikColors.iconMuted,
+                                  ? context.colors.iconCrimson
+                                  : context.colors.iconMuted,
                             ),
                           ),
                         )
@@ -164,7 +164,7 @@ class FileGridItem extends StatelessWidget {
                           top: 0,
                           child: Builder(
                             builder: (ctx) => Material(
-                              color: HoodikColors.brownish900.withValues(
+                              color: context.colors.canvas.withValues(
                                 alpha: 0.7,
                               ),
                               shape: const CircleBorder(),
@@ -185,7 +185,7 @@ class FileGridItem extends StatelessWidget {
                                   child: Icon(
                                     AppIcons.overflowVertical,
                                     size: 16,
-                                    color: HoodikColors.dirtyWhite,
+                                    color: context.colors.text,
                                   ),
                                 ),
                               ),
@@ -201,10 +201,7 @@ class FileGridItem extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: HoodikColors.dirtyWhite,
-                  ),
+                  style: TextStyle(fontSize: 12, color: context.colors.text),
                 ),
               ],
             ),

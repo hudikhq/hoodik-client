@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Width at which the full toolbar fits without scrolling. Below this we
 /// collapse non-essential buttons into a "more" popup so mobile isn't
@@ -97,11 +97,9 @@ class FormattingToolbar extends ConsumerWidget {
         : null;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: HoodikColors.brownish800,
-        border: Border(
-          top: BorderSide(color: HoodikColors.brownish600, width: 0.5),
-        ),
+      decoration: BoxDecoration(
+        color: context.colors.panel,
+        border: Border(top: BorderSide(color: context.colors.seam, width: 0.5)),
       ),
       child: SafeArea(
         top: false,
@@ -109,8 +107,8 @@ class FormattingToolbar extends ConsumerWidget {
           builder: (context, constraints) {
             final compact = constraints.maxWidth < _kCompactThreshold;
             return compact
-                ? _buildCompact(l10n, zoom, setZoom, hideKeyboard)
-                : _buildFull(l10n, zoom, setZoom, hideKeyboard);
+                ? _buildCompact(context, l10n, zoom, setZoom, hideKeyboard)
+                : _buildFull(context, l10n, zoom, setZoom, hideKeyboard);
           },
         ),
       ),
@@ -119,6 +117,7 @@ class FormattingToolbar extends ConsumerWidget {
 
   /// Full layout — every action inline, separated by dividers.
   Widget _buildFull(
+    BuildContext context,
     AppLocalizations l10n,
     double zoom,
     ValueChanged<double> setZoom,
@@ -131,61 +130,83 @@ class FormattingToolbar extends ConsumerWidget {
         children: [
           if (hideKeyboard != null) ...[
             _iconButton(
+              context,
               Icons.keyboard_hide_outlined,
               l10n.notesHideKeyboard,
               onTap: hideKeyboard,
             ),
-            _divider(),
+            _divider(context),
           ],
-          _iconButton(Icons.format_bold, l10n.notesBold, onTap: _boldTap),
-          _iconButton(Icons.format_italic, l10n.notesItalic, onTap: _italicTap),
           _iconButton(
+            context,
+            Icons.format_bold,
+            l10n.notesBold,
+            onTap: _boldTap,
+          ),
+          _iconButton(
+            context,
+            Icons.format_italic,
+            l10n.notesItalic,
+            onTap: _italicTap,
+          ),
+          _iconButton(
+            context,
             Icons.strikethrough_s,
             l10n.notesStrikethrough,
             onTap: _strikeTap,
           ),
-          _divider(),
-          _headingButton(l10n, 1),
-          _headingButton(l10n, 2),
-          _headingButton(l10n, 3),
-          _divider(),
+          _divider(context),
+          _headingButton(context, l10n, 1),
+          _headingButton(context, l10n, 2),
+          _headingButton(context, l10n, 3),
+          _divider(context),
           _iconButton(
+            context,
             Icons.format_list_bulleted,
             l10n.notesBulletList,
             onTap: _bulletTap,
           ),
           _iconButton(
+            context,
             Icons.format_list_numbered,
             l10n.notesNumberedList,
             onTap: _numberedTap,
           ),
           _iconButton(
+            context,
             Icons.format_quote,
             l10n.notesBlockquote,
             onTap: _quoteTap,
           ),
-          _iconButton(Icons.code, l10n.notesCode, onTap: _codeTap),
+          _iconButton(context, Icons.code, l10n.notesCode, onTap: _codeTap),
           _iconButton(
+            context,
             Icons.table_chart_outlined,
             l10n.notesTable,
             onTap: _tableTap,
           ),
-          _divider(),
-          _iconButton(Icons.undo, l10n.notesUndo, onTap: _undoTap),
-          _iconButton(Icons.redo, l10n.notesRedo, onTap: _redoTap),
-          _divider(),
+          _divider(context),
+          _iconButton(context, Icons.undo, l10n.notesUndo, onTap: _undoTap),
+          _iconButton(context, Icons.redo, l10n.notesRedo, onTap: _redoTap),
+          _divider(context),
           _ZoomControls(zoom: zoom, onChange: setZoom),
           if (onExportPdf != null) ...[
-            _divider(),
+            _divider(context),
             _iconButton(
+              context,
               Icons.picture_as_pdf_outlined,
               l10n.notesExportToPdf,
               onTap: onExportPdf!,
             ),
           ],
           if (onHistory != null) ...[
-            _divider(),
-            _iconButton(Icons.history, l10n.notesHistory, onTap: onHistory!),
+            _divider(context),
+            _iconButton(
+              context,
+              Icons.history,
+              l10n.notesHistory,
+              onTap: onHistory!,
+            ),
           ],
         ],
       ),
@@ -199,6 +220,7 @@ class FormattingToolbar extends ConsumerWidget {
   /// remain reachable on 320-dp-class phones where even the trimmed set
   /// can't fit without overflow.
   Widget _buildCompact(
+    BuildContext context,
     AppLocalizations l10n,
     double zoom,
     ValueChanged<double> setZoom,
@@ -211,42 +233,51 @@ class FormattingToolbar extends ConsumerWidget {
         children: [
           if (hideKeyboard != null) ...[
             _iconButton(
+              context,
               Icons.keyboard_hide_outlined,
               l10n.notesHideKeyboard,
               onTap: hideKeyboard,
             ),
-            _divider(),
+            _divider(context),
           ],
-          _iconButton(Icons.format_bold, l10n.notesBold, onTap: _boldTap),
-          _iconButton(Icons.format_italic, l10n.notesItalic, onTap: _italicTap),
-          _headingButton(l10n, 2),
           _iconButton(
+            context,
+            Icons.format_bold,
+            l10n.notesBold,
+            onTap: _boldTap,
+          ),
+          _iconButton(
+            context,
+            Icons.format_italic,
+            l10n.notesItalic,
+            onTap: _italicTap,
+          ),
+          _headingButton(context, l10n, 2),
+          _iconButton(
+            context,
             Icons.format_list_bulleted,
             l10n.notesBulletList,
             onTap: _bulletTap,
           ),
           _iconButton(
+            context,
             Icons.format_quote,
             l10n.notesBlockquote,
             onTap: _quoteTap,
           ),
-          _iconButton(Icons.undo, l10n.notesUndo, onTap: _undoTap),
-          _buildMoreMenu(l10n),
-          _divider(),
+          _iconButton(context, Icons.undo, l10n.notesUndo, onTap: _undoTap),
+          _buildMoreMenu(context, l10n),
+          _divider(context),
           _ZoomControls(zoom: zoom, onChange: setZoom),
         ],
       ),
     );
   }
 
-  Widget _buildMoreMenu(AppLocalizations l10n) {
+  Widget _buildMoreMenu(BuildContext context, AppLocalizations l10n) {
     return PopupMenuButton<_ToolbarAction>(
       tooltip: l10n.notesMore,
-      icon: const Icon(
-        Icons.more_horiz,
-        size: 20,
-        color: HoodikColors.iconMuted,
-      ),
+      icon: Icon(Icons.more_horiz, size: 20, color: context.colors.iconMuted),
       onSelected: (action) {
         switch (action) {
           case _ToolbarAction.strike:
@@ -350,6 +381,7 @@ class FormattingToolbar extends ConsumerWidget {
   void _redoTap() => onCommand('Redo');
 
   Widget _iconButton(
+    BuildContext context,
     IconData icon,
     String tooltip, {
     required VoidCallback onTap,
@@ -361,13 +393,17 @@ class FormattingToolbar extends ConsumerWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: Icon(icon, size: 20, color: HoodikColors.iconMuted),
+          child: Icon(icon, size: 20, color: context.colors.iconMuted),
         ),
       ),
     );
   }
 
-  Widget _headingButton(AppLocalizations l10n, int level) {
+  Widget _headingButton(
+    BuildContext context,
+    AppLocalizations l10n,
+    int level,
+  ) {
     return Tooltip(
       message: l10n.notesHeading(level),
       child: InkWell(
@@ -377,8 +413,8 @@ class FormattingToolbar extends ConsumerWidget {
           padding: const EdgeInsets.all(8),
           child: Text(
             'H$level',
-            style: const TextStyle(
-              color: HoodikColors.textMuted,
+            style: TextStyle(
+              color: context.colors.textMuted,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -388,12 +424,12 @@ class FormattingToolbar extends ConsumerWidget {
     );
   }
 
-  Widget _divider() {
+  Widget _divider(BuildContext context) {
     return Container(
       width: 1,
       height: 20,
       margin: const EdgeInsets.symmetric(horizontal: 4),
-      color: HoodikColors.brownish600,
+      color: context.colors.seam,
     );
   }
 }
@@ -445,8 +481,8 @@ class _ZoomControls extends StatelessWidget {
                 Icons.zoom_out,
                 size: 20,
                 color: canZoomOut
-                    ? HoodikColors.iconMuted
-                    : HoodikColors.iconMuted,
+                    ? context.colors.iconMuted
+                    : context.colors.iconMuted,
               ),
             ),
           ),
@@ -463,8 +499,8 @@ class _ZoomControls extends StatelessWidget {
                 child: Text(
                   '$percent%',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: HoodikColors.textMuted,
+                  style: TextStyle(
+                    color: context.colors.textMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     fontFeatures: [FontFeature.tabularFigures()],
@@ -485,8 +521,8 @@ class _ZoomControls extends StatelessWidget {
                 Icons.zoom_in,
                 size: 20,
                 color: canZoomIn
-                    ? HoodikColors.iconMuted
-                    : HoodikColors.iconMuted,
+                    ? context.colors.iconMuted
+                    : context.colors.iconMuted,
               ),
             ),
           ),
@@ -506,7 +542,7 @@ class _MoreMenuItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: HoodikColors.iconMuted),
+        Icon(icon, size: 18, color: context.colors.iconMuted),
         const SizedBox(width: 12),
         Text(label),
       ],

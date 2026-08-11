@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../shares/shared_constants.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Format a byte count into a human-readable string (B, KB, MB, GB).
 String formatFileSize(int? bytes) {
@@ -59,14 +59,18 @@ IconData fileIcon(FileItem file, {String? displayName}) {
 ///
 /// Pass [displayName] so markdown notes pick up the notes accent color
 /// (otherwise they'd share the generic blue with other files).
-Color fileIconColor(FileItem file, {String? displayName}) {
-  if (file.id == sharedWithMeDirId) return HoodikColors.blueish400;
-  if (file.isDir) return HoodikColors.orangy600;
-  if (file.isUploading) return HoodikColors.brownish50;
+Color fileIconColor(
+  BuildContext context,
+  FileItem file, {
+  String? displayName,
+}) {
+  if (file.id == sharedWithMeDirId) return context.colors.iconSlate;
+  if (file.isDir) return context.colors.emberFill;
+  if (file.isUploading) return context.colors.textMuted;
   if (isMarkdownNote(file, displayName: displayName)) {
-    return HoodikColors.orangy500;
+    return context.colors.iconEmber;
   }
-  return HoodikColors.blueish400;
+  return context.colors.iconSlate;
 }
 
 /// Strip the 'Exception: ' prefix from an error message.

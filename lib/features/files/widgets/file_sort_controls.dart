@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// What field to sort files by.
 enum SortField { name, size, type, date }
@@ -87,19 +87,40 @@ class FileSortButton extends StatelessWidget {
       tooltip: l10n.filesSortTooltip,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: HoodikColors.brownish600, width: 0.5),
+        side: BorderSide(color: context.colors.seam, width: 0.5),
       ),
       onSelected: onFieldSelected,
       itemBuilder: (_) => [
-        _sortMenuItem(SortField.name, Icons.sort_by_alpha, l10n.filesNameLabel),
-        _sortMenuItem(SortField.date, AppIcons.schedule, l10n.filesDateLabel),
-        _sortMenuItem(SortField.size, AppIcons.storage, l10n.filesSizeLabel),
-        _sortMenuItem(SortField.type, Icons.category, l10n.filesTypeLabel),
+        _sortMenuItem(
+          context,
+          SortField.name,
+          Icons.sort_by_alpha,
+          l10n.filesNameLabel,
+        ),
+        _sortMenuItem(
+          context,
+          SortField.date,
+          AppIcons.schedule,
+          l10n.filesDateLabel,
+        ),
+        _sortMenuItem(
+          context,
+          SortField.size,
+          AppIcons.storage,
+          l10n.filesSizeLabel,
+        ),
+        _sortMenuItem(
+          context,
+          SortField.type,
+          Icons.category,
+          l10n.filesTypeLabel,
+        ),
       ],
     );
   }
 
   PopupMenuEntry<SortField> _sortMenuItem(
+    BuildContext context,
     SortField field,
     IconData icon,
     String label,
@@ -112,7 +133,9 @@ class FileSortButton extends StatelessWidget {
           Icon(
             icon,
             size: 18,
-            color: isActive ? HoodikColors.orangy500 : HoodikColors.iconMuted,
+            color: isActive
+                ? context.colors.iconEmber
+                : context.colors.iconMuted,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -120,8 +143,8 @@ class FileSortButton extends StatelessWidget {
               label,
               style: TextStyle(
                 color: isActive
-                    ? HoodikColors.orangy500
-                    : HoodikColors.dirtyWhite,
+                    ? context.colors.iconEmber
+                    : context.colors.text,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -132,7 +155,7 @@ class FileSortButton extends StatelessWidget {
                   ? AppIcons.sortAscending
                   : AppIcons.sortDescending,
               size: 16,
-              color: HoodikColors.orangy500,
+              color: context.colors.iconEmber,
             ),
         ],
       ),

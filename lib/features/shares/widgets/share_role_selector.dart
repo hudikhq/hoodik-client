@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/crypto/share_crypto.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Segmented reader / editor / co-owner picker for a share grant. The caller
 /// passes the roles the server advertises so an instance that disabled a tier
@@ -34,9 +34,9 @@ class ShareRoleSelector extends StatelessWidget {
       children: [
         Text(
           l10n.sharesRoleLabel,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: HoodikColors.textMuted,
+            color: context.colors.textMuted,
             letterSpacing: 0.5,
           ),
         ),
@@ -44,7 +44,7 @@ class ShareRoleSelector extends StatelessWidget {
         Row(
           children: [
             for (final role in roles) ...[
-              Expanded(child: _chip(l10n, role)),
+              Expanded(child: _chip(context, l10n, role)),
               if (role != roles.last) const SizedBox(width: 8),
             ],
           ],
@@ -52,13 +52,13 @@ class ShareRoleSelector extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           _description(l10n, value),
-          style: const TextStyle(fontSize: 12, color: HoodikColors.textMuted),
+          style: TextStyle(fontSize: 12, color: context.colors.textMuted),
         ),
       ],
     );
   }
 
-  Widget _chip(AppLocalizations l10n, ShareRole role) {
+  Widget _chip(BuildContext context, AppLocalizations l10n, ShareRole role) {
     final selected = role == value;
     return InkWell(
       onTap: enabled ? () => onChanged(role) : null,
@@ -67,10 +67,12 @@ class ShareRoleSelector extends StatelessWidget {
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color: selected ? HoodikColors.redish500 : Colors.transparent,
+          color: selected ? context.colors.dangerFill : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: selected ? HoodikColors.redish500 : HoodikColors.brownish500,
+            color: selected
+                ? context.colors.dangerFill
+                : context.colors.seamStrong,
           ),
         ),
         child: Text(
@@ -78,7 +80,7 @@ class ShareRoleSelector extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected ? HoodikColors.white : HoodikColors.dirtyWhite,
+            color: selected ? context.colors.onFill : context.colors.text,
           ),
         ),
       ),

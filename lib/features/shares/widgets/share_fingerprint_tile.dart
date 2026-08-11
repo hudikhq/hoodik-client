@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Trust outcome for a discovered recipient, derived by the share dialog from
 /// the local [TrustedFingerprintDao] row:
@@ -40,19 +40,19 @@ class ShareFingerprintTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: HoodikColors.brownish800,
+        color: context.colors.panel,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _borderColor, width: 0.5),
+        border: Border.all(color: _borderColor(context), width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             email,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: HoodikColors.dirtyWhite,
+              color: context.colors.text,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -60,10 +60,10 @@ class ShareFingerprintTile extends StatelessWidget {
           const SizedBox(height: 6),
           SelectableText(
             formattedFingerprint,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontFamily: 'monospace',
-              color: HoodikColors.textMuted,
+              color: context.colors.textMuted,
             ),
           ),
           const SizedBox(height: 10),
@@ -77,32 +77,34 @@ class ShareFingerprintTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return switch (status) {
       ShareTrustStatus.verified => _banner(
+        context: context,
         icon: Icons.verified_user,
-        color: HoodikColors.greeny300,
+        color: context.colors.textSage,
         child: Text(
           l10n.sharesTrustVerified,
-          style: const TextStyle(fontSize: 12, color: HoodikColors.greeny300),
+          style: TextStyle(fontSize: 12, color: context.colors.textSage),
         ),
       ),
       ShareTrustStatus.firstSight => _banner(
+        context: context,
         icon: Icons.shield_outlined,
-        color: HoodikColors.iconMuted,
+        color: context.colors.iconMuted,
         child: Text(
           l10n.sharesTrustFirstSight,
-          style: const TextStyle(fontSize: 12, color: HoodikColors.textMuted),
+          style: TextStyle(fontSize: 12, color: context.colors.textMuted),
         ),
       ),
-      ShareTrustStatus.mismatch => _mismatchBody(l10n),
+      ShareTrustStatus.mismatch => _mismatchBody(context, l10n),
     };
   }
 
-  Widget _mismatchBody(AppLocalizations l10n) {
+  Widget _mismatchBody(BuildContext context, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: HoodikColors.redish900,
+        color: context.colors.crimsonWash,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: HoodikColors.redish400),
+        border: Border.all(color: context.colors.crimsonFill),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,18 +112,18 @@ class ShareFingerprintTile extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
+              Icon(
                 Icons.warning_amber_rounded,
-                color: HoodikColors.redish50,
+                color: context.colors.onCrimsonWash,
                 size: 18,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   l10n.sharesTrustMismatchBody,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: HoodikColors.redish50,
+                    color: context.colors.onCrimsonWash,
                   ),
                 ),
               ),
@@ -129,9 +131,17 @@ class ShareFingerprintTile extends StatelessWidget {
           ),
           if (cachedFingerprint != null) ...[
             const SizedBox(height: 8),
-            _fingerprintRow(l10n.sharesPreviouslyTrusted, cachedFingerprint!),
+            _fingerprintRow(
+              context,
+              l10n.sharesPreviouslyTrusted,
+              cachedFingerprint!,
+            ),
             const SizedBox(height: 4),
-            _fingerprintRow(l10n.sharesServerReturnedNow, formattedFingerprint),
+            _fingerprintRow(
+              context,
+              l10n.sharesServerReturnedNow,
+              formattedFingerprint,
+            ),
           ],
           const SizedBox(height: 8),
           InkWell(
@@ -155,9 +165,9 @@ class ShareFingerprintTile extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 12),
                     child: Text(
                       l10n.sharesMismatchAcknowledge,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: HoodikColors.dirtyWhite,
+                        color: context.colors.text,
                       ),
                     ),
                   ),
@@ -170,24 +180,24 @@ class ShareFingerprintTile extends StatelessWidget {
     );
   }
 
-  Widget _fingerprintRow(String label, String value) {
+  Widget _fingerprintRow(BuildContext context, String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: HoodikColors.redish50,
+            color: context.colors.onCrimsonWash,
             letterSpacing: 0.5,
           ),
         ),
         SelectableText(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontFamily: 'monospace',
-            color: HoodikColors.dirtyWhite,
+            color: context.colors.text,
           ),
         ),
       ],
@@ -195,6 +205,7 @@ class ShareFingerprintTile extends StatelessWidget {
   }
 
   Widget _banner({
+    required BuildContext context,
     required IconData icon,
     required Color color,
     required Widget child,
@@ -209,9 +220,9 @@ class ShareFingerprintTile extends StatelessWidget {
     );
   }
 
-  Color get _borderColor => switch (status) {
-    ShareTrustStatus.mismatch => HoodikColors.redish400,
-    ShareTrustStatus.verified => HoodikColors.greeny400,
-    ShareTrustStatus.firstSight => HoodikColors.brownish600,
+  Color _borderColor(BuildContext context) => switch (status) {
+    ShareTrustStatus.mismatch => context.colors.crimsonFill,
+    ShareTrustStatus.verified => context.colors.sageFill,
+    ShareTrustStatus.firstSight => context.colors.seam,
   };
 }

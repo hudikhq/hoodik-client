@@ -5,12 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../helpers/file_helpers.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Show a text input dialog and return the entered value, or null if cancelled.
 Future<String?> showTextInputDialog({
@@ -30,7 +30,7 @@ Future<String?> showTextInputDialog({
           autofocus: true,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: HoodikColors.textMuted),
+            hintStyle: TextStyle(color: context.colors.textMuted),
           ),
           onSubmitted: (v) => Navigator.pop(ctx, v),
         ),
@@ -115,15 +115,20 @@ void showFileDetailsDialog({
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _detailRow(l10n.filesTypeLabel, file.mime),
-            _detailRow(l10n.filesSizeLabel, formatFileSize(file.size)),
+            _detailRow(ctx, l10n.filesTypeLabel, file.mime),
+            _detailRow(ctx, l10n.filesSizeLabel, formatFileSize(file.size)),
             _detailRow(
+              ctx,
               l10n.filesChunksLabel,
               '${file.chunksStored ?? 0}/${file.chunks ?? 0}',
             ),
-            _detailRow(l10n.filesCipherLabel, file.cipher),
-            _detailRow(l10n.filesCreatedLabel, formatFileDate(file.createdAt)),
-            _detailRow(l10n.filesIdLabel, file.id),
+            _detailRow(ctx, l10n.filesCipherLabel, file.cipher),
+            _detailRow(
+              ctx,
+              l10n.filesCreatedLabel,
+              formatFileDate(file.createdAt),
+            ),
+            _detailRow(ctx, l10n.filesIdLabel, file.id),
             if (file.sha256 != null) _copyableRow(ctx, 'SHA-256', file.sha256!),
           ],
         ),
@@ -155,9 +160,9 @@ void showLinkCreatedDialog({
         children: [
           Text(
             fileName,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: HoodikColors.dirtyWhite,
+              color: context.colors.text,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -166,16 +171,13 @@ void showLinkCreatedDialog({
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: HoodikColors.brownish900,
+              color: context.colors.canvas,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: HoodikColors.brownish600, width: 0.5),
+              border: Border.all(color: context.colors.seam, width: 0.5),
             ),
             child: Text(
               linkUrl,
-              style: const TextStyle(
-                fontSize: 12,
-                color: HoodikColors.textMuted,
-              ),
+              style: TextStyle(fontSize: 12, color: context.colors.textMuted),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
@@ -206,7 +208,7 @@ void showLinkCreatedDialog({
   );
 }
 
-Widget _detailRow(String label, String value) {
+Widget _detailRow(BuildContext context, String label, String value) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
@@ -216,7 +218,7 @@ Widget _detailRow(String label, String value) {
           width: 72,
           child: Text(
             label,
-            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
+            style: TextStyle(color: context.colors.textMuted, fontSize: 12),
           ),
         ),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 12))),
@@ -237,7 +239,7 @@ Widget _copyableRow(BuildContext context, String label, String value) {
           width: 72,
           child: Text(
             label,
-            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
+            style: TextStyle(color: context.colors.textMuted, fontSize: 12),
           ),
         ),
         Expanded(
@@ -260,7 +262,7 @@ Widget _copyableRow(BuildContext context, String label, String value) {
               duration: const Duration(seconds: 2),
             );
           },
-          child: Icon(AppIcons.copy, size: 16, color: HoodikColors.iconMuted),
+          child: Icon(AppIcons.copy, size: 16, color: context.colors.iconMuted),
         ),
       ],
     ),

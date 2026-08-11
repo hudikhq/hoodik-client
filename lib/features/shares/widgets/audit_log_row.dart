@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/crypto/share_crypto.dart' show ChainRowStatus;
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/audit_log_notifier.dart';
 import 'audit_event_sentence.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// One audit-log row: the action sentence, the timestamp, and a tri-state
 /// integrity badge. Mirrors the web `ShareHubAudit` row treatment —
@@ -28,9 +28,9 @@ class AuditLogRow extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: HoodikColors.brownish800,
+        color: context.colors.panel,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: HoodikColors.brownish600, width: 0.5),
+        border: Border.all(color: context.colors.seam, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -40,12 +40,12 @@ class AuditLogRow extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(top: 1, right: 10),
                   child: Icon(
                     Icons.person_outline,
                     size: 18,
-                    color: HoodikColors.iconMuted,
+                    color: context.colors.iconMuted,
                   ),
                 ),
                 Expanded(
@@ -59,9 +59,9 @@ class AuditLogRow extends StatelessWidget {
                           recipientEmail: row.recipientEmail,
                           fileLabel: row.fileLabel,
                         ),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: HoodikColors.dirtyWhite,
+                          color: context.colors.text,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -72,9 +72,9 @@ class AuditLogRow extends StatelessWidget {
                         ),
                         child: Text(
                           formatRelativeTimestamp(row.event.createdAt),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: HoodikColors.textMuted,
+                            color: context.colors.textMuted,
                           ),
                         ),
                       ),
@@ -84,9 +84,9 @@ class AuditLogRow extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 2),
                           child: Text(
                             l10n.sharesAuditPageBoundaryNote,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: HoodikColors.textMuted,
+                              color: context.colors.textMuted,
                             ),
                           ),
                         ),
@@ -94,57 +94,62 @@ class AuditLogRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                _badge(l10n),
+                _badge(context, l10n),
               ],
             ),
           ),
-          if (row.badge == AuditRowBadge.tampered) _tamperedBanner(l10n),
+          if (row.badge == AuditRowBadge.tampered)
+            _tamperedBanner(context, l10n),
         ],
       ),
     );
   }
 
-  Widget _badge(AppLocalizations l10n) {
+  Widget _badge(BuildContext context, AppLocalizations l10n) {
     switch (row.badge) {
       case AuditRowBadge.verified:
         return _pill(
           icon: AppIcons.verified,
           label: l10n.sharesAuditBadgeVerified,
-          fg: HoodikColors.greeny300,
-          bg: HoodikColors.greeny900,
+          fg: context.colors.textSage,
+          bg: context.colors.sageWash,
         );
       case AuditRowBadge.system:
         return _pill(
           icon: AppIcons.settings,
           label: l10n.sharesAuditBadgeSystem,
-          fg: HoodikColors.textMuted,
-          bg: HoodikColors.brownish700,
+          fg: context.colors.textMuted,
+          bg: context.colors.recess,
         );
       case AuditRowBadge.tampered:
         return _pill(
           icon: AppIcons.error,
           label: l10n.sharesAuditBadgeMismatch,
-          fg: HoodikColors.redish50,
-          bg: HoodikColors.redish700,
+          fg: context.colors.onCrimsonWash,
+          bg: context.colors.crimsonContainer,
         );
     }
   }
 
-  Widget _tamperedBanner(AppLocalizations l10n) {
+  Widget _tamperedBanner(BuildContext context, AppLocalizations l10n) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: const BoxDecoration(
-        color: HoodikColors.redish900,
+      decoration: BoxDecoration(
+        color: context.colors.crimsonWash,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
-        border: Border(top: BorderSide(color: HoodikColors.redish700)),
+        border: Border(top: BorderSide(color: context.colors.crimsonContainer)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.only(right: 8, top: 1),
-            child: Icon(AppIcons.error, size: 18, color: HoodikColors.redish50),
+            child: Icon(
+              AppIcons.error,
+              size: 18,
+              color: context.colors.onCrimsonWash,
+            ),
           ),
           Expanded(
             child: Column(
@@ -152,18 +157,18 @@ class AuditLogRow extends StatelessWidget {
               children: [
                 Text(
                   _tamperedHeadline(l10n),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: HoodikColors.redish50,
+                    color: context.colors.onCrimsonWash,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   l10n.sharesAuditTamperedBody,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: HoodikColors.redish50,
+                    color: context.colors.onCrimsonWash,
                   ),
                 ),
               ],

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/share_group_models.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -14,6 +13,7 @@ import '../widgets/group_rename_dialog.dart';
 import '../widgets/group_role_selector.dart';
 import '../widgets/member_of_group_tile.dart';
 import '../widgets/share_group_owned_card.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Re-fetches the caller's share groups and refreshes the list. Shared by the
 /// Share hub's "Groups" tab (its AppBar "New group" action) and the in-list
@@ -52,7 +52,7 @@ class _ErrorBody extends StatelessWidget {
         child: Text(
           AppLocalizations.of(context).sharesGroupsLoadFailed,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: HoodikColors.textMuted),
+          style: TextStyle(color: context.colors.textMuted),
         ),
       ),
     );
@@ -75,10 +75,11 @@ class _GroupsList extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          _sectionLabel(l10n.sharesOwnedGroupsHeader),
+          _sectionLabel(context, l10n.sharesOwnedGroupsHeader),
           const SizedBox(height: 8),
           if (groups.owned.isEmpty)
             _emptyCard(
+              context,
               l10n.sharesNoOwnedGroups,
               key: const ValueKey('owned-empty'),
             )
@@ -98,10 +99,11 @@ class _GroupsList extends ConsumerWidget {
                 ),
               ),
           const SizedBox(height: 16),
-          _sectionLabel(l10n.sharesMemberOfHeader),
+          _sectionLabel(context, l10n.sharesMemberOfHeader),
           const SizedBox(height: 8),
           if (groups.memberOf.isEmpty)
             _emptyCard(
+              context,
               l10n.sharesNoMemberOfGroups,
               key: const ValueKey('member-of-empty'),
             )
@@ -270,26 +272,27 @@ class _GroupsList extends ConsumerWidget {
     }
   }
 
-  static Widget _sectionLabel(String text) => Text(
+  static Widget _sectionLabel(BuildContext context, String text) => Text(
     text,
-    style: const TextStyle(
+    style: TextStyle(
       fontSize: 12,
       letterSpacing: 0.5,
-      color: HoodikColors.textMuted,
+      color: context.colors.textMuted,
     ),
   );
 
-  static Widget _emptyCard(String text, {Key? key}) => Container(
-    key: key,
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: HoodikColors.brownish800,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: HoodikColors.brownish600, width: 0.5),
-    ),
-    child: Text(
-      text,
-      style: const TextStyle(fontSize: 13, color: HoodikColors.textMuted),
-    ),
-  );
+  static Widget _emptyCard(BuildContext context, String text, {Key? key}) =>
+      Container(
+        key: key,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.colors.panel,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: context.colors.seam, width: 0.5),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(fontSize: 13, color: context.colors.textMuted),
+        ),
+      );
 }

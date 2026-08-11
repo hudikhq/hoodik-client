@@ -41,6 +41,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
     required this.onFill,
     required this.crimsonWash,
     required this.onCrimsonWash,
+    required this.sageWash,
     required this.crimsonContainer,
     required this.onCrimsonContainer,
   });
@@ -101,6 +102,9 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
   final Color crimsonWash;
   final Color onCrimsonWash;
 
+  /// Tinted ground for a success badge.
+  final Color sageWash;
+
   /// Deep crimson container: the selection indicator and the account avatar.
   /// A container, not a text step — it is filled and something sits on it.
   final Color crimsonContainer;
@@ -131,6 +135,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
     onFill: HoodikColors.white,
     crimsonWash: HoodikColors.redish900,
     onCrimsonWash: HoodikColors.redish50,
+    sageWash: HoodikColors.greeny900,
     crimsonContainer: HoodikColors.redish700,
     onCrimsonContainer: HoodikColors.dirtyWhite,
   );
@@ -162,6 +167,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
     onFill: HoodikColors.white,
     crimsonWash: HoodikColors.paperCrimsonWash,
     onCrimsonWash: HoodikColors.redish700,
+    sageWash: HoodikColors.paperSageWash,
     crimsonContainer: HoodikColors.paperCrimsonWash,
     onCrimsonContainer: HoodikColors.redish700,
   );
@@ -192,6 +198,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
     Color? onFill,
     Color? crimsonWash,
     Color? onCrimsonWash,
+    Color? sageWash,
     Color? crimsonContainer,
     Color? onCrimsonContainer,
   }) {
@@ -220,6 +227,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
       onFill: onFill ?? this.onFill,
       crimsonWash: crimsonWash ?? this.crimsonWash,
       onCrimsonWash: onCrimsonWash ?? this.onCrimsonWash,
+      sageWash: sageWash ?? this.sageWash,
       crimsonContainer: crimsonContainer ?? this.crimsonContainer,
       onCrimsonContainer: onCrimsonContainer ?? this.onCrimsonContainer,
     );
@@ -254,6 +262,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
       onFill: c(onFill, other.onFill),
       crimsonWash: c(crimsonWash, other.crimsonWash),
       onCrimsonWash: c(onCrimsonWash, other.onCrimsonWash),
+      sageWash: c(sageWash, other.sageWash),
       crimsonContainer: c(crimsonContainer, other.crimsonContainer),
       onCrimsonContainer: c(onCrimsonContainer, other.onCrimsonContainer),
     );

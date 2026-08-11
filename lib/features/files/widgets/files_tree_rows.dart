@@ -2,10 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../helpers/file_helpers.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// A folder row inside [FilesTreeView]: chevron, folder glyph, decrypted
 /// name, and an optional share glyph. A single tap navigates into the folder;
@@ -70,14 +70,18 @@ class TreeFolderRow extends StatelessWidget {
                 onTap: onExpand,
                 child: Padding(
                   padding: const EdgeInsets.all(2),
-                  child: Icon(chevron, size: 16, color: HoodikColors.iconMuted),
+                  child: Icon(
+                    chevron,
+                    size: 16,
+                    color: context.colors.iconMuted,
+                  ),
                 ),
               ),
               const SizedBox(width: 2),
               Icon(
                 expanded ? AppIcons.folderOpen : AppIcons.folder,
                 size: 18,
-                color: HoodikColors.orangy600,
+                color: context.colors.emberFill,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -87,8 +91,8 @@ class TreeFolderRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: isActive
-                        ? HoodikColors.orangy500
-                        : HoodikColors.dirtyWhite,
+                        ? context.colors.iconEmber
+                        : context.colors.text,
                     fontSize: 14,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   ),
@@ -136,7 +140,7 @@ class TreeFileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = fileIconColor(file, displayName: name);
+    final color = fileIconColor(context, file, displayName: name);
 
     return GestureDetector(
       onSecondaryTapUp: (details) => onContextMenu(details.globalPosition),
@@ -156,8 +160,8 @@ class TreeFileRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: isActive
-                        ? HoodikColors.orangy500
-                        : HoodikColors.textMuted,
+                        ? context.colors.iconEmber
+                        : context.colors.textMuted,
                     fontSize: 13,
                   ),
                 ),
@@ -183,7 +187,7 @@ class TreeShareIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 6),
-      child: Icon(icon, size: 14, color: HoodikColors.blueish300),
+      child: Icon(icon, size: 14, color: context.colors.iconSlate),
     );
   }
 }

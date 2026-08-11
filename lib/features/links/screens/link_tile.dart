@@ -2,10 +2,10 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Decrypted public-link row for display. Names, sizes, and thumbnails are
 /// decrypted client-side before reaching this model — the server never holds
@@ -82,17 +82,17 @@ class LinkTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return ListTile(
-      leading: _leading(expired),
+      leading: _leading(context, expired),
       title: Text(
         link.name,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: expired ? HoodikColors.textMuted : null),
+        style: TextStyle(color: expired ? context.colors.textMuted : null),
       ),
       subtitle: Text(
         _subtitle(l10n),
         style: TextStyle(
-          color: expired ? HoodikColors.textMuted : HoodikColors.textMuted,
+          color: expired ? context.colors.textMuted : context.colors.textMuted,
           fontSize: 12,
         ),
       ),
@@ -103,21 +103,18 @@ class LinkTile extends StatelessWidget {
             icon: Icon(AppIcons.copy, size: 18),
             tooltip: l10n.linksCopyTooltip,
             onPressed: onCopy,
-            color: HoodikColors.iconMuted,
+            color: context.colors.iconMuted,
           ),
           PopupMenuButton<String>(
             icon: Icon(
               AppIcons.overflowVertical,
               size: 20,
-              color: HoodikColors.iconMuted,
+              color: context.colors.iconMuted,
             ),
-            color: HoodikColors.brownish800,
+            color: context.colors.panel,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
-              side: const BorderSide(
-                color: HoodikColors.brownish600,
-                width: 0.5,
-              ),
+              side: BorderSide(color: context.colors.seam, width: 0.5),
             ),
             onSelected: (action) {
               switch (action) {
@@ -137,7 +134,7 @@ class LinkTile extends StatelessWidget {
                 child: _MenuRow(
                   icon: AppIcons.share,
                   label: l10n.commonShare,
-                  color: HoodikColors.dirtyWhite,
+                  color: context.colors.text,
                 ),
               ),
               const PopupMenuDivider(),
@@ -146,7 +143,7 @@ class LinkTile extends StatelessWidget {
                 child: _MenuRow(
                   icon: AppIcons.schedule,
                   label: l10n.linksSetExpiry,
-                  color: HoodikColors.dirtyWhite,
+                  color: context.colors.text,
                 ),
               ),
               if (link.expiresAt != null)
@@ -155,7 +152,7 @@ class LinkTile extends StatelessWidget {
                   child: _MenuRow(
                     icon: Icons.timer_off,
                     label: l10n.linksRemoveExpiry,
-                    color: HoodikColors.dirtyWhite,
+                    color: context.colors.text,
                   ),
                 ),
               const PopupMenuDivider(),
@@ -164,7 +161,7 @@ class LinkTile extends StatelessWidget {
                 child: _MenuRow(
                   icon: AppIcons.delete,
                   label: l10n.linksDeleteLink,
-                  color: HoodikColors.textCrimson,
+                  color: context.colors.textCrimson,
                 ),
               ),
             ],
@@ -174,7 +171,7 @@ class LinkTile extends StatelessWidget {
     );
   }
 
-  Widget _leading(bool expired) {
+  Widget _leading(BuildContext context, bool expired) {
     if (link.thumbnailBytes != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(6),
@@ -186,25 +183,25 @@ class LinkTile extends StatelessWidget {
             child: Image.memory(
               link.thumbnailBytes!,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => _icon(expired),
+              errorBuilder: (_, _, _) => _icon(context, expired),
             ),
           ),
         ),
       );
     }
-    return _icon(expired);
+    return _icon(context, expired);
   }
 
-  Widget _icon(bool expired) {
+  Widget _icon(BuildContext context, bool expired) {
     return CircleAvatar(
       radius: 20,
       backgroundColor: expired
-          ? HoodikColors.brownish600
-          : HoodikColors.blueish400.withValues(alpha: 0.15),
+          ? context.colors.seam
+          : context.colors.iconSlate.withValues(alpha: 0.15),
       child: Icon(
         AppIcons.link,
         size: 20,
-        color: expired ? HoodikColors.iconMuted : HoodikColors.blueish400,
+        color: expired ? context.colors.iconMuted : context.colors.iconSlate,
       ),
     );
   }

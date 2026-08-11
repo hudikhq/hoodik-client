@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../shares/shared_constants.dart';
 import '../providers/files_state.dart';
 import 'file_grid_item.dart';
@@ -14,6 +13,7 @@ import 'file_sort_controls.dart';
 import 'files_drag_feedback.dart';
 import 'files_tree_view.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Renders the file listing for the active directory in whichever view
 /// mode (list / icons / tree) the user picked. Owns the drag-and-drop
@@ -95,12 +95,12 @@ class FilesList extends ConsumerWidget {
 
         Widget row = _wrapDraggable(file: file, child: tile);
         if (file.isDir) {
-          row = _wrapDropTarget(folder: file, child: row);
+          row = _wrapDropTarget(context, folder: file, child: row);
         }
         if (!_usesImmediateDrag &&
             !state.selectionMode &&
             file.id != sharedWithMeDirId) {
-          row = _wrapSwipeToDelete(file: file, child: row);
+          row = _wrapSwipeToDelete(context, file: file, child: row);
         }
         return row;
       },
@@ -109,7 +109,11 @@ class FilesList extends ConsumerWidget {
 
   /// Trailing swipe reveals delete; the row snaps back and the regular
   /// confirm flow takes over, so a swipe can never destroy silently.
-  Widget _wrapSwipeToDelete({required FileItem file, required Widget child}) {
+  Widget _wrapSwipeToDelete(
+    BuildContext context, {
+    required FileItem file,
+    required Widget child,
+  }) {
     return Dismissible(
       key: ValueKey('swipe-${file.id}'),
       direction: DismissDirection.endToStart,
@@ -118,7 +122,7 @@ class FilesList extends ConsumerWidget {
         return false;
       },
       background: Container(
-        color: HoodikColors.redish400,
+        color: context.colors.crimsonFill,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
         child: Icon(AppIcons.delete, color: Colors.white),
@@ -153,7 +157,9 @@ class FilesList extends ConsumerWidget {
         );
 
         Widget cell = _wrapDraggable(file: file, child: tile);
-        if (file.isDir) cell = _wrapDropTarget(folder: file, child: cell);
+        if (file.isDir) {
+          cell = _wrapDropTarget(context, folder: file, child: cell);
+        }
         return cell;
       },
     );
@@ -225,7 +231,11 @@ class FilesList extends ConsumerWidget {
     );
   }
 
-  Widget _wrapDropTarget({required FileItem folder, required Widget child}) {
+  Widget _wrapDropTarget(
+    BuildContext context, {
+    required FileItem folder,
+    required Widget child,
+  }) {
     return DragTarget<List<String>>(
       onWillAcceptWithDetails: (details) => !details.data.contains(folder.id),
       onAcceptWithDetails: (details) => onPerformMove(details.data, folder.id),
@@ -235,11 +245,11 @@ class FilesList extends ConsumerWidget {
           duration: const Duration(milliseconds: 120),
           decoration: BoxDecoration(
             color: hovering
-                ? HoodikColors.orangy500.withValues(alpha: 0.12)
+                ? context.colors.iconEmber.withValues(alpha: 0.12)
                 : null,
             border: Border(
               left: BorderSide(
-                color: hovering ? HoodikColors.orangy500 : Colors.transparent,
+                color: hovering ? context.colors.iconEmber : Colors.transparent,
                 width: 3,
               ),
             ),
