@@ -19,6 +19,7 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/providers/files_notifier.dart';
 import '../../files/widgets/file_dialogs.dart';
+import '../../../core/widgets/menu_anchor.dart';
 import '../../files/widgets/folder_picker_dialog.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../providers/notes_sidebar_notifier.dart';
@@ -760,17 +761,12 @@ class _SidebarHeader extends StatelessWidget {
 
   Future<void> _showCreateMenu(BuildContext context) async {
     final renderBox = context.findRenderObject() as RenderBox?;
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (renderBox == null || overlay == null) return;
+    if (renderBox == null) return;
 
     final anchor = renderBox.localToGlobal(
       renderBox.size.bottomRight(Offset.zero),
     );
-    final position = RelativeRect.fromRect(
-      Rect.fromPoints(anchor, anchor),
-      Offset.zero & overlay.size,
-    );
+    final position = menuAnchorAt(context, anchor);
 
     final choice = await showMenu<String>(
       context: context,
@@ -840,7 +836,6 @@ class _SidebarHeader extends StatelessWidget {
                 color: context.colors.textMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                letterSpacing: 1.0,
               ),
             ),
           ),
@@ -916,13 +911,7 @@ class _FolderRowState extends State<_FolderRow> {
   bool _hovered = false;
 
   Future<void> _showContextMenu(Offset globalPosition) async {
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
-    final position = RelativeRect.fromRect(
-      Rect.fromPoints(globalPosition, globalPosition),
-      Offset.zero & overlay.size,
-    );
+    final position = menuAnchorAt(context, globalPosition);
 
     final l10n = AppLocalizations.of(context);
     final choice = await showMenu<String>(
@@ -1015,8 +1004,8 @@ class _FolderRowState extends State<_FolderRow> {
                         waitDuration: const Duration(milliseconds: 400),
                         child: Text(
                           widget.name,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: context.colors.text,
                             fontSize: 13,
                           ),
                           maxLines: 1,
@@ -1099,13 +1088,7 @@ class _NoteRowState extends State<_NoteRow> {
   bool _hovered = false;
 
   Future<void> _showContextMenu(Offset globalPosition) async {
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
-    final position = RelativeRect.fromRect(
-      Rect.fromPoints(globalPosition, globalPosition),
-      Offset.zero & overlay.size,
-    );
+    final position = menuAnchorAt(context, globalPosition);
 
     final l10n = AppLocalizations.of(context);
     final choice = await showMenu<String>(
@@ -1200,7 +1183,7 @@ class _NoteRowState extends State<_NoteRow> {
                           widget.name,
                           style: TextStyle(
                             color: widget.isActive
-                                ? Colors.white
+                                ? context.colors.text
                                 : context.colors.textMuted,
                             fontSize: 13,
                             fontWeight: widget.isActive
@@ -1311,8 +1294,8 @@ class _SidebarError extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             l10n.notesLoadFailed,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.colors.text,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
