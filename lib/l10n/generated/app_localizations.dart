@@ -3498,6 +3498,12 @@ abstract class AppLocalizations {
   /// **'Create a new folder in root'**
   String get notesCreateFolderInRoot;
 
+  /// No description provided for @notesCreateHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Create here'**
+  String get notesCreateHere;
+
   /// No description provided for @notesCreateNoteFailed.
   ///
   /// In en, this message translates to:

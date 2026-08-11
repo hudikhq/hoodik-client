@@ -569,6 +569,7 @@
   "notesCreateFolderFailed": "Échec de la création du dossier : {error}",
   "notesCreateFolderIn": "Créer un nouveau dossier dans « {folder} »",
   "notesCreateFolderInRoot": "Créer un nouveau dossier à la racine",
+  "notesCreateHere": "Créer ici",
   "notesCreateNoteFailed": "Échec de la création de la note : {error}",
   "notesCreateNoteIn": "Créer une nouvelle note dans « {folder} »",
   "notesCreateNoteInRoot": "Créer une nouvelle note à la racine",

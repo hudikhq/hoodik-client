@@ -1181,6 +1181,7 @@
     }
   },
   "notesCreateFolderInRoot": "Create a new folder in root",
+  "notesCreateHere": "Create here",
   "notesCreateNoteFailed": "Failed to create note: {error}",
   "@notesCreateNoteFailed": {
     "placeholders": {

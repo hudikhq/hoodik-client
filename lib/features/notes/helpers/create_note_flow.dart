@@ -15,7 +15,7 @@ import '../widgets/new_note_dialog.dart';
 /// Prompt for a name, create the note, then route to `/editor/<id>` so
 /// the workspace opens it as a tab.
 ///
-/// Used by the mobile FAB on the `/notes` landing screen. The sidebar has
+/// Used by the notes app-bar create action. The sidebar has
 /// its own in-place version at [NotesSidebar._handleCreateNote] that also
 /// updates local tree state directly — this one is for callers that don't
 /// live inside the sidebar and need a self-contained flow.
@@ -28,11 +28,20 @@ Future<void> createNoteAndOpen({
   required BuildContext context,
   required WidgetRef ref,
   String? parentDirId,
+  String? parentFolderName,
   bool returnToFiles = false,
 }) async {
   final l10n = AppLocalizations.of(context);
-  final name = await showNewNoteDialog(context: context);
-  if (name == null || name.isEmpty) return;
+  final chosen = await showNewNoteDialog(
+    context: context,
+    parentDirId: parentDirId,
+    parentFolderName: parentFolderName,
+  );
+  if (chosen == null || chosen.name.isEmpty) return;
+  final name = chosen.name;
+  // The dialog owns the destination from here — the caller's folder was only
+  // the starting point.
+  parentDirId = chosen.parentDirId;
 
   final ops = ref.read(fileOperationsProvider);
   final client = ref.read(apiClientProvider);

@@ -569,6 +569,7 @@
   "notesCreateFolderFailed": "Kreiranje foldera nije uspjelo: {error}",
   "notesCreateFolderIn": "Kreiraj novi folder u \"{folder}\"",
   "notesCreateFolderInRoot": "Kreiraj novi folder u rootu",
+  "notesCreateHere": "Stvori ovdje",
   "notesCreateNoteFailed": "Kreiranje bilješke nije uspjelo: {error}",
   "notesCreateNoteIn": "Kreiraj novu bilješku u \"{folder}\"",
   "notesCreateNoteInRoot": "Kreiraj novu bilješku u rootu",
