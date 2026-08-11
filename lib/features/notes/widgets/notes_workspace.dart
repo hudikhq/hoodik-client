@@ -34,11 +34,6 @@ import '../../../core/widgets/app_icons.dart';
 
 const _log = Logger('NotesWorkspace');
 
-/// Breakpoint at which the sidebar + tab bar become visible inline.
-/// Below this width the sidebar moves to a swipe-accessible drawer and
-/// the tab bar is hidden (mobile uses a single-tab model).
-const double _kDesktopBreakpoint = 700;
-
 /// Width of the inline sidebar panel on desktop.
 const double _kSidebarWidth = 260;
 
@@ -306,8 +301,10 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     _sendToEditor('setEditable', {'editable': tab.editable});
   }
 
-  bool _isDesktopWidth() =>
-      MediaQuery.of(context).size.width >= _kDesktopBreakpoint;
+  /// At medium width and up the sidebar and tab strip show inline; below it
+  /// the sidebar becomes a swipe-accessible drawer and the workspace runs a
+  /// single-tab model.
+  bool _isDesktopWidth() => isMediumWidth(context);
 
   /// Desktop: new tab (or focus existing). Mobile: replace current tab after
   /// a dirty check. No tabs: seed the first tab and load the webview HTML.
