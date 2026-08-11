@@ -71,6 +71,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   final Map<String, Uint8List> _seedKeys = {};
 
   bool _editorReady = false;
+  Brightness? _editorBrightness;
 
   /// Set when the workspace was seeded from the Files branch; closing the
   /// last tab then switches the shell back there instead of falling
@@ -189,11 +190,29 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
         'HoodikBridge',
         onMessageReceived: _onBridgeMessage,
       );
+  }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reading the theme belongs here rather than in `initState` — inherited
+    // widgets aren't resolvable yet at that point — and it re-runs on every
+    // appearance change, which is exactly when the editor has to follow.
+    final brightness = Theme.of(context).brightness;
     if (!Platform.isMacOS) {
       _webViewController.setBackgroundColor(context.colors.canvas);
     }
+    if (_editorReady && brightness != _editorBrightness) {
+      _pushEditorTheme(brightness);
+    }
+    _editorBrightness = brightness;
   }
+
+  /// The editor stylesheet is light by default and dark under a `.dark`
+  /// root class, so the host owns the switch.
+  void _pushEditorTheme(Brightness brightness) => _sendToEditor('setTheme', {
+    'theme': brightness == Brightness.dark ? 'dark' : 'light',
+  });
 
   Future<void> _ensureEditorHtmlLoaded() async {
     if (_webViewContentLoaded) return;
@@ -486,6 +505,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
   void _onEditorReady() {
     setState(() => _editorReady = true);
+    _pushEditorTheme(_editorBrightness ?? Theme.of(context).brightness);
     final zoom = ref.read(editorZoomProvider);
     if (zoom != 1.0) _sendToEditor('setZoom', {'scale': zoom});
     if (Platform.isIOS) injectIosCaretInset(_webViewController);

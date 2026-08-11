@@ -29,6 +29,7 @@ class MarkdownPreviewWebView extends StatefulWidget {
 class _MarkdownPreviewWebViewState extends State<MarkdownPreviewWebView> {
   late final WebViewController _controller;
   bool _ready = false;
+  Brightness? _brightness;
 
   @override
   void initState() {
@@ -59,12 +60,27 @@ class _MarkdownPreviewWebViewState extends State<MarkdownPreviewWebView> {
         ),
       );
 
+    _loadEditor();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Inherited widgets aren't resolvable from `initState`, and this re-runs
+    // on every appearance change — which is when the preview has to follow.
+    final brightness = Theme.of(context).brightness;
     if (!Platform.isMacOS) {
       _controller.setBackgroundColor(context.colors.canvas);
     }
-
-    _loadEditor();
+    if (_ready && brightness != _brightness) _pushTheme(brightness);
+    _brightness = brightness;
   }
+
+  /// The editor stylesheet is light by default and dark under a `.dark`
+  /// root class, so the host owns the switch.
+  void _pushTheme(Brightness brightness) => _send('setTheme', {
+    'theme': brightness == Brightness.dark ? 'dark' : 'light',
+  });
 
   Future<void> _loadEditor() async {
     final html = await rootBundle.loadString('assets/editor/editor.html');
@@ -81,6 +97,7 @@ class _MarkdownPreviewWebViewState extends State<MarkdownPreviewWebView> {
     if (msg['type'] != 'ready' || _ready) return;
 
     _ready = true;
+    _pushTheme(_brightness ?? Theme.of(context).brightness);
     // Push content + lock editing off. Order matters: set editable
     // before setContent so Milkdown configures node selection in
     // read-only mode from the start.
