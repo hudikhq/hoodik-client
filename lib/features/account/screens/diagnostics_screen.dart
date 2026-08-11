@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Entry point of the bug-report flow. Explains the no-telemetry stance,
 /// walks the user through reproducing the bug, then hands off to the
@@ -65,7 +66,7 @@ class DiagnosticsScreen extends StatelessWidget {
                         ? CupertinoIcons.info_circle
                         : AppIcons.info,
                     size: 20,
-                    color: theme.colorScheme.secondary,
+                    color: context.colors.iconEmber,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -109,7 +110,7 @@ class _Step extends StatelessWidget {
               '$number.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: theme.colorScheme.secondary,
+                color: context.colors.iconEmber,
               ),
             ),
           ),

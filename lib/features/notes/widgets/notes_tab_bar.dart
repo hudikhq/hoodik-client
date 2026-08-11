@@ -133,7 +133,9 @@ class _TabItem extends StatelessWidget {
                 child: Text(
                   tab.fileName,
                   style: TextStyle(
-                    color: isActive ? Colors.white : context.colors.textMuted,
+                    color: isActive
+                        ? context.colors.text
+                        : context.colors.textMuted,
                     fontSize: 12,
                     fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
                   ),

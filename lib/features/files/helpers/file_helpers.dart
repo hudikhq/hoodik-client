@@ -65,7 +65,7 @@ Color fileIconColor(
   String? displayName,
 }) {
   if (file.id == sharedWithMeDirId) return context.colors.iconSlate;
-  if (file.isDir) return context.colors.emberFill;
+  if (file.isDir) return context.colors.iconEmber;
   if (file.isUploading) return context.colors.textMuted;
   if (isMarkdownNote(file, displayName: displayName)) {
     return context.colors.iconEmber;

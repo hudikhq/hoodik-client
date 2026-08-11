@@ -2,7 +2,6 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hoodik_app/core/theme/hoodik_colors.dart';
 import 'package:hoodik_app/core/theme/hoodik_theme.dart';
 import 'package:hoodik_app/l10n/generated/app_localizations.dart';
 
@@ -65,42 +64,10 @@ Future<void> configureGoldenEnvironment() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 }
 
-/// A light palette variant used only for goldens. The production app is
-/// dark-only; this exists so the 8-viewport matrix still renders a
-/// visually distinct "light" row instead of duplicating dark.
-ThemeData _goldenLightTheme() {
-  return HoodikTheme.dark().copyWith(
-    brightness: Brightness.light,
-    scaffoldBackgroundColor: HoodikColors.dirtyWhite,
-    colorScheme: const ColorScheme.light(
-      primary: HoodikColors.redish400,
-      onPrimary: HoodikColors.white,
-      primaryContainer: HoodikColors.redish50,
-      onPrimaryContainer: HoodikColors.redish700,
-      secondary: HoodikColors.orangy600,
-      onSecondary: HoodikColors.white,
-      secondaryContainer: HoodikColors.orangy50,
-      onSecondaryContainer: HoodikColors.orangy800,
-      tertiary: HoodikColors.greeny700,
-      onTertiary: HoodikColors.white,
-      surface: HoodikColors.dirtyWhite,
-      onSurface: HoodikColors.brownish900,
-      surfaceContainerHighest: HoodikColors.brownish50,
-      error: HoodikColors.redish400,
-      onError: HoodikColors.white,
-    ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: HoodikColors.brownish50,
-      foregroundColor: HoodikColors.brownish900,
-      elevation: 0,
-      surfaceTintColor: Colors.transparent,
-    ),
-  );
-}
-
 /// Wraps [child] in a [ProviderScope] plus a themed [MaterialApp] at the
-/// requested [config]. `themeMode` forces the requested brightness even
-/// though the app itself hardcodes dark at runtime.
+/// requested [config]. Both rows of the matrix render the palette that
+/// actually ships — a golden light theme built only for the test would
+/// hide exactly the light-mode regressions it looks like it is guarding.
 Widget wrapGolden({
   required Widget child,
   required ViewportConfig config,
@@ -108,7 +75,7 @@ Widget wrapGolden({
 }) {
   final colors = config.brightness == Brightness.dark
       ? HoodikTheme.dark()
-      : _goldenLightTheme();
+      : HoodikTheme.light();
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp(

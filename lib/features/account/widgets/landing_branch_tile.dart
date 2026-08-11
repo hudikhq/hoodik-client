@@ -7,6 +7,7 @@ import '../../../core/services/preferences.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Lets the user pick which bottom-nav tab is active when the app cold-starts
 /// while logged in. Writes through to the persisted preference so the next
@@ -26,7 +27,7 @@ class LandingBranchTile extends ConsumerWidget {
             ? CupertinoIcons.square_stack_3d_down_right
             : Icons.home_outlined,
         size: 22,
-        color: theme.colorScheme.secondary,
+        color: context.colors.iconEmber,
       ),
       title: Text(l10n.accountDefaultLanding),
       subtitle: Text(l10n.accountDefaultLandingSubtitle),

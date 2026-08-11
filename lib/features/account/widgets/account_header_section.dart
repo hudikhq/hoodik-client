@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Shows the active account's avatar, email, server name, and role badge at
 /// the top of the account screen.
@@ -74,7 +75,7 @@ class _RoleBadge extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w500,
-          color: theme.colorScheme.secondary,
+          color: context.colors.iconEmber,
         ),
       ),
     );

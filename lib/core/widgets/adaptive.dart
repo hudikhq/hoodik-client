@@ -110,8 +110,8 @@ class AdaptiveButton extends StatelessWidget {
               ? CupertinoColors.destructiveRed
               : CupertinoTheme.of(context).primaryColor,
           child: DefaultTextStyle.merge(
-            style: const TextStyle(
-              color: CupertinoColors.white,
+            style: TextStyle(
+              color: context.colors.onFill,
               fontWeight: FontWeight.w600,
             ),
             child: child,

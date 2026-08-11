@@ -212,7 +212,7 @@ void showFabMenuSheet({
     _SheetAction(
       l10n.filesCreateFolder,
       Icons.create_new_folder,
-      context.colors.emberFill,
+      context.colors.iconEmber,
       onCreateFolder,
     ),
     _SheetAction(

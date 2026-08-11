@@ -96,6 +96,11 @@ void main() {
       test('onFill reads on the danger fill', () {
         expect(contrast(s.onFill, s.dangerFill), greaterThanOrEqualTo(4.5));
       });
+      test('onEmberFill reads on the ember fill', () {
+        // Ember is the one fill too light for white; the pairing has to be
+        // ink, or Material hands a 2.3:1 label to anything using `secondary`.
+        expect(contrast(s.onEmberFill, s.emberFill), greaterThanOrEqualTo(4.5));
+      });
       test('onCrimsonWash reads on the crimson wash', () {
         expect(
           contrast(s.onCrimsonWash, s.crimsonWash),
