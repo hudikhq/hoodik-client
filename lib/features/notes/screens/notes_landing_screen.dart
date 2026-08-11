@@ -7,6 +7,7 @@ import '../../../core/providers.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../helpers/create_note_flow.dart';
 import '../widgets/notes_workspace.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// `/notes` landing route — shows the unified notes workspace with no
 /// initial tab. The workspace itself renders the "recent notes" panel
@@ -80,7 +81,7 @@ class NotesLandingChrome extends ConsumerWidget {
               heroTag: 'notesFab',
               tooltip: AppLocalizations.of(context).notesNewNote,
               onPressed: onCreateNote,
-              child: const Icon(Icons.add),
+              child: Icon(AppIcons.add),
             ),
     );
   }

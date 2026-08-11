@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Lets the user override the app display language. Options are shown in
 /// their own language so a user stuck in the wrong one can still find theirs.
@@ -77,7 +78,7 @@ class LanguageTile extends ConsumerWidget {
           Expanded(child: Text(label)),
           if (isCurrent)
             Icon(
-              isApplePlatform ? CupertinoIcons.checkmark_alt : Icons.check,
+              isApplePlatform ? CupertinoIcons.checkmark_alt : AppIcons.check,
               size: 18,
             ),
         ],

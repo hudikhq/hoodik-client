@@ -7,6 +7,7 @@ import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 class StorageQuotaTile extends ConsumerWidget {
   const StorageQuotaTile({super.key});
@@ -38,7 +39,7 @@ class StorageQuotaTile extends ConsumerWidget {
 
     return AdaptiveListTile(
       leading: Icon(
-        isApplePlatform ? CupertinoIcons.tray_full : Icons.storage,
+        isApplePlatform ? CupertinoIcons.tray_full : AppIcons.storage,
         size: 22,
       ),
       title: Text(l10n.accountStorageTitle),

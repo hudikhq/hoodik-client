@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api/api_client.dart';
 import '../../core/crypto/share_crypto.dart' show ShareRole;
 import '../../core/utils/l10n_lookup.dart';
+import '../../core/widgets/app_icons.dart';
 
 /// Synthetic directory id for the "Shared with me" virtual folder rendered at
 /// the root of the files browser. Recipient-side incoming shares are mapped
@@ -104,7 +105,7 @@ IconData? shareIndicatorIcon(FileItem file, {required bool sharingEnabled}) {
     return Icons.account_circle_outlined;
   }
   if (showsOwnerShareIndicator(file, sharingEnabled: sharingEnabled)) {
-    return Icons.group_outlined;
+    return AppIcons.members;
   }
   return null;
 }

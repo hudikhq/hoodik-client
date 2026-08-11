@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../providers.dart';
 import 'adaptive.dart';
+import 'app_icons.dart';
 
 /// Inline warning rendered at the top of the files screen when the
 /// signed-in server is verifiably older than the latest published hoodik
@@ -103,9 +104,7 @@ class _OutdatedBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            isApplePlatform
-                ? CupertinoIcons.info_circle_fill
-                : Icons.info_outline,
+            isApplePlatform ? CupertinoIcons.info_circle_fill : AppIcons.info,
             color: accent,
             size: 20,
           ),
@@ -139,7 +138,7 @@ class _DismissButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = Icon(
-      isApplePlatform ? CupertinoIcons.xmark : Icons.close,
+      isApplePlatform ? CupertinoIcons.xmark : AppIcons.close,
       color: color,
       size: 18,
     );
@@ -156,7 +155,10 @@ class _DismissButton extends StatelessWidget {
       onPressed: onTap,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+      constraints: BoxConstraints(
+        minWidth: kMinTapTarget,
+        minHeight: kMinTapTarget,
+      ),
       tooltip: AppLocalizations.of(context).widgetDismiss,
       icon: icon,
     );

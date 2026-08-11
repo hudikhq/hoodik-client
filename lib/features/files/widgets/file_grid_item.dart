@@ -6,6 +6,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../shares/shared_constants.dart';
 import '../helpers/file_helpers.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Single cell in the icon/grid view of the files screen.
 ///
@@ -84,7 +85,7 @@ class FileGridItem extends StatelessWidget {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              Icons.offline_pin,
+                              AppIcons.offlineAvailable,
                               size: 12,
                               color: HoodikColors.greeny400.withValues(
                                 alpha: 0.85,
@@ -142,7 +143,7 @@ class FileGridItem extends StatelessWidget {
                             padding: const EdgeInsets.all(2),
                             child: Icon(
                               isSelected
-                                  ? Icons.check_circle
+                                  ? AppIcons.success
                                   : Icons.radio_button_unchecked,
                               size: 18,
                               color: isSelected
@@ -179,10 +180,10 @@ class FileGridItem extends StatelessWidget {
                                       : Offset.zero;
                                   onContextMenu(position);
                                 },
-                                child: const Padding(
+                                child: Padding(
                                   padding: EdgeInsets.all(4),
                                   child: Icon(
-                                    Icons.more_vert,
+                                    AppIcons.overflowVertical,
                                     size: 16,
                                     color: HoodikColors.dirtyWhite,
                                   ),

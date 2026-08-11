@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Entry point of the bug-report flow. Explains the no-telemetry stance,
 /// walks the user through reproducing the bug, then hands off to the
@@ -62,7 +63,7 @@ class DiagnosticsScreen extends StatelessWidget {
                   Icon(
                     isApplePlatform
                         ? CupertinoIcons.info_circle
-                        : Icons.info_outline,
+                        : AppIcons.info,
                     size: 20,
                     color: theme.colorScheme.secondary,
                   ),

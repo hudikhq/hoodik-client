@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Animated toolbar overlay shown at the top of the preview screen.
 class PreviewToolbar extends StatelessWidget {
@@ -53,7 +54,7 @@ class PreviewToolbar extends StatelessWidget {
                       context,
                     ).closeButtonTooltip,
                     icon: Icon(
-                      isApplePlatform ? CupertinoIcons.xmark : Icons.close,
+                      isApplePlatform ? CupertinoIcons.xmark : AppIcons.close,
                       color: Colors.white,
                     ),
                     onPressed: onClose,
@@ -102,9 +103,7 @@ class PreviewToolbar extends StatelessWidget {
                   IconButton(
                     tooltip: AppLocalizations.of(context).commonDelete,
                     icon: Icon(
-                      isApplePlatform
-                          ? CupertinoIcons.trash
-                          : Icons.delete_outline,
+                      isApplePlatform ? CupertinoIcons.trash : AppIcons.delete,
                       color: HoodikColors.iconCrimson,
                     ),
                     onPressed: onDelete,

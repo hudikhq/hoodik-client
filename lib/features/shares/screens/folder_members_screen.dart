@@ -16,6 +16,7 @@ import '../providers/folder_members_notifier.dart';
 import '../widgets/folder_member_add_sheet.dart';
 import '../widgets/folder_member_tile.dart';
 import '../widgets/share_to_group_sheet.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Dedicated roster view for a shared folder, reached at
 /// `/shares/folder/:folderId/members`. Lists every member with a per-row
@@ -110,7 +111,7 @@ class _ErrorBody extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              offline ? Icons.cloud_off_outlined : Icons.error_outline,
+              offline ? Icons.cloud_off_outlined : AppIcons.error,
               size: 32,
               color: HoodikColors.iconMuted,
             ),

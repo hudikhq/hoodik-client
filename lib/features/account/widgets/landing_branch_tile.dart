@@ -6,6 +6,7 @@ import '../../../core/providers.dart';
 import '../../../core/services/preferences.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Lets the user pick which bottom-nav tab is active when the app cold-starts
 /// while logged in. Writes through to the persisted preference so the next
@@ -59,7 +60,7 @@ class LandingBranchTile extends ConsumerWidget {
                   Icon(
                     isApplePlatform
                         ? CupertinoIcons.checkmark_alt
-                        : Icons.check,
+                        : AppIcons.check,
                     size: 18,
                   ),
               ],

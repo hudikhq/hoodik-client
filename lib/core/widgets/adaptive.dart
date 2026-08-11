@@ -8,6 +8,34 @@ import '../theme/hoodik_colors.dart';
 /// Whether the current platform uses iOS-style (Cupertino) widgets.
 bool get isApplePlatform => Platform.isIOS || Platform.isMacOS;
 
+/// Width at which the shell stops being a phone. Below it the five sections
+/// live in a bottom tab bar; at or above it they move to a side rail and the
+/// bottom edge goes back to the content.
+///
+/// Structure is driven by the width the app is *given*, never by the device
+/// it runs on: an iPad in Split View or a narrow macOS window is a compact
+/// layout, and a large foldable opened flat is an expanded one.
+const double kExpandedWidthBreakpoint = 900;
+
+/// The notes workspace shows its sidebar and tab strip from here up. Lower
+/// than [kExpandedWidthBreakpoint] because a single editor pane needs less
+/// room to earn a second column than the whole shell does.
+const double kMediumWidthBreakpoint = 700;
+
+/// True when the current window is wide enough for the side rail.
+bool isExpandedWidth(BuildContext context) =>
+    MediaQuery.sizeOf(context).width >= kExpandedWidthBreakpoint;
+
+/// True when the current window is wide enough for a second pane inside a
+/// single screen (the notes sidebar today).
+bool isMediumWidth(BuildContext context) =>
+    MediaQuery.sizeOf(context).width >= kMediumWidthBreakpoint;
+
+/// Minimum hit area for a tappable control: 44pt on Apple platforms, 48dp on
+/// Android. The glyph inside stays whatever size the design calls for — this
+/// governs the target, not the ink.
+double get kMinTapTarget => isApplePlatform ? 44 : 48;
+
 /// A scaffold that renders a [CupertinoPageScaffold] on Apple platforms and a
 /// Material [Scaffold] elsewhere.
 ///

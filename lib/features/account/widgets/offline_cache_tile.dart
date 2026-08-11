@@ -7,6 +7,7 @@ import '../../../core/utils/format.dart' as fmt;
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Displays the size of the offline cache for the active account and lets
 /// the user clear it. Owns its own size/count state so the parent screen
@@ -98,7 +99,9 @@ class _OfflineCacheTileState extends ConsumerState<OfflineCacheTile> {
 
     return AdaptiveListTile(
       leading: Icon(
-        isApplePlatform ? CupertinoIcons.arrow_down_circle : Icons.offline_pin,
+        isApplePlatform
+            ? CupertinoIcons.arrow_down_circle
+            : AppIcons.offlineAvailable,
         size: 22,
         color: hasFiles ? theme.colorScheme.tertiary : null,
       ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/hoodik_colors.dart';
+import 'app_icons.dart';
 
 /// Semantic type for in-app notifications.
 enum NotificationType { success, error, info }
@@ -155,9 +156,9 @@ class _AppNotificationState extends State<_AppNotificationWidget>
   };
 
   IconData get _icon => switch (widget.type) {
-    NotificationType.success => Icons.check_circle,
-    NotificationType.error => Icons.error_outline,
-    NotificationType.info => Icons.info_outline,
+    NotificationType.success => AppIcons.success,
+    NotificationType.error => AppIcons.error,
+    NotificationType.info => AppIcons.info,
   };
 
   @override
@@ -220,7 +221,7 @@ class _AppNotificationState extends State<_AppNotificationWidget>
                         ),
                         const SizedBox(width: 8),
                         Icon(
-                          Icons.close,
+                          AppIcons.close,
                           color: HoodikColors.iconMuted,
                           size: 16,
                         ),

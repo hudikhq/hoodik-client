@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Floating action button that opens the create/upload sheet. Hidden while
 /// the screen is in selection mode (batch actions live in the app bar
@@ -14,7 +15,7 @@ class FilesFab extends StatelessWidget {
     return FloatingActionButton(
       key: const Key('filesFab'),
       onPressed: busy ? null : onPressed,
-      child: const Icon(Icons.add),
+      child: Icon(AppIcons.add),
     );
   }
 }

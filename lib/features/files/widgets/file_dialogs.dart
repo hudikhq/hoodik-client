@@ -10,6 +10,7 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../helpers/file_helpers.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Show a text input dialog and return the entered value, or null if cancelled.
 Future<String?> showTextInputDialog({
@@ -259,11 +260,7 @@ Widget _copyableRow(BuildContext context, String label, String value) {
               duration: const Duration(seconds: 2),
             );
           },
-          child: const Icon(
-            Icons.copy,
-            size: 16,
-            color: HoodikColors.iconMuted,
-          ),
+          child: Icon(AppIcons.copy, size: 16, color: HoodikColors.iconMuted),
         ),
       ],
     ),

@@ -9,6 +9,7 @@ import '../../../core/utils/format.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Human-readable list of MCP tool calls recorded by [AuditingMcpToolDispatcher].
 ///
@@ -391,7 +392,7 @@ class _StatusFilterMenu extends StatelessWidget {
       icon: Icon(
         filter.resultStatus == null
             ? Icons.check_circle_outline
-            : Icons.check_circle,
+            : AppIcons.success,
       ),
       onSelected: onChanged,
       itemBuilder: (_) => [

@@ -4,6 +4,7 @@ import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../shares/shared_constants.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Format a byte count into a human-readable string (B, KB, MB, GB).
 String formatFileSize(int? bytes) {
@@ -35,12 +36,12 @@ bool isMarkdownNote(FileItem file, {String? displayName}) {
 /// MIME is generic `text/plain`.
 IconData fileIcon(FileItem file, {String? displayName}) {
   if (file.id == sharedWithMeDirId) return Icons.folder_shared;
-  if (file.isDir) return Icons.folder;
+  if (file.isDir) return AppIcons.folder;
   if (file.isUploading) return Icons.upload;
   if (isMarkdownNote(file, displayName: displayName)) {
     // Distinct icon (vs. plain-text .description) so notes stand out in
     // mixed file listings and match the Notes tab styling.
-    return Icons.sticky_note_2_outlined;
+    return AppIcons.note;
   }
   final mime = file.mime.toLowerCase();
   if (mime.startsWith('image/')) return Icons.image;

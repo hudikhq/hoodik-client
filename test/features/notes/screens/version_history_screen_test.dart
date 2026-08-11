@@ -9,6 +9,7 @@ import 'package:hoodik_app/core/providers.dart';
 import 'package:hoodik_app/core/widgets/app_notification.dart';
 import 'package:hoodik_app/features/notes/screens/version_history_screen.dart';
 import 'package:hoodik_app/l10n/generated/app_localizations.dart';
+import 'package:hoodik_app/core/widgets/app_icons.dart';
 
 /// Fake [FilesClient] — only [getFileMetadata] is reached from the
 /// screen's load path.
@@ -220,7 +221,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open the row's action menu and pick Restore.
-      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.tap(find.byIcon(AppIcons.overflowVertical).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Restore in place'));
       await tester.pumpAndSettle();
@@ -246,7 +247,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.tap(find.byIcon(AppIcons.overflowVertical).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Restore in place'));
       await tester.pumpAndSettle();
@@ -267,7 +268,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.tap(find.byIcon(AppIcons.overflowVertical).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete this version'));
       await tester.pumpAndSettle();
@@ -345,7 +346,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // No restore action — just back out.
-      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
 
       expect(popResult, isFalse);
@@ -389,7 +390,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Restore v1 to flip activeVersionChanged.
-      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.tap(find.byIcon(AppIcons.overflowVertical).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Restore in place'));
       await tester.pumpAndSettle();
@@ -403,7 +404,7 @@ void main() {
       AppNotification.dismiss();
       await tester.pump();
 
-      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pump();
 
       expect(popResult, isTrue);

@@ -14,6 +14,7 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/helpers/file_helpers.dart' show formatErrorMessage;
 import '../widgets/markdown_preview_webview.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Push as `/notes/:fileId/history`. The screen owns its own data load
 /// and surfaces back to the editor via the `restored` value passed to
@@ -329,7 +330,7 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
         appBar: AppBar(
           leading: IconButton(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            icon: const Icon(Icons.arrow_back),
+            icon: Icon(AppIcons.back),
             onPressed: () =>
                 Navigator.of(context).pop<bool>(_activeVersionChanged),
           ),
@@ -456,7 +457,7 @@ class _VersionRow extends StatelessWidget {
       ),
       trailing: PopupMenuButton<VoidCallback>(
         enabled: !busy,
-        icon: const Icon(Icons.more_vert),
+        icon: Icon(AppIcons.overflowVertical),
         onSelected: (action) => action(),
         itemBuilder: (_) => [
           PopupMenuItem(value: onPreview, child: Text(l10n.notesPreview)),
@@ -489,13 +490,13 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+            Icon(AppIcons.error, size: 48, color: Colors.redAccent),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
+              icon: Icon(AppIcons.refresh),
               label: Text(AppLocalizations.of(context).commonRetry),
             ),
           ],

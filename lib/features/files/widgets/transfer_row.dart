@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/services/transfer_manager.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// A single row in the expanded transfer list.
 ///
@@ -64,11 +65,7 @@ class TransferRow extends StatelessWidget {
         if (item.status == TransferStatus.active ||
             item.status == TransferStatus.queued)
           IconButton(
-            icon: const Icon(
-              Icons.close,
-              size: 16,
-              color: HoodikColors.iconMuted,
-            ),
+            icon: Icon(AppIcons.close, size: 16, color: HoodikColors.iconMuted),
             onPressed: () => manager.cancelTransfer(item.id),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -207,10 +204,10 @@ class TransferRow extends StatelessWidget {
 
 IconData transferTypeIcon(TransferType type) {
   return switch (type) {
-    TransferType.uploadEncrypt => Icons.lock_outline,
-    TransferType.uploadHttp => Icons.arrow_upward,
-    TransferType.downloadHttp => Icons.arrow_downward,
-    TransferType.downloadDecrypt => Icons.lock_open,
+    TransferType.uploadEncrypt => AppIcons.locked,
+    TransferType.uploadHttp => AppIcons.sortAscending,
+    TransferType.downloadHttp => AppIcons.sortDescending,
+    TransferType.downloadDecrypt => AppIcons.unlocked,
   };
 }
 
@@ -228,11 +225,7 @@ class _StatusIcon extends StatelessWidget {
             : HoodikColors.blueish400;
         return Icon(transferTypeIcon(item.type), color: color, size: 18);
       case TransferStatus.completed:
-        return const Icon(
-          Icons.check_circle,
-          color: HoodikColors.greeny300,
-          size: 18,
-        );
+        return Icon(AppIcons.success, color: HoodikColors.greeny300, size: 18);
       case TransferStatus.failed:
         return const Icon(
           Icons.error,

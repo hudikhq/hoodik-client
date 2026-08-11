@@ -15,6 +15,7 @@ import '../helpers/files_preview_navigation.dart';
 import '../providers/files_notifier.dart';
 import '../providers/files_state.dart';
 import 'files_tree_rows.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Recursive, lazy-loaded tree rooted at [rootDirId] (`null` = account
 /// root). Folders expand in-place; every row — folder or file — routes
@@ -337,11 +338,7 @@ class _FilesTreeViewState extends ConsumerState<FilesTreeView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.error_outline,
-                color: HoodikColors.iconCrimson,
-                size: 28,
-              ),
+              Icon(AppIcons.error, color: HoodikColors.iconCrimson, size: 28),
               const SizedBox(height: 8),
               Text(
                 _rootError!,

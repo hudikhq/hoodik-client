@@ -5,6 +5,7 @@ import '../../../core/crypto/share_crypto.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/folder_members_notifier.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// One row in the folder members roster: email/id, role badge, the "added by"
 /// attribution, the abbreviated fingerprint, and a per-row signature badge.
@@ -116,8 +117,8 @@ class FolderMemberTile extends StatelessWidget {
             ),
             IconButton(
               tooltip: l10n.sharesRevoke,
-              icon: const Icon(
-                Icons.person_remove_outlined,
+              icon: Icon(
+                AppIcons.memberRemove,
                 size: 18,
                 color: HoodikColors.iconCrimson,
               ),

@@ -13,6 +13,7 @@ import '../../../core/utils/l10n_lookup.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'link_tile.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// The user's public links list with per-link actions (copy URL, share,
 /// edit/remove expiry, delete). Owns its own load/refresh state so it can be
@@ -240,17 +241,13 @@ class LinksBodyState extends ConsumerState<LinksBody> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.error_outline,
-                size: 48,
-                color: HoodikColors.iconCrimson,
-              ),
+              Icon(AppIcons.error, size: 48, color: HoodikColors.iconCrimson),
               const SizedBox(height: 16),
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: _loadLinks,
-                icon: const Icon(Icons.refresh),
+                icon: Icon(AppIcons.refresh),
                 label: Text(AppLocalizations.of(context).commonRetry),
               ),
             ],

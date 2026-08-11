@@ -5,6 +5,7 @@ import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'folder_member_tile.dart' show FolderMemberTile;
 import 'group_role_selector.dart' show GroupRoleChip, groupRoleLabel;
+import '../../../core/widgets/app_icons.dart';
 
 /// One owned-group card on the share-groups screen: the group name + member
 /// count, add/delete/rename actions, and the member roster with a per-member
@@ -45,11 +46,7 @@ class ShareGroupOwnedCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.group_outlined,
-                size: 18,
-                color: HoodikColors.iconMuted,
-              ),
+              Icon(AppIcons.members, size: 18, color: HoodikColors.iconMuted),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -90,8 +87,8 @@ class ShareGroupOwnedCard extends StatelessWidget {
               ),
               IconButton(
                 tooltip: l10n.sharesDeleteGroup,
-                icon: const Icon(
-                  Icons.delete_outline,
+                icon: Icon(
+                  AppIcons.delete,
                   size: 18,
                   color: HoodikColors.iconCrimson,
                 ),
@@ -167,8 +164,8 @@ class _MemberRow extends StatelessWidget {
           GroupRoleChip(member.groupRole),
           PopupMenuButton<GroupRole>(
             tooltip: AppLocalizations.of(context).sharesSetGroupRole,
-            icon: const Icon(
-              Icons.expand_more,
+            icon: Icon(
+              AppIcons.expand,
               size: 18,
               color: HoodikColors.iconMuted,
             ),
@@ -189,8 +186,8 @@ class _MemberRow extends StatelessWidget {
           ),
           IconButton(
             tooltip: AppLocalizations.of(context).sharesRemoveMember,
-            icon: const Icon(
-              Icons.person_remove_outlined,
+            icon: Icon(
+              AppIcons.memberRemove,
               size: 18,
               color: HoodikColors.iconCrimson,
             ),

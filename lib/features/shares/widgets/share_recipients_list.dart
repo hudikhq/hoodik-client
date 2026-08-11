@@ -10,6 +10,7 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/controllers/files_share_controller.dart';
 import '../../files/providers/files_notifier.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Recipient roster for a file the caller owns, with per-recipient revoke.
 ///
@@ -202,8 +203,8 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
           _roleBadge(recipient.shareRole),
           IconButton(
             tooltip: AppLocalizations.of(context).sharesRevoke,
-            icon: const Icon(
-              Icons.person_remove_outlined,
+            icon: Icon(
+              AppIcons.memberRemove,
               size: 18,
               color: HoodikColors.iconCrimson,
             ),

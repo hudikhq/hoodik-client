@@ -6,6 +6,7 @@ import 'package:hoodik_app/core/theme/hoodik_colors.dart';
 import 'package:hoodik_app/features/files/widgets/file_grid_item.dart';
 import 'package:hoodik_app/features/files/widgets/files_tree_rows.dart';
 import 'package:hoodik_app/features/shares/shared_constants.dart';
+import 'package:hoodik_app/core/widgets/app_icons.dart';
 
 FileItem _recipientRow() {
   return FileItem(
@@ -89,7 +90,7 @@ void main() {
       await tester.pumpWidget(
         _wrapGrid(_ownedSharedRow(), sharingEnabled: true),
       );
-      expect(_shareGlyph(Icons.group_outlined), findsOneWidget);
+      expect(_shareGlyph(AppIcons.members), findsOneWidget);
     });
 
     testWidgets('owned non-shared row shows no share glyph', (tester) async {
@@ -97,7 +98,7 @@ void main() {
         _wrapGrid(_ownedPlainRow(), sharingEnabled: true),
       );
       expect(_shareGlyph(Icons.account_circle_outlined), findsNothing);
-      expect(_shareGlyph(Icons.group_outlined), findsNothing);
+      expect(_shareGlyph(AppIcons.members), findsNothing);
     });
 
     testWidgets('badge is suppressed when sharing is disabled', (tester) async {
@@ -109,7 +110,7 @@ void main() {
       await tester.pumpWidget(
         _wrapGrid(_ownedSharedRow(), sharingEnabled: false),
       );
-      expect(_shareGlyph(Icons.group_outlined), findsNothing);
+      expect(_shareGlyph(AppIcons.members), findsNothing);
     });
 
     testWidgets('synthetic "Shared with me" root shows no share glyph', (
@@ -119,7 +120,7 @@ void main() {
         _wrapGrid(sharedWithMeFolder(), sharingEnabled: true),
       );
       expect(_shareGlyph(Icons.account_circle_outlined), findsNothing);
-      expect(_shareGlyph(Icons.group_outlined), findsNothing);
+      expect(_shareGlyph(AppIcons.members), findsNothing);
     });
   });
 
@@ -137,7 +138,7 @@ void main() {
       await tester.pumpWidget(
         _wrapTreeFileRow(_ownedSharedRow(), sharingEnabled: true),
       );
-      expect(_shareGlyph(Icons.group_outlined), findsOneWidget);
+      expect(_shareGlyph(AppIcons.members), findsOneWidget);
     });
 
     testWidgets('owned non-shared row shows no share glyph', (tester) async {
@@ -145,7 +146,7 @@ void main() {
         _wrapTreeFileRow(_ownedPlainRow(), sharingEnabled: true),
       );
       expect(_shareGlyph(Icons.account_circle_outlined), findsNothing);
-      expect(_shareGlyph(Icons.group_outlined), findsNothing);
+      expect(_shareGlyph(AppIcons.members), findsNothing);
     });
 
     testWidgets('row is suppressed when sharing is disabled', (tester) async {
@@ -167,7 +168,7 @@ void main() {
     test('owned shared row resolves to the outgoing glyph', () {
       expect(
         shareIndicatorIcon(_ownedSharedRow(), sharingEnabled: true),
-        Icons.group_outlined,
+        AppIcons.members,
       );
     });
 

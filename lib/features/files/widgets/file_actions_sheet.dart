@@ -7,6 +7,7 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../../shares/shared_constants.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Callbacks for file actions triggered from the bottom sheet.
 class FileActionCallbacks {
@@ -94,21 +95,21 @@ void showFileActionsSheet({
     if (!file.isDir && isPreviewable(file))
       _SheetAction(
         l10n.filesPreview,
-        Icons.visibility,
+        AppIcons.preview,
         HoodikColors.greeny400,
         () => callbacks.onPreview(file),
       ),
     if (!file.isDir && file.mime == 'text/markdown' && !file.editable)
       _SheetAction(
         l10n.filesConvertToNote,
-        Icons.edit_note,
+        AppIcons.noteEdit,
         HoodikColors.orangy400,
         () => callbacks.onConvertToNote(file),
       ),
     if (!file.isDir) ...[
       _SheetAction(
         l10n.filesExport,
-        Icons.save_alt,
+        AppIcons.download,
         HoodikColors.blueish300,
         () => callbacks.onDownload(file),
       ),
@@ -122,20 +123,20 @@ void showFileActionsSheet({
       else
         _SheetAction(
           l10n.filesMakeAvailableOffline,
-          Icons.cloud_download,
+          AppIcons.cloudDownload,
           HoodikColors.greeny400,
           () => callbacks.onMakeOffline(file),
         ),
     ],
     _SheetAction(
       l10n.commonRename,
-      Icons.edit,
+      AppIcons.edit,
       HoodikColors.orangy400,
       () => callbacks.onRename(file),
     ),
     _SheetAction(
       l10n.commonDelete,
-      Icons.delete_outline,
+      AppIcons.delete,
       HoodikColors.iconCrimson,
       () => callbacks.onDelete(file),
       isDestructive: true,
@@ -144,7 +145,7 @@ void showFileActionsSheet({
         canLeaveFile(file, sharingEnabled: sharingEnabled))
       _SheetAction(
         l10n.filesLeave,
-        Icons.logout,
+        AppIcons.signOut,
         HoodikColors.iconCrimson,
         () => callbacks.onLeave!(file),
         isDestructive: true,
@@ -154,14 +155,14 @@ void showFileActionsSheet({
         canShareFolder(file, sharingEnabled: sharingEnabled))
       _SheetAction(
         l10n.filesMembers,
-        Icons.group_outlined,
+        AppIcons.members,
         HoodikColors.greeny400,
         () => callbacks.onShare!(file),
       ),
     if (!file.isDir) ...[
       _SheetAction(
         l10n.filesCreateLink,
-        Icons.link,
+        AppIcons.link,
         HoodikColors.blueish400,
         () => callbacks.onCreateLink(file),
         sectionBreak: true,
@@ -170,7 +171,7 @@ void showFileActionsSheet({
           canShareFile(file, sharingEnabled: sharingEnabled))
         _SheetAction(
           l10n.commonShare,
-          Icons.group_add_outlined,
+          AppIcons.memberAdd,
           HoodikColors.greeny400,
           () => callbacks.onShare!(file),
         ),
@@ -178,13 +179,13 @@ void showFileActionsSheet({
           canFork(file, sharingEnabled: sharingEnabled))
         _SheetAction(
           l10n.filesSaveToMyDrive,
-          Icons.drive_file_move_outline,
+          AppIcons.move,
           HoodikColors.blueish300,
           () => callbacks.onFork!(file),
         ),
       _SheetAction(
         l10n.filesDetails,
-        Icons.info_outline,
+        AppIcons.info,
         HoodikColors.iconMuted,
         () => callbacks.onDetails(file),
       ),
@@ -216,13 +217,13 @@ void showFabMenuSheet({
     ),
     _SheetAction(
       l10n.notesNewNote,
-      Icons.edit_note,
+      AppIcons.noteEdit,
       HoodikColors.orangy400,
       onCreateNote,
     ),
     _SheetAction(
       l10n.filesUploadFile,
-      Icons.upload_file,
+      AppIcons.cloudUpload,
       HoodikColors.blueish400,
       onUploadFile,
       sectionBreak: true,

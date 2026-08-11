@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Pill shown under the cursor/finger while a file or selection is
 /// being dragged. Small so it doesn't cover the drop target, labelled
@@ -36,11 +37,7 @@ class FilesDragFeedback extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.drive_file_move_outline,
-              size: 16,
-              color: HoodikColors.orangy500,
-            ),
+            Icon(AppIcons.move, size: 16, color: HoodikColors.orangy500),
             const SizedBox(width: 8),
             Text(
               count > 1

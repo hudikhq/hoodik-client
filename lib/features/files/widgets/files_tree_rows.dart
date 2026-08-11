@@ -5,6 +5,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../helpers/file_helpers.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// A folder row inside [FilesTreeView]: chevron, folder glyph, decrypted
 /// name, and an optional share glyph. A single tap navigates into the folder;
@@ -52,7 +53,7 @@ class TreeFolderRow extends StatelessWidget {
         ? (expanded
               ? CupertinoIcons.chevron_down
               : CupertinoIcons.chevron_right)
-        : (expanded ? Icons.expand_more : Icons.chevron_right);
+        : (expanded ? AppIcons.expand : AppIcons.chevronForward);
 
     return GestureDetector(
       onSecondaryTapUp: (details) => onContextMenu(details.globalPosition),
@@ -74,7 +75,7 @@ class TreeFolderRow extends StatelessWidget {
               ),
               const SizedBox(width: 2),
               Icon(
-                expanded ? Icons.folder_open : Icons.folder,
+                expanded ? AppIcons.folderOpen : AppIcons.folder,
                 size: 18,
                 color: HoodikColors.orangy600,
               ),
