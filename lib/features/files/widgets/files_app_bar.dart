@@ -215,7 +215,10 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 child: Text(
                   (account!.email.isNotEmpty ? account!.email[0] : '?')
                       .toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: TextStyle(
+                    color: context.colors.onCrimsonContainer,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ),

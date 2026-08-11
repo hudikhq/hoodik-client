@@ -236,7 +236,7 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
                         return ListTile(
                           leading: Icon(
                             AppIcons.folder,
-                            color: context.colors.emberFill,
+                            color: context.colors.iconEmber,
                           ),
                           title: Text(name),
                           trailing: Icon(AppIcons.chevronForward),

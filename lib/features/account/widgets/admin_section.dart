@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// "ADMINISTRATION" section shown only for admin accounts. Parent is
 /// responsible for spacing — this widget renders either the section or
@@ -18,7 +19,6 @@ class AdminSection extends ConsumerWidget {
     final account = ref.watch(activeAccountProvider);
     if (account?.role != 'admin') return const SizedBox.shrink();
 
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
     return AdaptiveListSection(
@@ -30,7 +30,7 @@ class AdminSection extends ConsumerWidget {
                 ? CupertinoIcons.gear_alt
                 : Icons.admin_panel_settings,
             size: 22,
-            color: theme.colorScheme.secondary,
+            color: context.colors.iconEmber,
           ),
           title: Text(l10n.accountAdminPanel),
           subtitle: Text(l10n.accountAdminPanelSubtitle),

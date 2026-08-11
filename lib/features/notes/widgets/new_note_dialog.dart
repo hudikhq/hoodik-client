@@ -107,7 +107,7 @@ class _NewNoteDialogState extends State<_NewNoteDialog> {
         children: [
           Text(
             body,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(color: context.colors.textMuted, fontSize: 13),
           ),
           const SizedBox(height: 12),
           TextField(

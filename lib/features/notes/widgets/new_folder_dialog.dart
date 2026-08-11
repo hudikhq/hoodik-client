@@ -106,7 +106,7 @@ class _NewFolderDialogState extends State<_NewFolderDialog> {
         children: [
           Text(
             body,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(color: context.colors.textMuted, fontSize: 13),
           ),
           const SizedBox(height: 12),
           TextField(

@@ -7,6 +7,7 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Second step of the bug-report flow: load log lines, let the user remove
 /// any they don't want to share, then hand the remainder to the native
@@ -232,10 +233,10 @@ class _LineTile extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        color: Colors.red.withValues(alpha: 0.1),
+        color: context.colors.dangerFill.withValues(alpha: 0.1),
         child: Icon(
           isApplePlatform ? CupertinoIcons.delete : AppIcons.delete,
-          color: Colors.red,
+          color: context.colors.dangerFill,
         ),
       ),
       onDismissed: (_) => onDismissed(),

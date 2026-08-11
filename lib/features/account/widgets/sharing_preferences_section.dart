@@ -6,6 +6,7 @@ import '../../../core/providers.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Current value of the caller's `share_notifications_enabled` flag, read from
 /// the authenticated user row via `POST /api/auth/self`. The field rides on the
@@ -113,7 +114,7 @@ class _ShareNotificationsTileState
       leading: Icon(
         isApplePlatform ? CupertinoIcons.bell : Icons.notifications_outlined,
         size: 22,
-        color: Theme.of(context).colorScheme.secondary,
+        color: context.colors.iconEmber,
       ),
       title: Text(l10n.accountSharingEmailToggle),
       subtitle: Text(

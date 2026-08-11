@@ -243,12 +243,12 @@ class _AdminSettingsTabState extends ConsumerState<AdminSettingsTab>
           child: FilledButton(
             onPressed: _saving ? null : _save,
             child: _saving
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: context.colors.onFill,
                     ),
                   )
                 : Text(l10n.adminSaveSettings),

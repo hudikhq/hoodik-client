@@ -487,7 +487,7 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(AppIcons.error, size: 48, color: Colors.redAccent),
+            Icon(AppIcons.error, size: 48, color: context.colors.iconCrimson),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

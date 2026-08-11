@@ -125,7 +125,7 @@ class FilesList extends ConsumerWidget {
         color: context.colors.crimsonFill,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        child: Icon(AppIcons.delete, color: Colors.white),
+        child: Icon(AppIcons.delete, color: context.colors.onFill),
       ),
       child: child,
     );

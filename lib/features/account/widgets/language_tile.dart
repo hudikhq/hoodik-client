@@ -6,6 +6,7 @@ import '../../../core/providers.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Lets the user override the app display language. Options are shown in
 /// their own language so a user stuck in the wrong one can still find theirs.
@@ -29,7 +30,7 @@ class LanguageTile extends ConsumerWidget {
       leading: Icon(
         isApplePlatform ? CupertinoIcons.globe : Icons.language_outlined,
         size: 22,
-        color: theme.colorScheme.secondary,
+        color: context.colors.iconEmber,
       ),
       title: Text(l10n.languageTitle),
       subtitle: Text(l10n.languageSubtitle),

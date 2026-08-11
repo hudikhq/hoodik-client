@@ -21,7 +21,7 @@ class FilesBusyOverlay extends ConsumerWidget {
     if (!busy && !preparing) return const SizedBox.shrink();
 
     return Container(
-      color: Colors.black38,
+      color: Colors.black54,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

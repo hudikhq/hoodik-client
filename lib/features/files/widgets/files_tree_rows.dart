@@ -81,7 +81,7 @@ class TreeFolderRow extends StatelessWidget {
               Icon(
                 expanded ? AppIcons.folderOpen : AppIcons.folder,
                 size: 18,
-                color: context.colors.emberFill,
+                color: context.colors.iconEmber,
               ),
               const SizedBox(width: 8),
               Expanded(

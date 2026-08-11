@@ -39,6 +39,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
     required this.sageFill,
     required this.emberFill,
     required this.onFill,
+    required this.onEmberFill,
     required this.crimsonWash,
     required this.onCrimsonWash,
     required this.sageWash,
@@ -98,6 +99,9 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
   final Color emberFill;
   final Color onFill;
 
+  /// Ember is too light to carry [onFill]; anything sitting on it takes ink.
+  final Color onEmberFill;
+
   /// Tinted ground for the fingerprint-mismatch banner, and its text.
   final Color crimsonWash;
   final Color onCrimsonWash;
@@ -133,6 +137,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
     sageFill: HoodikColors.greeny400,
     emberFill: HoodikColors.orangy600,
     onFill: HoodikColors.white,
+    onEmberFill: HoodikColors.brownish950,
     crimsonWash: HoodikColors.redish900,
     onCrimsonWash: HoodikColors.redish50,
     sageWash: HoodikColors.greeny900,
@@ -165,6 +170,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
     sageFill: HoodikColors.greeny400,
     emberFill: HoodikColors.orangy600,
     onFill: HoodikColors.white,
+    onEmberFill: HoodikColors.brownish950,
     crimsonWash: HoodikColors.paperCrimsonWash,
     onCrimsonWash: HoodikColors.redish700,
     sageWash: HoodikColors.paperSageWash,
@@ -196,6 +202,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
     Color? sageFill,
     Color? emberFill,
     Color? onFill,
+    Color? onEmberFill,
     Color? crimsonWash,
     Color? onCrimsonWash,
     Color? sageWash,
@@ -225,6 +232,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
       sageFill: sageFill ?? this.sageFill,
       emberFill: emberFill ?? this.emberFill,
       onFill: onFill ?? this.onFill,
+      onEmberFill: onEmberFill ?? this.onEmberFill,
       crimsonWash: crimsonWash ?? this.crimsonWash,
       onCrimsonWash: onCrimsonWash ?? this.onCrimsonWash,
       sageWash: sageWash ?? this.sageWash,
@@ -260,6 +268,7 @@ class HoodikScheme extends ThemeExtension<HoodikScheme> {
       sageFill: c(sageFill, other.sageFill),
       emberFill: c(emberFill, other.emberFill),
       onFill: c(onFill, other.onFill),
+      onEmberFill: c(onEmberFill, other.onEmberFill),
       crimsonWash: c(crimsonWash, other.crimsonWash),
       onCrimsonWash: c(onCrimsonWash, other.onCrimsonWash),
       sageWash: c(sageWash, other.sageWash),
