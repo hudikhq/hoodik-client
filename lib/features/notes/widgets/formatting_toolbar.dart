@@ -35,6 +35,7 @@ enum _ToolbarAction {
   h3,
   bulletList,
   numberedList,
+  taskList,
   blockquote,
   codeBlock,
   table,
@@ -174,6 +175,12 @@ class FormattingToolbar extends ConsumerWidget {
           ),
           _iconButton(
             context,
+            Icons.checklist,
+            l10n.notesTaskList,
+            onTap: _taskListTap,
+          ),
+          _iconButton(
+            context,
             Icons.format_quote,
             l10n.notesBlockquote,
             onTap: _quoteTap,
@@ -261,6 +268,12 @@ class FormattingToolbar extends ConsumerWidget {
           ),
           _iconButton(
             context,
+            Icons.checklist,
+            l10n.notesTaskList,
+            onTap: _taskListTap,
+          ),
+          _iconButton(
+            context,
             Icons.format_quote,
             l10n.notesBlockquote,
             onTap: _quoteTap,
@@ -303,6 +316,7 @@ class FormattingToolbar extends ConsumerWidget {
           case _ToolbarAction.italic:
           case _ToolbarAction.h2:
           case _ToolbarAction.bulletList:
+          case _ToolbarAction.taskList:
           case _ToolbarAction.blockquote:
           case _ToolbarAction.undo:
           case _ToolbarAction.zoomIn:
@@ -374,6 +388,7 @@ class FormattingToolbar extends ConsumerWidget {
   void _strikeTap() => onCommand('ToggleStrikeThrough');
   void _bulletTap() => onCommand('WrapInBulletList');
   void _numberedTap() => onCommand('WrapInOrderedList');
+  void _taskListTap() => onCommand('ToggleTaskList');
   void _quoteTap() => onCommand('WrapInBlockquote');
   void _codeTap() => onCommand('CreateCodeBlock');
   void _tableTap() => onCommand('InsertTable');

@@ -11,6 +11,10 @@ void main() {
   /// is the one that has to fit without overflow.
   const narrowWidth = 360.0;
 
+  final commands = <String>[];
+
+  setUp(commands.clear);
+
   Future<void> pumpToolbar(
     WidgetTester tester, {
     double width = narrowWidth,
@@ -39,7 +43,7 @@ void main() {
                       ),
                     ),
                     child: FormattingToolbar(
-                      onCommand: (_, [_]) {},
+                      onCommand: (command, [_]) => commands.add(command),
                       onHistory: onHistory,
                       onExportPdf: onExportPdf,
                       onHideKeyboard: onHideKeyboard,
@@ -83,6 +87,24 @@ void main() {
 
     expect(find.text('Export to PDF'), findsNothing);
     expect(find.text('Version history'), findsNothing);
+  });
+
+  testWidgets('checklist is reachable without opening the more-menu', (
+    tester,
+  ) async {
+    // A shopping list is the reason most people open a note on a phone, so
+    // the task-list toggle stays inline rather than behind the overflow.
+    await pumpToolbar(tester);
+
+    await tester.tap(find.byIcon(Icons.checklist));
+    expect(commands, ['ToggleTaskList']);
+  });
+
+  testWidgets('the wide toolbar carries the checklist too', (tester) async {
+    await pumpToolbar(tester, width: 900);
+
+    await tester.tap(find.byIcon(Icons.checklist));
+    expect(commands, ['ToggleTaskList']);
   });
 
   testWidgets('hide-keyboard button appears only while the keyboard is up', (
