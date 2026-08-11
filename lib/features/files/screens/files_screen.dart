@@ -36,7 +36,6 @@ import '../widgets/files_app_bar.dart';
 import '../widgets/files_busy_overlay.dart';
 import '../widgets/files_drop_overlay.dart';
 import '../widgets/files_empty_state.dart';
-import '../widgets/files_fab.dart';
 import '../widgets/files_list.dart';
 import '../../../core/widgets/adaptive.dart';
 
@@ -436,7 +435,6 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(filesNotifierProvider(widget.dirId));
-    final account = ref.watch(activeAccountProvider);
 
     // Publish the visible folder to the window title. GoRouter rebuilds
     // the whole page stack on navigation, so the screen that ends up on
@@ -461,11 +459,11 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
         isFromCache: state.isFromCache,
         sortField: state.sortField,
         sortOrder: state.sortOrder,
-        account: account,
         onExitSelection: _notifier.exitSelectionMode,
         onMoveSelected: _moveSelected,
         onDeleteSelected: _deleteSelected,
         onEnterSelection: _notifier.enterEmptySelectionMode,
+        onCreate: _openCreateSheet,
         onSortFieldSelected: _notifier.toggleSort,
       ),
       body: DropTarget(
@@ -492,9 +490,6 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
           ],
         ),
       ),
-      floatingActionButton: state.selectionMode
-          ? null
-          : FilesFab(busy: _busy, onPressed: _openCreateSheet),
     );
   }
 
