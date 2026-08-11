@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/widgets/adaptive_menu.dart';
 
 /// Width at which the full toolbar fits without scrolling. Below this we
 /// collapse non-essential buttons into a "more" popup so mobile isn't
@@ -25,28 +26,6 @@ const List<double> _zoomSteps = [
   1.75,
   2.0,
 ];
-
-enum _ToolbarAction {
-  bold,
-  italic,
-  strike,
-  h1,
-  h2,
-  h3,
-  bulletList,
-  numberedList,
-  taskList,
-  blockquote,
-  codeBlock,
-  table,
-  undo,
-  redo,
-  zoomOut,
-  zoomReset,
-  zoomIn,
-  exportPdf,
-  history,
-}
 
 /// Horizontal formatting toolbar shown at the bottom of the editor.
 ///
@@ -288,93 +267,65 @@ class FormattingToolbar extends ConsumerWidget {
   }
 
   Widget _buildMoreMenu(BuildContext context, AppLocalizations l10n) {
-    return PopupMenuButton<_ToolbarAction>(
+    return AdaptiveMenuButton(
+      icon: Icons.more_horiz,
       tooltip: l10n.notesMore,
-      icon: Icon(Icons.more_horiz, size: 20, color: context.colors.iconMuted),
-      onSelected: (action) {
-        switch (action) {
-          case _ToolbarAction.strike:
-            _strikeTap();
-          case _ToolbarAction.h1:
-            onCommand('WrapInHeading', 1);
-          case _ToolbarAction.h3:
-            onCommand('WrapInHeading', 3);
-          case _ToolbarAction.numberedList:
-            _numberedTap();
-          case _ToolbarAction.codeBlock:
-            _codeTap();
-          case _ToolbarAction.table:
-            _tableTap();
-          case _ToolbarAction.redo:
-            _redoTap();
-          case _ToolbarAction.exportPdf:
-            onExportPdf?.call();
-          case _ToolbarAction.history:
-            onHistory?.call();
-          // Actions not in this menu fall through silently.
-          case _ToolbarAction.bold:
-          case _ToolbarAction.italic:
-          case _ToolbarAction.h2:
-          case _ToolbarAction.bulletList:
-          case _ToolbarAction.taskList:
-          case _ToolbarAction.blockquote:
-          case _ToolbarAction.undo:
-          case _ToolbarAction.zoomIn:
-          case _ToolbarAction.zoomOut:
-          case _ToolbarAction.zoomReset:
-            break;
-        }
-      },
-      itemBuilder: (_) => [
-        PopupMenuItem(
-          value: _ToolbarAction.strike,
-          child: _MoreMenuItem(
-            icon: Icons.strikethrough_s,
-            label: l10n.notesStrikethrough,
-          ),
+      builder: (ctx) => [
+        AdaptiveMenuAction(
+          icon: Icons.strikethrough_s,
+          iconColor: ctx.colors.iconMuted,
+          label: l10n.notesStrikethrough,
+          onTap: _strikeTap,
         ),
-        PopupMenuItem(
-          value: _ToolbarAction.h1,
-          child: _MoreMenuItem(icon: Icons.title, label: l10n.notesHeading(1)),
+        AdaptiveMenuAction(
+          icon: Icons.title,
+          iconColor: ctx.colors.iconMuted,
+          label: l10n.notesHeading(1),
+          onTap: () => onCommand('WrapInHeading', 1),
         ),
-        PopupMenuItem(
-          value: _ToolbarAction.h3,
-          child: _MoreMenuItem(icon: Icons.title, label: l10n.notesHeading(3)),
+        AdaptiveMenuAction(
+          icon: Icons.title,
+          iconColor: ctx.colors.iconMuted,
+          label: l10n.notesHeading(3),
+          onTap: () => onCommand('WrapInHeading', 3),
         ),
-        PopupMenuItem(
-          value: _ToolbarAction.numberedList,
-          child: _MoreMenuItem(
-            icon: Icons.format_list_numbered,
-            label: l10n.notesNumberedList,
-          ),
+        AdaptiveMenuAction(
+          icon: Icons.format_list_numbered,
+          iconColor: ctx.colors.iconMuted,
+          label: l10n.notesNumberedList,
+          onTap: _numberedTap,
         ),
-        PopupMenuItem(
-          value: _ToolbarAction.codeBlock,
-          child: _MoreMenuItem(icon: Icons.code, label: l10n.notesCode),
+        AdaptiveMenuAction(
+          icon: Icons.code,
+          iconColor: ctx.colors.iconMuted,
+          label: l10n.notesCode,
+          onTap: _codeTap,
         ),
-        PopupMenuItem(
-          value: _ToolbarAction.table,
-          child: _MoreMenuItem(
-            icon: Icons.table_chart_outlined,
-            label: l10n.notesTable,
-          ),
+        AdaptiveMenuAction(
+          icon: Icons.table_chart_outlined,
+          iconColor: ctx.colors.iconMuted,
+          label: l10n.notesTable,
+          onTap: _tableTap,
         ),
-        PopupMenuItem(
-          value: _ToolbarAction.redo,
-          child: _MoreMenuItem(icon: Icons.redo, label: l10n.notesRedo),
+        AdaptiveMenuAction(
+          icon: Icons.redo,
+          iconColor: ctx.colors.iconMuted,
+          label: l10n.notesRedo,
+          onTap: _redoTap,
         ),
         if (onExportPdf != null)
-          PopupMenuItem(
-            value: _ToolbarAction.exportPdf,
-            child: _MoreMenuItem(
-              icon: Icons.picture_as_pdf_outlined,
-              label: l10n.notesExportToPdf,
-            ),
+          AdaptiveMenuAction(
+            icon: Icons.picture_as_pdf_outlined,
+            iconColor: ctx.colors.iconMuted,
+            label: l10n.notesExportToPdf,
+            onTap: onExportPdf!,
           ),
         if (onHistory != null)
-          PopupMenuItem(
-            value: _ToolbarAction.history,
-            child: _MoreMenuItem(icon: Icons.history, label: l10n.notesHistory),
+          AdaptiveMenuAction(
+            icon: Icons.history,
+            iconColor: ctx.colors.iconMuted,
+            label: l10n.notesHistory,
+            onTap: onHistory!,
           ),
       ],
     );
@@ -542,24 +493,6 @@ class _ZoomControls extends StatelessWidget {
             ),
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _MoreMenuItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _MoreMenuItem({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: context.colors.iconMuted),
-        const SizedBox(width: 12),
-        Text(label),
       ],
     );
   }

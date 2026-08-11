@@ -13,6 +13,7 @@ import 'failed_uploads_badge.dart';
 import 'file_sort_controls.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/widgets/adaptive_menu.dart';
 
 /// App bar for the files screen with two modes:
 /// - Normal: title, search, refresh, offline chip, view mode, sort,
@@ -253,41 +254,22 @@ class _ViewModeButton extends ConsumerWidget {
       FilesViewMode.tree => l10n.filesViewTree,
     };
 
-    return PopupMenuButton<FilesViewMode>(
+    return AdaptiveMenuButton(
+      icon: iconFor(current),
+      iconColor: context.colors.text,
       tooltip: l10n.filesViewAsTooltip(labelFor(current)),
-      icon: Icon(iconFor(current)),
-      onSelected: (mode) => ref.read(filesViewModeProvider.notifier).set(mode),
-      itemBuilder: (_) => FilesViewMode.values.map((mode) {
-        final selected = mode == current;
-        return PopupMenuItem<FilesViewMode>(
-          value: mode,
-          child: Row(
-            children: [
-              Icon(
-                iconFor(mode),
-                size: 18,
-                color: selected
-                    ? context.colors.iconEmber
-                    : context.colors.iconMuted,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                labelFor(mode),
-                style: TextStyle(
-                  color: selected
-                      ? context.colors.text
-                      : context.colors.textMuted,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-              if (selected) ...[
-                const Spacer(),
-                Icon(AppIcons.check, size: 16, color: context.colors.iconEmber),
-              ],
-            ],
+      builder: (ctx) => [
+        for (final mode in FilesViewMode.values)
+          AdaptiveMenuAction(
+            icon: iconFor(mode),
+            iconColor: mode == current
+                ? ctx.colors.iconEmber
+                : ctx.colors.iconMuted,
+            label: labelFor(mode),
+            isSelected: mode == current,
+            onTap: () => ref.read(filesViewModeProvider.notifier).set(mode),
           ),
-        );
-      }).toList(),
+      ],
     );
   }
 }

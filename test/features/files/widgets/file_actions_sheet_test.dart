@@ -6,18 +6,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
 import 'package:hoodik_app/core/crypto/share_crypto.dart';
 import 'package:hoodik_app/features/files/widgets/file_actions_sheet.dart';
+import 'package:hoodik_app/features/files/widgets/file_menu_actions_builder.dart';
 import 'package:hoodik_app/features/shares/shared_constants.dart';
 import 'package:hoodik_app/l10n/generated/app_localizations.dart';
 
 /// Whether this test runs on an Apple host (Cupertino sheet variant).
 final _apple = Platform.isIOS || Platform.isMacOS;
 
-FileActionCallbacks _callbacks({
+FileMenuCallbacks _callbacks({
   void Function(FileItem)? onShare,
   void Function(FileItem)? onLeave,
   void Function(FileItem)? onFork,
 }) {
-  return FileActionCallbacks(
+  return FileMenuCallbacks(
     onPreview: (_) {},
     onDownload: (_) {},
     onRename: (_) {},
@@ -54,7 +55,7 @@ Future<void> _open(
   WidgetTester tester, {
   required FileItem file,
   required bool sharingEnabled,
-  FileActionCallbacks? callbacks,
+  FileMenuCallbacks? callbacks,
 }) async {
   await tester.pumpWidget(
     MaterialApp(

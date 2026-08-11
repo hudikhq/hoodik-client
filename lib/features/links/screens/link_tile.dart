@@ -6,6 +6,7 @@ import '../../../core/utils/format.dart' as fmt;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/widgets/adaptive_menu.dart';
 
 /// Decrypted public-link row for display. Names, sizes, and thumbnails are
 /// decrypted client-side before reaching this model — the server never holds
@@ -105,64 +106,37 @@ class LinkTile extends StatelessWidget {
             onPressed: onCopy,
             color: context.colors.iconMuted,
           ),
-          PopupMenuButton<String>(
-            icon: Icon(
-              AppIcons.overflowVertical,
-              size: 20,
-              color: context.colors.iconMuted,
-            ),
-            color: context.colors.panel,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              side: BorderSide(color: context.colors.seam, width: 0.5),
-            ),
-            onSelected: (action) {
-              switch (action) {
-                case 'share':
-                  onShare();
-                case 'expiry':
-                  onEditExpiry();
-                case 'remove_expiry':
-                  onRemoveExpiry();
-                case 'delete':
-                  onDelete();
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'share',
-                child: _MenuRow(
-                  icon: AppIcons.share,
-                  label: l10n.commonShare,
-                  color: context.colors.text,
-                ),
+          AdaptiveMenuButton(
+            icon: AppIcons.overflowVertical,
+            tooltip: l10n.notesMore,
+            builder: (ctx) => [
+              AdaptiveMenuAction(
+                icon: AppIcons.share,
+                iconColor: ctx.colors.sageFill,
+                label: l10n.commonShare,
+                onTap: onShare,
               ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'expiry',
-                child: _MenuRow(
-                  icon: AppIcons.schedule,
-                  label: l10n.linksSetExpiry,
-                  color: context.colors.text,
-                ),
+              AdaptiveMenuAction(
+                icon: AppIcons.schedule,
+                iconColor: ctx.colors.iconEmber,
+                label: l10n.linksSetExpiry,
+                onTap: onEditExpiry,
+                sectionBreak: true,
               ),
               if (link.expiresAt != null)
-                PopupMenuItem(
-                  value: 'remove_expiry',
-                  child: _MenuRow(
-                    icon: Icons.timer_off,
-                    label: l10n.linksRemoveExpiry,
-                    color: context.colors.text,
-                  ),
+                AdaptiveMenuAction(
+                  icon: Icons.timer_off,
+                  iconColor: ctx.colors.iconMuted,
+                  label: l10n.linksRemoveExpiry,
+                  onTap: onRemoveExpiry,
                 ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'delete',
-                child: _MenuRow(
-                  icon: AppIcons.delete,
-                  label: l10n.linksDeleteLink,
-                  color: context.colors.textCrimson,
-                ),
+              AdaptiveMenuAction(
+                icon: AppIcons.delete,
+                iconColor: ctx.colors.iconCrimson,
+                label: l10n.linksDeleteLink,
+                onTap: onDelete,
+                isDestructive: true,
+                sectionBreak: true,
               ),
             ],
           ),
@@ -230,28 +204,5 @@ class LinkTile extends StatelessWidget {
     }
 
     return parts.join(' · ');
-  }
-}
-
-class _MenuRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _MenuRow({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 12),
-        Text(label, style: TextStyle(color: color)),
-      ],
-    );
   }
 }

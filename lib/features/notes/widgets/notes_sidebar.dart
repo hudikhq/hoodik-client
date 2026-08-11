@@ -19,7 +19,7 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/providers/files_notifier.dart';
 import '../../files/widgets/file_dialogs.dart';
-import '../../../core/widgets/menu_anchor.dart';
+import '../../../core/widgets/adaptive_menu.dart';
 import '../../files/widgets/folder_picker_dialog.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../providers/notes_sidebar_notifier.dart';
@@ -762,45 +762,26 @@ class _SidebarHeader extends StatelessWidget {
   Future<void> _showCreateMenu(BuildContext context) async {
     final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
+    final l10n = AppLocalizations.of(context);
 
-    final anchor = renderBox.localToGlobal(
-      renderBox.size.bottomRight(Offset.zero),
-    );
-    final position = menuAnchorAt(context, anchor);
-
-    final choice = await showMenu<String>(
+    await showAdaptiveMenu(
       context: context,
-      position: position,
-      items: [
-        PopupMenuItem<String>(
-          value: 'note',
-          child: Row(
-            children: [
-              Icon(AppIcons.note, size: 16, color: context.colors.iconMuted),
-              const SizedBox(width: 8),
-              Text(AppLocalizations.of(context).notesNewNote),
-            ],
-          ),
+      anchor: renderBox.localToGlobal(renderBox.size.bottomRight(Offset.zero)),
+      actions: [
+        AdaptiveMenuAction(
+          icon: AppIcons.note,
+          iconColor: context.colors.iconMuted,
+          label: l10n.notesNewNote,
+          onTap: onCreateNote,
         ),
-        PopupMenuItem<String>(
-          value: 'folder',
-          child: Row(
-            children: [
-              Icon(
-                Icons.create_new_folder_outlined,
-                size: 16,
-                color: context.colors.iconMuted,
-              ),
-              const SizedBox(width: 8),
-              Text(AppLocalizations.of(context).notesNewFolder),
-            ],
-          ),
+        AdaptiveMenuAction(
+          icon: Icons.create_new_folder_outlined,
+          iconColor: context.colors.iconEmber,
+          label: l10n.notesNewFolder,
+          onTap: onCreateFolder,
         ),
       ],
     );
-
-    if (choice == 'note') onCreateNote();
-    if (choice == 'folder') onCreateFolder();
   }
 
   @override
@@ -911,47 +892,39 @@ class _FolderRowState extends State<_FolderRow> {
   bool _hovered = false;
 
   Future<void> _showContextMenu(Offset globalPosition) async {
-    final position = menuAnchorAt(context, globalPosition);
-
     final l10n = AppLocalizations.of(context);
-    final choice = await showMenu<String>(
+    await showAdaptiveMenu(
       context: context,
-      position: position,
-      items: [
-        PopupMenuItem<String>(
-          value: 'rename',
-          child: _MenuRow(icon: AppIcons.edit, label: l10n.commonRename),
+      title: widget.name,
+      anchor: globalPosition,
+      actions: [
+        AdaptiveMenuAction(
+          icon: AppIcons.edit,
+          iconColor: context.colors.textEmber,
+          label: l10n.commonRename,
+          onTap: widget.onRename,
         ),
-        PopupMenuItem<String>(
-          value: 'move',
-          child: _MenuRow(icon: AppIcons.move, label: l10n.commonMove),
+        AdaptiveMenuAction(
+          icon: AppIcons.move,
+          iconColor: context.colors.iconSlate,
+          label: l10n.commonMove,
+          onTap: widget.onMove,
         ),
-        PopupMenuItem<String>(
-          value: 'details',
-          child: _MenuRow(icon: AppIcons.info, label: l10n.notesDetails),
+        AdaptiveMenuAction(
+          icon: AppIcons.info,
+          iconColor: context.colors.iconMuted,
+          label: l10n.notesDetails,
+          onTap: widget.onDetails,
         ),
-        PopupMenuItem<String>(
-          value: 'delete',
-          child: _MenuRow(
-            icon: AppIcons.delete,
-            label: l10n.commonDelete,
-            color: context.colors.textCrimson,
-          ),
+        AdaptiveMenuAction(
+          icon: AppIcons.delete,
+          iconColor: context.colors.iconCrimson,
+          label: l10n.commonDelete,
+          onTap: widget.onDelete,
+          isDestructive: true,
         ),
       ],
     );
-
-    if (!mounted) return;
-    switch (choice) {
-      case 'rename':
-        widget.onRename();
-      case 'move':
-        widget.onMove();
-      case 'details':
-        widget.onDetails();
-      case 'delete':
-        widget.onDelete();
-    }
   }
 
   @override
@@ -1088,53 +1061,45 @@ class _NoteRowState extends State<_NoteRow> {
   bool _hovered = false;
 
   Future<void> _showContextMenu(Offset globalPosition) async {
-    final position = menuAnchorAt(context, globalPosition);
-
     final l10n = AppLocalizations.of(context);
-    final choice = await showMenu<String>(
+    await showAdaptiveMenu(
       context: context,
-      position: position,
-      items: [
-        PopupMenuItem<String>(
-          value: 'rename',
-          child: _MenuRow(icon: AppIcons.edit, label: l10n.commonRename),
+      title: widget.name,
+      anchor: globalPosition,
+      actions: [
+        AdaptiveMenuAction(
+          icon: AppIcons.edit,
+          iconColor: context.colors.textEmber,
+          label: l10n.commonRename,
+          onTap: widget.onRename,
         ),
-        PopupMenuItem<String>(
-          value: 'export',
-          child: _MenuRow(icon: AppIcons.download, label: l10n.notesExport),
+        AdaptiveMenuAction(
+          icon: AppIcons.download,
+          iconColor: context.colors.iconSlate,
+          label: l10n.notesExport,
+          onTap: widget.onExport,
         ),
-        PopupMenuItem<String>(
-          value: 'move',
-          child: _MenuRow(icon: AppIcons.move, label: l10n.commonMove),
+        AdaptiveMenuAction(
+          icon: AppIcons.move,
+          iconColor: context.colors.iconSlate,
+          label: l10n.commonMove,
+          onTap: widget.onMove,
         ),
-        PopupMenuItem<String>(
-          value: 'details',
-          child: _MenuRow(icon: AppIcons.info, label: l10n.notesDetails),
+        AdaptiveMenuAction(
+          icon: AppIcons.info,
+          iconColor: context.colors.iconMuted,
+          label: l10n.notesDetails,
+          onTap: widget.onDetails,
         ),
-        PopupMenuItem<String>(
-          value: 'delete',
-          child: _MenuRow(
-            icon: AppIcons.delete,
-            label: l10n.commonDelete,
-            color: context.colors.textCrimson,
-          ),
+        AdaptiveMenuAction(
+          icon: AppIcons.delete,
+          iconColor: context.colors.iconCrimson,
+          label: l10n.commonDelete,
+          onTap: widget.onDelete,
+          isDestructive: true,
         ),
       ],
     );
-
-    if (!mounted) return;
-    switch (choice) {
-      case 'rename':
-        widget.onRename();
-      case 'export':
-        widget.onExport();
-      case 'move':
-        widget.onMove();
-      case 'details':
-        widget.onDetails();
-      case 'delete':
-        widget.onDelete();
-    }
   }
 
   @override
@@ -1249,28 +1214,6 @@ class _NoteRowActionButton extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Icon + label row shared by the folder/note popup menus. Mirrors the
-/// visual rhythm of the files-screen bottom sheet so the two menu
-/// surfaces don't drift apart.
-class _MenuRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color? color;
-
-  const _MenuRow({required this.icon, required this.label, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: color ?? context.colors.iconMuted),
-        const SizedBox(width: 12),
-        Text(label, style: color == null ? null : TextStyle(color: color)),
-      ],
     );
   }
 }

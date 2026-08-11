@@ -15,6 +15,7 @@ import '../../files/helpers/file_helpers.dart' show formatErrorMessage;
 import '../widgets/markdown_preview_webview.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../widgets/version_row.dart';
 
 /// Push as `/notes/:fileId/history`. The screen owns its own data load
 /// and surfaces back to the editor via the `restored` value passed to
@@ -379,7 +380,7 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
           separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, index) {
             final v = _versions![index];
-            return _VersionRow(
+            return VersionRow(
               version: v,
               dateLabel: _formatDate(v.createdAt),
               busy: _busy,
@@ -398,78 +399,6 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _VersionRow extends StatelessWidget {
-  final FileVersion version;
-  final String dateLabel;
-  final bool busy;
-  final VoidCallback onPreview;
-  final VoidCallback onRestore;
-  final VoidCallback onFork;
-  final VoidCallback onDelete;
-
-  const _VersionRow({
-    required this.version,
-    required this.dateLabel,
-    required this.busy,
-    required this.onPreview,
-    required this.onRestore,
-    required this.onFork,
-    required this.onDelete,
-  });
-
-  String _author(FileVersion v, AppLocalizations l10n) {
-    if (v.isAnonymous) return l10n.notesAuthorAnonymous;
-    return v.userId == null ? l10n.commonUnknown : l10n.notesAuthorYou;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return ListTile(
-      title: Row(
-        children: [
-          Text(
-            'v${version.version}',
-            style: TextStyle(
-              color: context.colors.iconEmber,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              dateLabel,
-              style: TextStyle(color: context.colors.textMuted, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-      subtitle: Text(
-        '${_author(version, l10n)} · ${l10n.notesChunkCount(version.chunks)}',
-        style: TextStyle(color: context.colors.textMuted, fontSize: 12),
-      ),
-      trailing: PopupMenuButton<VoidCallback>(
-        enabled: !busy,
-        icon: Icon(AppIcons.overflowVertical),
-        onSelected: (action) => action(),
-        itemBuilder: (_) => [
-          PopupMenuItem(value: onPreview, child: Text(l10n.notesPreview)),
-          PopupMenuItem(value: onRestore, child: Text(l10n.notesRestoreHere)),
-          PopupMenuItem(value: onFork, child: Text(l10n.notesRestoreAsNew)),
-          PopupMenuItem(
-            value: onDelete,
-            child: Text(
-              l10n.notesDeleteThisVersion,
-              style: TextStyle(color: context.colors.textCrimson),
-            ),
-          ),
-        ],
-      ),
-      onTap: busy ? null : onPreview,
     );
   }
 }

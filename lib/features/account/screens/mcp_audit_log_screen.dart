@@ -10,6 +10,8 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/adaptive_menu.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Human-readable list of MCP tool calls recorded by [AuditingMcpToolDispatcher].
 ///
@@ -42,14 +44,16 @@ class McpAuditLogScreen extends ConsumerWidget {
             filter: filter,
             onChanged: (value) => _setStatus(ref, value),
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'clear') _confirmClear(context, ref);
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'clear',
-                child: Text(l10n.accountAuditClearLog),
+          AdaptiveMenuButton(
+            icon: AppIcons.overflowVertical,
+            tooltip: l10n.notesMore,
+            builder: (ctx) => [
+              AdaptiveMenuAction(
+                icon: AppIcons.delete,
+                iconColor: ctx.colors.iconCrimson,
+                label: l10n.accountAuditClearLog,
+                onTap: () => _confirmClear(context, ref),
+                isDestructive: true,
               ),
             ],
           ),
@@ -358,21 +362,27 @@ class _ToolFilterMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return PopupMenuButton<String?>(
+    return AdaptiveMenuButton(
       tooltip: l10n.accountAuditFilterByTool,
-      icon: Icon(
-        filter.toolName == null
-            ? Icons.filter_list_outlined
-            : Icons.filter_list,
-      ),
-      onSelected: onChanged,
-      itemBuilder: (_) => [
-        PopupMenuItem<String?>(
-          value: null,
-          child: Text(l10n.accountAuditAllTools),
+      icon: filter.toolName == null
+          ? Icons.filter_list_outlined
+          : Icons.filter_list,
+      builder: (ctx) => [
+        AdaptiveMenuAction(
+          icon: Icons.filter_list_outlined,
+          iconColor: ctx.colors.iconMuted,
+          label: l10n.accountAuditAllTools,
+          isSelected: filter.toolName == null,
+          onTap: () => onChanged(null),
         ),
         for (final name in toolNames)
-          PopupMenuItem<String?>(value: name, child: Text(name)),
+          AdaptiveMenuAction(
+            icon: Icons.filter_list,
+            iconColor: ctx.colors.iconMuted,
+            label: name,
+            isSelected: filter.toolName == name,
+            onTap: () => onChanged(name),
+          ),
       ],
     );
   }
@@ -387,31 +397,25 @@ class _StatusFilterMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return PopupMenuButton<String?>(
+    return AdaptiveMenuButton(
       tooltip: l10n.accountAuditFilterByStatus,
-      icon: Icon(
-        filter.resultStatus == null
-            ? Icons.check_circle_outline
-            : AppIcons.success,
-      ),
-      onSelected: onChanged,
-      itemBuilder: (_) => [
-        PopupMenuItem<String?>(
-          value: null,
-          child: Text(l10n.accountAuditAllStatuses),
-        ),
-        PopupMenuItem<String?>(
-          value: 'ok',
-          child: Text(l10n.accountAuditStatusOk),
-        ),
-        PopupMenuItem<String?>(
-          value: 'error',
-          child: Text(l10n.accountAuditError),
-        ),
-        PopupMenuItem<String?>(
-          value: 'denied',
-          child: Text(l10n.accountAuditStatusDenied),
-        ),
+      icon: filter.resultStatus == null
+          ? Icons.check_circle_outline
+          : AppIcons.success,
+      builder: (ctx) => [
+        for (final (value, label) in <(String?, String)>[
+          (null, l10n.accountAuditAllStatuses),
+          ('ok', l10n.accountAuditStatusOk),
+          ('error', l10n.accountAuditError),
+          ('denied', l10n.accountAuditStatusDenied),
+        ])
+          AdaptiveMenuAction(
+            icon: AppIcons.success,
+            iconColor: ctx.colors.iconMuted,
+            label: label,
+            isSelected: filter.resultStatus == value,
+            onTap: () => onChanged(value),
+          ),
       ],
     );
   }

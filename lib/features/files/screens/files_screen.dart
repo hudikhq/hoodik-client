@@ -30,7 +30,6 @@ import '../helpers/move_wiring.dart';
 import '../providers/files_notifier.dart';
 import '../providers/files_state.dart';
 import '../widgets/file_actions_sheet.dart';
-import '../widgets/file_context_menu.dart';
 import '../widgets/file_dialogs.dart';
 import '../widgets/file_menu_actions_builder.dart';
 import '../widgets/files_app_bar.dart';
@@ -349,34 +348,6 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     }
   }
 
-  FileActionCallbacks get _actionCallbacks => FileActionCallbacks(
-    onPreview: _openPreview,
-    onDownload: _downloadFile,
-    onRename: _renameFile,
-    onDelete: _deleteFile,
-    onCreateLink: _createLink,
-    onShare: _share,
-    onLeave: _leave,
-    onFork: _fork,
-    onMakeOffline: _makeAvailableOffline,
-    onRemoveOffline: _removeOfflineCopy,
-    onDetails: _showDetails,
-    onConvertToNote: _convertToNote,
-    onSelect: _notifier.enterSelectionMode,
-  );
-
-  void _showFileActions(FileItem file) {
-    final state = ref.read(filesNotifierProvider(widget.dirId));
-    showFileActionsSheet(
-      context: context,
-      file: file,
-      displayName: state.displayName(file),
-      isOffline: state.offlineFileIds.contains(file.id),
-      callbacks: _actionCallbacks,
-      sharingEnabled: _sharingEnabled,
-    );
-  }
-
   FileMenuCallbacks get _menuCallbacks => FileMenuCallbacks(
     onPreview: _openPreview,
     onConvertToNote: _convertToNote,
@@ -393,19 +364,20 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     onSelect: (file) => _notifier.enterSelectionMode(file.id),
   );
 
-  void _showContextMenu(FileItem file, Offset globalPosition) {
+  /// Open the file menu. [anchor] is the point the gesture came from — a
+  /// kebab, right-click or long-press — and null for a row tap, which is
+  /// what tells the platform layer whether a pointer menu is appropriate.
+  void _showFileMenu(FileItem file, [Offset? anchor]) {
     if (_busy) return;
     final state = ref.read(filesNotifierProvider(widget.dirId));
-    showFileContextMenu(
+    showFileActionsSheet(
       context: context,
-      position: globalPosition,
-      actions: buildFileMenuActions(
-        context: context,
-        file: file,
-        isOffline: state.offlineFileIds.contains(file.id),
-        callbacks: _menuCallbacks,
-        sharingEnabled: _sharingEnabled,
-      ),
+      file: file,
+      displayName: state.displayName(file),
+      isOffline: state.offlineFileIds.contains(file.id),
+      callbacks: _menuCallbacks,
+      sharingEnabled: _sharingEnabled,
+      anchor: anchor,
     );
   }
 
@@ -418,7 +390,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     } else if (isPreviewable(file)) {
       _openPreview(file);
     } else {
-      _showFileActions(file);
+      _showFileMenu(file);
     }
   }
 
@@ -538,7 +510,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       onRefresh: _loadFiles,
       onRowTap: _onRowTap,
       onToggleSelection: _notifier.toggleSelection,
-      onContextMenu: _showContextMenu,
+      onContextMenu: _showFileMenu,
       onPerformMove: _performMove,
       onDelete: _deleteFile,
     );
