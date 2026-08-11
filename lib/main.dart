@@ -426,6 +426,7 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
     }
 
     final isLocked = ref.watch(isLockedProvider);
+    final themeMode = ref.watch(appThemeModeProvider);
 
     return Stack(
       textDirection: TextDirection.ltr,
@@ -435,7 +436,7 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
           debugShowCheckedModeBanner: false,
           theme: HoodikTheme.light(),
           darkTheme: HoodikTheme.dark(),
-          themeMode: ThemeMode.system,
+          themeMode: themeMode,
           locale: appLocale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -453,7 +454,7 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
             debugShowCheckedModeBanner: false,
             theme: HoodikTheme.light(),
             darkTheme: HoodikTheme.dark(),
-            themeMode: ThemeMode.system,
+            themeMode: themeMode,
             locale: appLocale,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
