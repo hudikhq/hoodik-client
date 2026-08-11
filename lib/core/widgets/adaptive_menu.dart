@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -91,12 +89,11 @@ class AdaptiveMenuButton extends StatelessWidget {
 
 /// Present [actions] in the idiom the host platform expects.
 ///
-/// iOS answers a list of choices one way — the action sheet — no matter what
-/// opened it, so [anchor] is ignored there. macOS and Android both put the
-/// menu under the pointer when the gesture had one, and fall back to a sheet
-/// when it didn't. Routing every menu through here is what stops the same
-/// file growing two different-looking menus depending on whether the user
-/// tapped the row or its kebab.
+/// Touch answers a list of choices one way — a sheet — no matter what opened
+/// it, so [anchor] is ignored on phones and tablets: the same file offers the
+/// same menu whether the user tapped its row or its kebab. Only a pointer
+/// gets a menu under the cursor, and only when the gesture had somewhere to
+/// put it.
 Future<void> showAdaptiveMenu({
   required BuildContext context,
   required List<AdaptiveMenuAction> actions,
@@ -106,11 +103,11 @@ Future<void> showAdaptiveMenu({
 }) {
   if (actions.isEmpty) return Future.value();
 
-  if (isApplePlatform && (Platform.isIOS || anchor == null)) {
-    return _showActionSheet(context, title: title, actions: actions);
-  }
-  if (anchor != null) {
+  if (!isTouchPlatform && anchor != null) {
     return _showAnchoredMenu(context, anchor: anchor, actions: actions);
+  }
+  if (isApplePlatform) {
+    return _showActionSheet(context, title: title, actions: actions);
   }
   return _showBottomSheet(
     context,
@@ -156,55 +153,44 @@ Future<void> _showAnchoredMenu(
   required Offset anchor,
   required List<AdaptiveMenuAction> actions,
 }) {
-  // A pointer-driven menu is dense: AppKit draws 22pt rows at 13pt with the
-  // highlight inset from the menu's edge, and Material's 48dp full-bleed rows
-  // read as a mobile sheet pinned to a button. Touch keeps the full target —
-  // a kebab menu on Android is still something a thumb has to hit.
-  final pointer = !isTouchPlatform;
+  // Only pointers reach here, so the metrics are AppKit's: 22pt rows at 13pt,
+  // the menu padded 5 all round, and the highlight an accent-filled rounded
+  // rect sitting inside that padding.
   final c = context.colors;
 
   return showMenu<void>(
     context: context,
     position: menuAnchorAt(context, anchor),
     color: c.panel,
-    elevation: pointer ? 8 : 3,
-    menuPadding: pointer
-        ? const EdgeInsets.all(5)
-        : const EdgeInsets.symmetric(vertical: 8),
+    elevation: 8,
+    menuPadding: const EdgeInsets.all(5),
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(pointer ? 8 : 10),
+      borderRadius: BorderRadius.circular(8),
       side: BorderSide(color: c.seamStrong, width: 0.5),
     ),
     items: [
       for (final action in actions) ...[
-        if (action.sectionBreak && pointer)
-          PopupMenuDivider(
-            height: 11,
-            color: c.seam,
-            indent: 10,
-            endIndent: 10,
-          ),
+        if (action.sectionBreak)
+          PopupMenuDivider(height: 11, color: c.seam, indent: 6, endIndent: 6),
         PopupMenuItem<void>(
           key: action.key,
-          height: pointer ? 24 : kMinTapTarget,
+          height: 24,
           padding: EdgeInsets.zero,
           onTap: action.onTap,
-          child: _MenuRow(action: action, pointer: pointer),
+          child: _MenuRow(action: action),
         ),
       ],
     ],
   );
 }
 
-/// A single row. On pointer platforms the hover state is an inset rounded
-/// accent fill rather than Material's edge-to-edge grey wash, which is the
-/// difference between a menu that reads as the system's and one that reads as
-/// a list with a highlight on it.
+/// A single row. The hover state is an inset rounded accent fill rather than
+/// Material's edge-to-edge grey wash, which is the difference between a menu
+/// that reads as the system's and a list with a highlight on it.
 class _MenuRow extends StatefulWidget {
-  const _MenuRow({required this.action, required this.pointer});
+  const _MenuRow({required this.action});
 
   final AdaptiveMenuAction action;
-  final bool pointer;
 
   @override
   State<_MenuRow> createState() => _MenuRowState();
@@ -217,62 +203,58 @@ class _MenuRowState extends State<_MenuRow> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final action = widget.action;
-    final active = widget.pointer && _hovered;
 
-    final foreground = active
+    final foreground = _hovered
         ? c.onFill
         : action.isDestructive
         ? c.textCrimson
         : c.text;
 
-    final row = Container(
-      height: widget.pointer ? 22 : null,
-      padding: EdgeInsets.symmetric(horizontal: widget.pointer ? 8 : 16),
-      decoration: active
-          ? BoxDecoration(
-              color: c.crimsonFill,
-              borderRadius: BorderRadius.circular(5),
-            )
-          : null,
-      child: Row(
-        children: [
-          Icon(
-            action.icon,
-            size: widget.pointer ? 15 : 20,
-            color: active ? c.onFill : action.iconColor,
-          ),
-          SizedBox(width: widget.pointer ? 8 : 12),
-          // Menus are width-capped, and a long label would otherwise overflow
-          // the row rather than shorten.
-          Flexible(
-            child: Text(
-              action.label,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: widget.pointer ? 13 : 14,
-                height: 1.2,
-                color: foreground,
-                fontWeight: action.isSelected ? FontWeight.w600 : null,
-              ),
-            ),
-          ),
-          if (action.isSelected) ...[
-            SizedBox(width: widget.pointer ? 10 : 12),
-            Icon(
-              AppIcons.check,
-              size: widget.pointer ? 13 : 18,
-              color: active ? c.onFill : c.iconCrimson,
-            ),
-          ],
-        ],
-      ),
-    );
-
-    if (!widget.pointer) return row;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: row,
+      child: Container(
+        height: 22,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: _hovered
+            ? BoxDecoration(
+                color: c.crimsonFill,
+                borderRadius: BorderRadius.circular(5),
+              )
+            : null,
+        child: Row(
+          children: [
+            Icon(
+              action.icon,
+              size: 15,
+              color: _hovered ? c.onFill : action.iconColor,
+            ),
+            const SizedBox(width: 8),
+            // Menus are width-capped, and a long label would otherwise
+            // overflow the row rather than shorten.
+            Flexible(
+              child: Text(
+                action.label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.2,
+                  color: foreground,
+                  fontWeight: action.isSelected ? FontWeight.w600 : null,
+                ),
+              ),
+            ),
+            if (action.isSelected) ...[
+              const SizedBox(width: 10),
+              Icon(
+                AppIcons.check,
+                size: 13,
+                color: _hovered ? c.onFill : c.iconCrimson,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
