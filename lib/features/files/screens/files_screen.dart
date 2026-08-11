@@ -38,6 +38,7 @@ import '../widgets/files_drop_overlay.dart';
 import '../widgets/files_empty_state.dart';
 import '../widgets/files_fab.dart';
 import '../widgets/files_list.dart';
+import '../../../core/widgets/adaptive.dart';
 
 class FilesScreen extends ConsumerStatefulWidget {
   final String? dirId;
@@ -389,7 +390,10 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       context.push('/files/${file.id}', extra: state.displayName(file));
     } else if (isPreviewable(file)) {
       _openPreview(file);
-    } else {
+    } else if (isTouchPlatform) {
+      // A phone has no kebab-on-hover and no right-click, so the row itself
+      // has to be the way in. On desktop both exist, and a click that opens
+      // a menu the user didn't ask for is just noise.
       _showFileMenu(file);
     }
   }

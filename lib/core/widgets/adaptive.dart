@@ -8,6 +8,13 @@ import '../../core/theme/hoodik_scheme.dart';
 /// Whether the current platform uses iOS-style (Cupertino) widgets.
 bool get isApplePlatform => Platform.isIOS || Platform.isMacOS;
 
+/// True where touch is the primary pointer. Not the same question as
+/// [isApplePlatform] — iOS and macOS answer it differently, and it decides
+/// interaction rules rather than which widget set to paint: whether a row's
+/// kebab needs to be permanently visible, and whether tapping a row is a
+/// meaningful gesture on its own or just how you put the caret somewhere.
+bool get isTouchPlatform => Platform.isAndroid || Platform.isIOS;
+
 /// Width at which the shell stops being a phone. Below it the five sections
 /// live in a bottom tab bar; at or above it they move to a side rail and the
 /// bottom edge goes back to the content.
