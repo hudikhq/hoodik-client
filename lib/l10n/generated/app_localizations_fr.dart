@@ -2066,6 +2066,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get notesCreateFolderInRoot => 'Créer un nouveau dossier à la racine';
 
   @override
+  String get notesCreateHere => 'Créer ici';
+
+  @override
   String notesCreateNoteFailed(String error) {
     return 'Échec de la création de la note : $error';
   }

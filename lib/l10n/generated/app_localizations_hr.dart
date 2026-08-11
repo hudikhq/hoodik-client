@@ -2060,6 +2060,9 @@ class AppLocalizationsHr extends AppLocalizations {
   String get notesCreateFolderInRoot => 'Kreiraj novi folder u rootu';
 
   @override
+  String get notesCreateHere => 'Stvori ovdje';
+
+  @override
   String notesCreateNoteFailed(String error) {
     return 'Kreiranje bilješke nije uspjelo: $error';
   }

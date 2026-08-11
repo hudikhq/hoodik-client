@@ -569,6 +569,7 @@
   "notesCreateFolderFailed": "Ordner konnte nicht erstellt werden: {error}",
   "notesCreateFolderIn": "Neuen Ordner in „{folder}“ erstellen",
   "notesCreateFolderInRoot": "Neuen Ordner im Hauptordner erstellen",
+  "notesCreateHere": "Hier erstellen",
   "notesCreateNoteFailed": "Notiz konnte nicht erstellt werden: {error}",
   "notesCreateNoteIn": "Neue Notiz in „{folder}“ erstellen",
   "notesCreateNoteInRoot": "Neue Notiz im Hauptordner erstellen",

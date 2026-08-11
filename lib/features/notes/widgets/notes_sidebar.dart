@@ -557,19 +557,23 @@ class _NotesSidebarState extends ConsumerState<NotesSidebar> {
 
   Future<void> _handleCreateNote() async {
     final snapshot = _snapshot;
-    final name = await showNewNoteDialog(
+    final chosen = await showNewNoteDialog(
       context: context,
+      parentDirId: snapshot.selectedFolderId,
       parentFolderName: snapshot.selectedFolderId == null
           ? null
           : snapshot.names[snapshot.selectedFolderId],
     );
-    if (name == null || name.isEmpty) return;
+    if (chosen == null || chosen.name.isEmpty) return;
 
     final ops = ref.read(fileOperationsProvider);
     if (ops == null) return;
 
+    final name = chosen.name;
     final noteName = name.endsWith('.md') ? name : '$name.md';
-    final targetDir = snapshot.selectedFolderId;
+    // The selected folder only seeds the dialog; the user can send the note
+    // anywhere from there.
+    final targetDir = chosen.parentDirId;
 
     // Seed with a heading matching the file name. The web app does the
     // same; an empty upload is rejected by the server validator (size=0).

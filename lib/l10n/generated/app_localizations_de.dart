@@ -2070,6 +2070,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get notesCreateFolderInRoot => 'Neuen Ordner im Hauptordner erstellen';
 
   @override
+  String get notesCreateHere => 'Hier erstellen';
+
+  @override
   String notesCreateNoteFailed(String error) {
     return 'Notiz konnte nicht erstellt werden: $error';
   }
