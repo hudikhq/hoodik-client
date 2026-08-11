@@ -41,7 +41,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
   /// Opens the create/upload sheet. Lives in the bar rather than a
   /// floating button: iOS has no FAB, and one create affordance in one
   /// corner beats two that move between platforms.
-  final VoidCallback onCreate;
+  final void Function(Offset? anchor) onCreate;
   final ValueChanged<SortField> onSortFieldSelected;
 
   const FilesAppBar({
@@ -198,12 +198,28 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
             onPressed: onEnterSelection,
           ),
         ],
-        IconButton(
-          icon: Icon(
-            adaptiveIcon(material: AppIcons.add, cupertino: CupertinoIcons.add),
+        Builder(
+          builder: (ctx) => IconButton(
+            icon: Icon(
+              adaptiveIcon(
+                material: AppIcons.add,
+                cupertino: CupertinoIcons.add,
+              ),
+            ),
+            tooltip: l10n.commonCreate,
+            onPressed: busy
+                ? null
+                : () {
+                    // A pointer wants the menu under the button it clicked;
+                    // touch ignores this and sheets regardless.
+                    final box = ctx.findRenderObject() as RenderBox?;
+                    onCreate(
+                      box != null && box.hasSize
+                          ? box.localToGlobal(box.size.center(Offset.zero))
+                          : null,
+                    );
+                  },
           ),
-          tooltip: l10n.commonCreate,
-          onPressed: busy ? null : onCreate,
         ),
       ],
     );

@@ -35,10 +35,10 @@ void showFileActionsSheet({
   );
 }
 
-/// Show the FAB sheet, grouped into a Create section (folder, note) and an
-/// Upload section (file, media, camera — the latter two hidden on desktop
-/// platforms). On Apple the groups flatten into one action sheet, which is
-/// the HIG idiom.
+/// Show the create menu, grouped into a Create section (folder, note) and an
+/// Upload section (file, media, camera — the latter two hidden on desktop).
+/// [anchor] is where the trigger sits, so a pointer gets the menu under the
+/// button it clicked.
 void showFabMenuSheet({
   required BuildContext context,
   required VoidCallback onCreateFolder,
@@ -46,11 +46,13 @@ void showFabMenuSheet({
   required VoidCallback onUploadFile,
   VoidCallback? onUploadPhoto,
   VoidCallback? onTakePhoto,
+  Offset? anchor,
 }) {
   final l10n = AppLocalizations.of(context);
 
   showAdaptiveMenu(
     context: context,
+    anchor: anchor,
     sectionHeaders: [l10n.commonCreate, l10n.commonUpload],
     actions: [
       AdaptiveMenuAction(

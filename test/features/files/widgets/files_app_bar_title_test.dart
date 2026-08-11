@@ -37,7 +37,7 @@ Future<void> _pump(
             onMoveSelected: () {},
             onDeleteSelected: () {},
             onEnterSelection: () {},
-            onCreate: () {},
+            onCreate: (_) {},
             onSortFieldSelected: (_) {},
           ),
           body: const SizedBox.expand(),
