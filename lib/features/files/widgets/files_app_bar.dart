@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/widgets/adaptive.dart';
-import '../../../core/storage/database.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shares/shared_constants.dart';
 import '../providers/files_notifier.dart';
@@ -17,7 +16,7 @@ import '../../../core/widgets/adaptive_menu.dart';
 
 /// App bar for the files screen with two modes:
 /// - Normal: title, refresh, offline chip, view mode, sort,
-///   select, and the account avatar shortcut.
+///   select, and create.
 /// - Selection: close, count label, and Move/Delete batch actions.
 ///
 /// The widget is stateless — it takes the flags and listeners it needs
@@ -34,11 +33,15 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final bool isFromCache;
   final SortField sortField;
   final SortOrder sortOrder;
-  final Account? account;
   final VoidCallback onExitSelection;
   final VoidCallback onMoveSelected;
   final VoidCallback onDeleteSelected;
   final VoidCallback onEnterSelection;
+
+  /// Opens the create/upload sheet. Lives in the bar rather than a
+  /// floating button: iOS has no FAB, and one create affordance in one
+  /// corner beats two that move between platforms.
+  final VoidCallback onCreate;
   final ValueChanged<SortField> onSortFieldSelected;
 
   const FilesAppBar({
@@ -52,11 +55,11 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
     required this.isFromCache,
     required this.sortField,
     required this.sortOrder,
-    required this.account,
     required this.onExitSelection,
     required this.onMoveSelected,
     required this.onDeleteSelected,
     required this.onEnterSelection,
+    required this.onCreate,
     required this.onSortFieldSelected,
   });
 
@@ -195,25 +198,13 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
             onPressed: onEnterSelection,
           ),
         ],
-        if (account != null)
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () => context.go('/account'),
-              child: CircleAvatar(
-                radius: 16,
-                backgroundColor: context.colors.crimsonContainer,
-                child: Text(
-                  (account!.email.isNotEmpty ? account!.email[0] : '?')
-                      .toUpperCase(),
-                  style: TextStyle(
-                    color: context.colors.onCrimsonContainer,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
+        IconButton(
+          icon: Icon(
+            adaptiveIcon(material: AppIcons.add, cupertino: CupertinoIcons.add),
           ),
+          tooltip: l10n.commonCreate,
+          onPressed: busy ? null : onCreate,
+        ),
       ],
     );
   }

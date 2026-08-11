@@ -20,11 +20,13 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../preview/providers/preview_loader.dart';
 import '../../preview/widgets/preview_loading.dart';
+import '../helpers/create_note_flow.dart';
 import '../helpers/draft_capture.dart';
 import '../models/editor_tab.dart';
 import '../providers/open_note_request.dart';
 import '../services/note_pdf_exporter.dart';
 import 'ios_editor_layout.dart' show injectIosCaretInset;
+import 'notes_landing_app_bar.dart';
 import 'notes_main_area.dart';
 import 'notes_sidebar.dart';
 import 'recent_notes_panel.dart';
@@ -836,10 +838,8 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
   PreferredSizeWidget _buildMobileAppBar() {
     if (!_hasTabs) {
-      return AppBar(
-        // Leave `leading` null so Scaffold auto-adds the hamburger for
-        // the drawer. Users can also swipe from the left edge.
-        title: Text(AppLocalizations.of(context).notesTitle),
+      return NotesLandingAppBar(
+        onCreateNote: () => createNoteAndOpen(context: context, ref: ref),
       );
     }
 
