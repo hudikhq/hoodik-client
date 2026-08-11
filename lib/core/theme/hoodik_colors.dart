@@ -46,6 +46,27 @@ class HoodikColors {
   static const Color blueish400 = Color(0xFF4D6EC9);
   static const Color blueish500 = Color(0xFF586994);
 
+  // Text steps.
+  //
+  // Every ramp above is built for fills, and a fill step used as text fails
+  // contrast — `redish400` measures 2.4:1 on a panel. These are the only
+  // steps allowed on text, and the ratios are against `brownish800`, the
+  // worst ground the app renders text on. DESIGN.md carries the light-theme
+  // pairing for each; the app is dark-only, so only the dark step lives here.
+  static const Color textMuted = Color(0xFF939393); // 5.12:1
+  static const Color textCrimson = Color(0xFFE2677B); // 4.83:1
+  static const Color textSage = greeny300; // 7.23:1
+  static const Color textEmber = orangy400; // 8.19:1
+
+  // Icon steps.
+  //
+  // Icons answer to 3:1 rather than 4.5:1, so they sit one step warmer than
+  // the text steps and keep more of the brand. Anything below 3:1 is not a
+  // subtle icon, it is an invisible one — `redish300` (2.96:1) misses, which
+  // is why the crimson icon step is `redish200` and not the closer shade.
+  static const Color iconMuted = brownish100; // 3.56:1
+  static const Color iconCrimson = redish200; // 4.09:1
+
   // Convenience
   static const Color white = Color(0xFFFFFFFF);
   static const Color dirtyWhite = Color(0xFFEEEEEE);

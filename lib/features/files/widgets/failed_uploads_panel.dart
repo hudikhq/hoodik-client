@@ -76,7 +76,7 @@ class _FailedUploadsPanelState extends ConsumerState<FailedUploadsPanel> {
             children: [
               const Icon(
                 Icons.error_outline,
-                color: HoodikColors.redish300,
+                color: HoodikColors.iconCrimson,
                 size: 16,
               ),
               const SizedBox(width: 6),
@@ -85,7 +85,7 @@ class _FailedUploadsPanelState extends ConsumerState<FailedUploadsPanel> {
                   context,
                 ).filesFailedUploadsHeader(_failed.length),
                 style: const TextStyle(
-                  color: HoodikColors.redish300,
+                  color: HoodikColors.textCrimson,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -154,7 +154,7 @@ class _FailedUploadRow extends StatelessWidget {
             icon: const Icon(
               Icons.close,
               size: 16,
-              color: HoodikColors.brownish100,
+              color: HoodikColors.iconMuted,
             ),
             onPressed: onDiscard,
             padding: EdgeInsets.zero,

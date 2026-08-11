@@ -69,11 +69,7 @@ class TreeFolderRow extends StatelessWidget {
                 onTap: onExpand,
                 child: Padding(
                   padding: const EdgeInsets.all(2),
-                  child: Icon(
-                    chevron,
-                    size: 16,
-                    color: HoodikColors.brownish200,
-                  ),
+                  child: Icon(chevron, size: 16, color: HoodikColors.iconMuted),
                 ),
               ),
               const SizedBox(width: 2),
@@ -160,7 +156,7 @@ class TreeFileRow extends StatelessWidget {
                   style: TextStyle(
                     color: isActive
                         ? HoodikColors.orangy500
-                        : HoodikColors.brownish100,
+                        : HoodikColors.textMuted,
                     fontSize: 13,
                   ),
                 ),

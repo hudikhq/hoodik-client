@@ -111,7 +111,7 @@ class FileSortButton extends StatelessWidget {
           Icon(
             icon,
             size: 18,
-            color: isActive ? HoodikColors.orangy500 : HoodikColors.brownish100,
+            color: isActive ? HoodikColors.orangy500 : HoodikColors.iconMuted,
           ),
           const SizedBox(width: 12),
           Expanded(

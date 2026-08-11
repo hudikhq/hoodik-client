@@ -212,7 +212,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
           ),
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: HoodikColors.redish400,
+              foregroundColor: HoodikColors.textCrimson,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(l10n.commonDelete),
@@ -287,7 +287,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
         body: Center(
           child: Text(
             AppLocalizations.of(context).previewNoPreviewableFiles,
-            style: const TextStyle(color: HoodikColors.brownish200),
+            style: const TextStyle(color: HoodikColors.textMuted),
           ),
         ),
       );

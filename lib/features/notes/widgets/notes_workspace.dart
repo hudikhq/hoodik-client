@@ -605,7 +605,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
           ),
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: HoodikColors.redish400,
+              foregroundColor: HoodikColors.textCrimson,
             ),
             onPressed: () => Navigator.pop(ctx, 'overwrite'),
             child: Text(l10n.notesConflictOverwrite),

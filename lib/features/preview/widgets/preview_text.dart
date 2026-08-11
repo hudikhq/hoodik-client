@@ -144,7 +144,7 @@ class _PreviewTextState extends ConsumerState<PreviewText> {
                   context,
                 ).previewShowingFirstMb(fmt.formatBytes(widget.file.size ?? 0)),
                 style: const TextStyle(
-                  color: HoodikColors.brownish200,
+                  color: HoodikColors.textMuted,
                   fontSize: 12,
                 ),
               ),

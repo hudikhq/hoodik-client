@@ -6,6 +6,7 @@ import '../../../core/utils/format.dart' as fmt;
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_colors.dart';
 
 /// Server settings: registration toggle, email verification, the sharing
 /// kill-switch (when the server reports it), and default quota.
@@ -134,7 +135,6 @@ class _AdminSettingsTabState extends ConsumerState<AdminSettingsTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
     if (_loading) {
@@ -267,7 +267,7 @@ class _AdminSettingsTabState extends ConsumerState<AdminSettingsTab>
                 onPressed: _testEmail,
                 child: Text(
                   l10n.adminSendTest,
-                  style: TextStyle(color: theme.colorScheme.primary),
+                  style: TextStyle(color: HoodikColors.textCrimson),
                 ),
               ),
             ),

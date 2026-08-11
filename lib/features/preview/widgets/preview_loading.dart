@@ -55,7 +55,7 @@ class PreviewLoading extends StatelessWidget {
                 height: 48,
                 child: CircularProgressIndicator(
                   value: isIndeterminate ? null : progress,
-                  color: HoodikColors.redish400,
+                  color: HoodikColors.iconCrimson,
                   strokeWidth: 3,
                 ),
               ),
@@ -66,7 +66,7 @@ class PreviewLoading extends StatelessWidget {
                       ? '$stage ${(progress! * 100).toInt()}%'
                       : '$stage...',
                   style: const TextStyle(
-                    color: HoodikColors.brownish200,
+                    color: HoodikColors.textMuted,
                     fontSize: 13,
                   ),
                 )
@@ -74,7 +74,7 @@ class PreviewLoading extends StatelessWidget {
                 Text(
                   '${(progress! * 100).toInt()}%',
                   style: const TextStyle(
-                    color: HoodikColors.brownish200,
+                    color: HoodikColors.textMuted,
                     fontSize: 13,
                   ),
                 ),

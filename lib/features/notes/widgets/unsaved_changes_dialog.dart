@@ -22,7 +22,9 @@ Future<UnsavedChangesChoice> showUnsavedChangesDialog(
           child: Text(l10n.commonCancel),
         ),
         TextButton(
-          style: TextButton.styleFrom(foregroundColor: HoodikColors.redish400),
+          style: TextButton.styleFrom(
+            foregroundColor: HoodikColors.textCrimson,
+          ),
           onPressed: () => Navigator.pop(ctx, UnsavedChangesChoice.discard),
           child: Text(l10n.notesDiscard),
         ),

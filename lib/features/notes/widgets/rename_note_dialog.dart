@@ -85,7 +85,7 @@ class _RenameNoteDialogState extends State<_RenameNoteDialog> {
                 Text(
                   _error!,
                   style: const TextStyle(
-                    color: HoodikColors.redish400,
+                    color: HoodikColors.textCrimson,
                     fontSize: 12,
                   ),
                 ),

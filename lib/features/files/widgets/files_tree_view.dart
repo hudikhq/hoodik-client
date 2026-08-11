@@ -339,7 +339,7 @@ class _FilesTreeViewState extends ConsumerState<FilesTreeView> {
             children: [
               const Icon(
                 Icons.error_outline,
-                color: HoodikColors.redish400,
+                color: HoodikColors.iconCrimson,
                 size: 28,
               ),
               const SizedBox(height: 8),
@@ -365,7 +365,7 @@ class _FilesTreeViewState extends ConsumerState<FilesTreeView> {
           padding: const EdgeInsets.all(24),
           child: Text(
             AppLocalizations.of(context).filesEmptyFolder,
-            style: const TextStyle(color: HoodikColors.brownish100),
+            style: const TextStyle(color: HoodikColors.textMuted),
           ),
         ),
       );

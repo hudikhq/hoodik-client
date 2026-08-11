@@ -245,7 +245,7 @@ class FormattingToolbar extends ConsumerWidget {
       icon: const Icon(
         Icons.more_horiz,
         size: 20,
-        color: HoodikColors.brownish100,
+        color: HoodikColors.iconMuted,
       ),
       onSelected: (action) {
         switch (action) {
@@ -361,7 +361,7 @@ class FormattingToolbar extends ConsumerWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(8),
-          child: Icon(icon, size: 20, color: HoodikColors.brownish100),
+          child: Icon(icon, size: 20, color: HoodikColors.iconMuted),
         ),
       ),
     );
@@ -378,7 +378,7 @@ class FormattingToolbar extends ConsumerWidget {
           child: Text(
             'H$level',
             style: const TextStyle(
-              color: HoodikColors.brownish100,
+              color: HoodikColors.textMuted,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -445,8 +445,8 @@ class _ZoomControls extends StatelessWidget {
                 Icons.zoom_out,
                 size: 20,
                 color: canZoomOut
-                    ? HoodikColors.brownish100
-                    : HoodikColors.brownish400,
+                    ? HoodikColors.iconMuted
+                    : HoodikColors.iconMuted,
               ),
             ),
           ),
@@ -464,7 +464,7 @@ class _ZoomControls extends StatelessWidget {
                   '$percent%',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: HoodikColors.brownish100,
+                    color: HoodikColors.textMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     fontFeatures: [FontFeature.tabularFigures()],
@@ -485,8 +485,8 @@ class _ZoomControls extends StatelessWidget {
                 Icons.zoom_in,
                 size: 20,
                 color: canZoomIn
-                    ? HoodikColors.brownish100
-                    : HoodikColors.brownish400,
+                    ? HoodikColors.iconMuted
+                    : HoodikColors.iconMuted,
               ),
             ),
           ),
@@ -506,7 +506,7 @@ class _MoreMenuItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: HoodikColors.brownish100),
+        Icon(icon, size: 18, color: HoodikColors.iconMuted),
         const SizedBox(width: 12),
         Text(label),
       ],

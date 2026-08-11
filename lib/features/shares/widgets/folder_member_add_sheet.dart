@@ -307,9 +307,7 @@ class _AllowAddFilesHint extends StatelessWidget {
         Icon(
           canAddFiles ? Icons.check_circle_outline : Icons.block,
           size: 16,
-          color: canAddFiles
-              ? HoodikColors.greeny300
-              : HoodikColors.brownish200,
+          color: canAddFiles ? HoodikColors.greeny300 : HoodikColors.iconMuted,
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -317,10 +315,7 @@ class _AllowAddFilesHint extends StatelessWidget {
             canAddFiles
                 ? l10n.sharesAllowAddFiles
                 : l10n.sharesPickEditorToEnable,
-            style: const TextStyle(
-              fontSize: 12,
-              color: HoodikColors.brownish100,
-            ),
+            style: const TextStyle(fontSize: 12, color: HoodikColors.textMuted),
           ),
         ),
       ],

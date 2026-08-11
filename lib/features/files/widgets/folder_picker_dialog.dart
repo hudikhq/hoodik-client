@@ -188,7 +188,7 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
                 separatorBuilder: (_, _) => const Icon(
                   Icons.chevron_right,
                   size: 16,
-                  color: HoodikColors.brownish300,
+                  color: HoodikColors.iconMuted,
                 ),
                 itemBuilder: (_, i) {
                   final isLast = i == _breadcrumbs.length - 1;
@@ -222,7 +222,7 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
                       child: Text(
                         AppLocalizations.of(context).filesNoSubfolders,
                         style: const TextStyle(
-                          color: HoodikColors.brownish300,
+                          color: HoodikColors.textMuted,
                           fontSize: 14,
                         ),
                       ),

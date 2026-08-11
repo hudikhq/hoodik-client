@@ -24,7 +24,7 @@ class HoodikTheme {
       primaryColor: HoodikColors.redish400,
       scaffoldBackgroundColor: HoodikColors.brownish900,
       barBackgroundColor: HoodikColors.brownish800,
-      textTheme: CupertinoTextThemeData(primaryColor: HoodikColors.redish400),
+      textTheme: CupertinoTextThemeData(primaryColor: HoodikColors.textCrimson),
     );
   }
 
@@ -118,6 +118,10 @@ class HoodikTheme {
           horizontal: 16,
           vertical: 14,
         ),
+        // Material defaults error text to `colorScheme.error`, which is the
+        // crimson fill at 2.4:1 — legible as a background, not as the line
+        // telling someone what they got wrong.
+        errorStyle: const TextStyle(color: HoodikColors.textCrimson),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -130,7 +134,7 @@ class HoodikTheme {
       ),
 
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: HoodikColors.redish200),
+        style: TextButton.styleFrom(foregroundColor: HoodikColors.textCrimson),
       ),
 
       dividerTheme: const DividerThemeData(
@@ -178,7 +182,7 @@ class HoodikTheme {
       snackBarTheme: const SnackBarThemeData(
         backgroundColor: HoodikColors.brownish800,
         contentTextStyle: TextStyle(color: HoodikColors.dirtyWhite),
-        actionTextColor: HoodikColors.redish200,
+        actionTextColor: HoodikColors.textCrimson,
         behavior: SnackBarBehavior.floating,
       ),
 
@@ -196,7 +200,7 @@ class HoodikTheme {
 
       tabBarTheme: const TabBarThemeData(
         labelColor: HoodikColors.dirtyWhite,
-        unselectedLabelColor: HoodikColors.brownish100,
+        unselectedLabelColor: HoodikColors.textMuted,
         indicatorColor: HoodikColors.redish400,
         dividerColor: HoodikColors.brownish600,
       ),
@@ -204,7 +208,7 @@ class HoodikTheme {
       iconTheme: const IconThemeData(color: HoodikColors.dirtyWhite),
 
       listTileTheme: const ListTileThemeData(
-        iconColor: HoodikColors.brownish100,
+        iconColor: HoodikColors.iconMuted,
         textColor: HoodikColors.dirtyWhite,
       ),
 

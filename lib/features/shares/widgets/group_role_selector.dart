@@ -48,7 +48,7 @@ class GroupRoleSelector extends StatelessWidget {
           l10n.sharesGroupRoleLabel,
           style: const TextStyle(
             fontSize: 12,
-            color: HoodikColors.brownish100,
+            color: HoodikColors.textMuted,
             letterSpacing: 0.5,
           ),
         ),
@@ -64,7 +64,7 @@ class GroupRoleSelector extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           _description(l10n, value),
-          style: const TextStyle(fontSize: 12, color: HoodikColors.brownish100),
+          style: const TextStyle(fontSize: 12, color: HoodikColors.textMuted),
         ),
       ],
     );

@@ -152,7 +152,7 @@ class _PreviewPdfState extends ConsumerState<PreviewPdf> {
             documentLoaderBuilder: (_) => const PreviewLoading(),
             pageLoaderBuilder: (_) => const Center(
               child: CircularProgressIndicator(
-                color: HoodikColors.redish400,
+                color: HoodikColors.iconCrimson,
                 strokeWidth: 2,
               ),
             ),
@@ -190,7 +190,7 @@ class _PreviewPdfState extends ConsumerState<PreviewPdf> {
                     context,
                   ).previewPageCounter(_currentPage, _totalPages),
                   style: const TextStyle(
-                    color: HoodikColors.brownish200,
+                    color: HoodikColors.textMuted,
                     fontSize: 13,
                   ),
                 ),

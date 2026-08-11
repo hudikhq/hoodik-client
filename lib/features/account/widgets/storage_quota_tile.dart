@@ -55,7 +55,7 @@ class StorageQuotaTile extends ConsumerWidget {
                 value: (usage.usedSpace / quota).clamp(0.0, 1.0),
                 minHeight: 4,
                 backgroundColor: HoodikColors.brownish500,
-                color: HoodikColors.redish400,
+                color: HoodikColors.iconCrimson,
               ),
             ),
             const SizedBox(height: 2),

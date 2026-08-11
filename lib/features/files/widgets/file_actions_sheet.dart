@@ -116,7 +116,7 @@ void showFileActionsSheet({
         _SheetAction(
           l10n.filesRemoveOfflineCopy,
           Icons.cloud_off,
-          HoodikColors.brownish200,
+          HoodikColors.iconMuted,
           () => callbacks.onRemoveOffline(file),
         )
       else
@@ -136,7 +136,7 @@ void showFileActionsSheet({
     _SheetAction(
       l10n.commonDelete,
       Icons.delete_outline,
-      HoodikColors.redish400,
+      HoodikColors.iconCrimson,
       () => callbacks.onDelete(file),
       isDestructive: true,
     ),
@@ -145,7 +145,7 @@ void showFileActionsSheet({
       _SheetAction(
         l10n.filesLeave,
         Icons.logout,
-        HoodikColors.redish400,
+        HoodikColors.iconCrimson,
         () => callbacks.onLeave!(file),
         isDestructive: true,
       ),
@@ -185,7 +185,7 @@ void showFileActionsSheet({
       _SheetAction(
         l10n.filesDetails,
         Icons.info_outline,
-        HoodikColors.brownish100,
+        HoodikColors.iconMuted,
         () => callbacks.onDetails(file),
       ),
     ],
@@ -357,7 +357,7 @@ Widget _sheetSectionHeader(String label) {
         style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: HoodikColors.brownish100,
+          color: HoodikColors.textMuted,
         ),
       ),
     ),

@@ -129,17 +129,17 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
         if (snapshot.hasError) {
           return Text(
             l10n.sharesRecipientsLoadFailed,
-            style: const TextStyle(fontSize: 12, color: HoodikColors.redish400),
+            style: const TextStyle(
+              fontSize: 12,
+              color: HoodikColors.textCrimson,
+            ),
           );
         }
         final recipients = snapshot.data ?? const [];
         if (recipients.isEmpty) {
           return Text(
             l10n.sharesNoAccessYet,
-            style: const TextStyle(
-              fontSize: 12,
-              color: HoodikColors.brownish100,
-            ),
+            style: const TextStyle(fontSize: 12, color: HoodikColors.textMuted),
           );
         }
         return Column(
@@ -149,7 +149,7 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
               l10n.sharesPeopleWithAccess,
               style: const TextStyle(
                 fontSize: 12,
-                color: HoodikColors.brownish100,
+                color: HoodikColors.textMuted,
                 letterSpacing: 0.5,
               ),
             ),
@@ -190,7 +190,7 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
                   style: const TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: HoodikColors.brownish100,
+                    color: HoodikColors.textMuted,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -205,7 +205,7 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
             icon: const Icon(
               Icons.person_remove_outlined,
               size: 18,
-              color: HoodikColors.redish400,
+              color: HoodikColors.iconCrimson,
             ),
             onPressed: () => _revoke(recipient),
           ),
@@ -229,7 +229,7 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
       ),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 11, color: HoodikColors.brownish100),
+        style: const TextStyle(fontSize: 11, color: HoodikColors.textMuted),
       ),
     );
   }

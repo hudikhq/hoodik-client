@@ -146,8 +146,8 @@ class FileGridItem extends StatelessWidget {
                                   : Icons.radio_button_unchecked,
                               size: 18,
                               color: isSelected
-                                  ? HoodikColors.redish400
-                                  : HoodikColors.brownish100,
+                                  ? HoodikColors.iconCrimson
+                                  : HoodikColors.iconMuted,
                             ),
                           ),
                         )

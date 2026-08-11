@@ -14,6 +14,7 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/screens/add_server_screen.dart' show selectedServerProvider;
+import '../../../core/theme/hoodik_colors.dart';
 
 /// Lists every account known to the app and lets the user switch between
 /// them. Hidden (collapses to `SizedBox.shrink`) when only one account
@@ -145,7 +146,7 @@ class _AccountSwitcherSectionState
                 entry.account.email,
                 style: isCurrent
                     ? TextStyle(
-                        color: theme.colorScheme.primary,
+                        color: HoodikColors.textCrimson,
                         fontWeight: FontWeight.w600,
                       )
                     : null,
@@ -158,7 +159,7 @@ class _AccountSwitcherSectionState
                       isApplePlatform
                           ? CupertinoIcons.checkmark_alt
                           : Icons.check,
-                      color: theme.colorScheme.primary,
+                      color: HoodikColors.iconCrimson,
                       size: 20,
                     )
                   : null,

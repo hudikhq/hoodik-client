@@ -77,7 +77,7 @@ class _NewNoteDialogState extends State<_NewNoteDialog> {
                 Text(
                   _error!,
                   style: const TextStyle(
-                    color: HoodikColors.redish400,
+                    color: HoodikColors.textCrimson,
                     fontSize: 12,
                   ),
                 ),

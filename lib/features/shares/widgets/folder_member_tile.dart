@@ -77,7 +77,7 @@ class FolderMemberTile extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 11,
                           fontFamily: 'monospace',
-                          color: HoodikColors.brownish100,
+                          color: HoodikColors.textMuted,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -89,7 +89,7 @@ class FolderMemberTile extends StatelessWidget {
                         '· ${_addedByLabel(l10n)}',
                         style: const TextStyle(
                           fontSize: 11,
-                          color: HoodikColors.brownish100,
+                          color: HoodikColors.textMuted,
                         ),
                       ),
                     ],
@@ -110,7 +110,7 @@ class FolderMemberTile extends StatelessWidget {
               icon: const Icon(
                 Icons.tune,
                 size: 18,
-                color: HoodikColors.brownish100,
+                color: HoodikColors.iconMuted,
               ),
               onPressed: member.email == null ? null : onChangeRole,
             ),
@@ -119,7 +119,7 @@ class FolderMemberTile extends StatelessWidget {
               icon: const Icon(
                 Icons.person_remove_outlined,
                 size: 18,
-                color: HoodikColors.redish400,
+                color: HoodikColors.iconCrimson,
               ),
               onPressed: onRevoke,
             ),
@@ -135,7 +135,7 @@ class FolderMemberTile extends StatelessWidget {
       ShareRole.editor => l10n.sharesRoleEditor,
       ShareRole.coOwner => l10n.sharesRoleCoOwner,
     };
-    return _pill(label, HoodikColors.brownish600, HoodikColors.brownish100);
+    return _pill(label, HoodikColors.brownish700, HoodikColors.textMuted);
   }
 
   Widget _ownerBadge(AppLocalizations l10n) => _pill(
@@ -154,12 +154,12 @@ class FolderMemberTile extends StatelessWidget {
       MemberSignatureStatus.failed => const Icon(
         Icons.gpp_bad_outlined,
         size: 13,
-        color: HoodikColors.redish400,
+        color: HoodikColors.iconCrimson,
       ),
       MemberSignatureStatus.legacy => const Icon(
         Icons.help_outline,
         size: 13,
-        color: HoodikColors.brownish200,
+        color: HoodikColors.iconMuted,
       ),
     };
   }
