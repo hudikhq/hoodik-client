@@ -12,6 +12,12 @@ source "$SCRIPT_DIR/lib.sh"
 STEP="preflight"
 START=$(rc_now_ms)
 
+# Every composite recipe starts here, and the log holds one run. Without the
+# truncate it accumulates, and summary.sh fails on any fail event still in the
+# file — so one bad run would leave the gate red forever.
+mkdir -p "$(dirname "$RELEASE_CHECK_LOG")"
+: > "$RELEASE_CHECK_LOG"
+
 fail() {
   local msg="$1"
   local dur=$(( $(rc_now_ms) - START ))
