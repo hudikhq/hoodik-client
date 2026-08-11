@@ -7,6 +7,8 @@ import '../../../core/services/sync_service.dart';
 import '../../../core/storage/database.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/adaptive.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Panel listing uploads that exhausted their retry budget so the user
 /// can either retry or discard them.
@@ -74,11 +76,7 @@ class _FailedUploadsPanelState extends ConsumerState<FailedUploadsPanel> {
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.error_outline,
-                color: HoodikColors.iconCrimson,
-                size: 16,
-              ),
+              Icon(AppIcons.error, color: HoodikColors.iconCrimson, size: 16),
               const SizedBox(width: 6),
               Text(
                 AppLocalizations.of(
@@ -151,14 +149,13 @@ class _FailedUploadRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(
-              Icons.close,
-              size: 16,
-              color: HoodikColors.iconMuted,
-            ),
+            icon: Icon(AppIcons.close, size: 16, color: HoodikColors.iconMuted),
             onPressed: onDiscard,
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            constraints: BoxConstraints(
+              minWidth: kMinTapTarget,
+              minHeight: kMinTapTarget,
+            ),
             tooltip: l10n.filesDiscard,
           ),
         ],

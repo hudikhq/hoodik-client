@@ -8,6 +8,7 @@ import '../../../core/auth/auth_state.dart';
 import '../../../core/providers.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 class SignOutSection extends ConsumerWidget {
   const SignOutSection({super.key});
@@ -30,7 +31,9 @@ class SignOutSection extends ConsumerWidget {
         AdaptiveListTile(
           key: const Key('signOutTile'),
           leading: Icon(
-            isApplePlatform ? CupertinoIcons.square_arrow_right : Icons.logout,
+            isApplePlatform
+                ? CupertinoIcons.square_arrow_right
+                : AppIcons.signOut,
             color: accentColor,
             size: 22,
           ),

@@ -26,6 +26,7 @@ import '../providers/notes_sidebar_notifier.dart';
 import 'new_folder_dialog.dart';
 import 'new_note_dialog.dart';
 import 'rename_note_dialog.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// True on platforms where touch is the primary interaction. On these, the
 /// row's kebab button is always visible because there's no hover to reveal
@@ -779,11 +780,7 @@ class _SidebarHeader extends StatelessWidget {
           value: 'note',
           child: Row(
             children: [
-              const Icon(
-                Icons.sticky_note_2_outlined,
-                size: 16,
-                color: HoodikColors.iconMuted,
-              ),
+              Icon(AppIcons.note, size: 16, color: HoodikColors.iconMuted),
               const SizedBox(width: 8),
               Text(AppLocalizations.of(context).notesNewNote),
             ],
@@ -827,7 +824,7 @@ class _SidebarHeader extends StatelessWidget {
                   child: Icon(
                     isApplePlatform
                         ? CupertinoIcons.chevron_left
-                        : Icons.arrow_back,
+                        : AppIcons.back,
                     size: 16,
                     color: HoodikColors.iconMuted,
                   ),
@@ -853,10 +850,10 @@ class _SidebarHeader extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(6),
                 onTap: () => _showCreateMenu(ctx),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(6),
                   child: Icon(
-                    Icons.add,
+                    AppIcons.add,
                     size: 16,
                     color: HoodikColors.iconCrimson,
                   ),
@@ -934,23 +931,20 @@ class _FolderRowState extends State<_FolderRow> {
       items: [
         PopupMenuItem<String>(
           value: 'rename',
-          child: _MenuRow(icon: Icons.edit, label: l10n.commonRename),
+          child: _MenuRow(icon: AppIcons.edit, label: l10n.commonRename),
         ),
         PopupMenuItem<String>(
           value: 'move',
-          child: _MenuRow(
-            icon: Icons.drive_file_move_outline,
-            label: l10n.commonMove,
-          ),
+          child: _MenuRow(icon: AppIcons.move, label: l10n.commonMove),
         ),
         PopupMenuItem<String>(
           value: 'details',
-          child: _MenuRow(icon: Icons.info_outline, label: l10n.notesDetails),
+          child: _MenuRow(icon: AppIcons.info, label: l10n.notesDetails),
         ),
         PopupMenuItem<String>(
           value: 'delete',
           child: _MenuRow(
-            icon: Icons.delete_outline,
+            icon: AppIcons.delete,
             label: l10n.commonDelete,
             color: HoodikColors.textCrimson,
           ),
@@ -977,7 +971,7 @@ class _FolderRowState extends State<_FolderRow> {
         ? (widget.isExpanded
               ? CupertinoIcons.chevron_down
               : CupertinoIcons.chevron_right)
-        : (widget.isExpanded ? Icons.expand_more : Icons.chevron_right);
+        : (widget.isExpanded ? AppIcons.expand : AppIcons.chevronForward);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 1),
@@ -1010,7 +1004,7 @@ class _FolderRowState extends State<_FolderRow> {
                     Icon(chevron, size: 14, color: HoodikColors.iconMuted),
                     const SizedBox(width: 4),
                     Icon(
-                      widget.isExpanded ? Icons.folder_open : Icons.folder,
+                      widget.isExpanded ? AppIcons.folderOpen : AppIcons.folder,
                       size: 15,
                       color: HoodikColors.orangy400,
                     ),
@@ -1120,27 +1114,24 @@ class _NoteRowState extends State<_NoteRow> {
       items: [
         PopupMenuItem<String>(
           value: 'rename',
-          child: _MenuRow(icon: Icons.edit, label: l10n.commonRename),
+          child: _MenuRow(icon: AppIcons.edit, label: l10n.commonRename),
         ),
         PopupMenuItem<String>(
           value: 'export',
-          child: _MenuRow(icon: Icons.save_alt, label: l10n.notesExport),
+          child: _MenuRow(icon: AppIcons.download, label: l10n.notesExport),
         ),
         PopupMenuItem<String>(
           value: 'move',
-          child: _MenuRow(
-            icon: Icons.drive_file_move_outline,
-            label: l10n.commonMove,
-          ),
+          child: _MenuRow(icon: AppIcons.move, label: l10n.commonMove),
         ),
         PopupMenuItem<String>(
           value: 'details',
-          child: _MenuRow(icon: Icons.info_outline, label: l10n.notesDetails),
+          child: _MenuRow(icon: AppIcons.info, label: l10n.notesDetails),
         ),
         PopupMenuItem<String>(
           value: 'delete',
           child: _MenuRow(
-            icon: Icons.delete_outline,
+            icon: AppIcons.delete,
             label: l10n.commonDelete,
             color: HoodikColors.textCrimson,
           ),
@@ -1194,7 +1185,7 @@ class _NoteRowState extends State<_NoteRow> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.sticky_note_2_outlined,
+                      AppIcons.note,
                       size: 14,
                       color: widget.isActive
                           ? HoodikColors.iconCrimson
@@ -1265,10 +1256,10 @@ class _NoteRowActionButton extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(4),
           onTap: onTap,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.all(4),
             child: Icon(
-              Icons.more_horiz,
+              AppIcons.overflowHorizontal,
               size: 14,
               color: HoodikColors.iconMuted,
             ),
@@ -1316,11 +1307,7 @@ class _SidebarError extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.error_outline,
-            size: 20,
-            color: HoodikColors.iconCrimson,
-          ),
+          Icon(AppIcons.error, size: 20, color: HoodikColors.iconCrimson),
           const SizedBox(height: 8),
           Text(
             l10n.notesLoadFailed,

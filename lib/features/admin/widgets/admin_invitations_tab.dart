@@ -10,6 +10,7 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'admin_users_tab.dart' show PaginationBar;
+import '../../../core/widgets/app_icons.dart';
 
 /// Lists invitations with create / expire actions.
 class AdminInvitationsTab extends ConsumerStatefulWidget {
@@ -181,7 +182,7 @@ class _AdminInvitationsTabState extends ConsumerState<AdminInvitationsTab>
               ),
               FilledButton.icon(
                 onPressed: _createInvitation,
-                icon: const Icon(Icons.add, size: 18),
+                icon: Icon(AppIcons.add, size: 18),
                 label: Text(l10n.adminInvite),
                 style: FilledButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -273,7 +274,9 @@ class _InvitationTile extends StatelessWidget {
         backgroundColor: statusColor.withValues(alpha: 0.12),
         child: Icon(
           invitation.isRedeemed
-              ? (isApplePlatform ? CupertinoIcons.checkmark_alt : Icons.check)
+              ? (isApplePlatform
+                    ? CupertinoIcons.checkmark_alt
+                    : AppIcons.check)
               : (isApplePlatform ? CupertinoIcons.mail : Icons.mail_outline),
           size: 18,
           color: statusColor,

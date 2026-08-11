@@ -5,6 +5,7 @@ import '../../../core/crypto/file_crypto.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Result of the folder picker dialog.
 ///
@@ -157,7 +158,7 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
           title: Text(widget.title),
           leading: IconButton(
             tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-            icon: const Icon(Icons.close),
+            icon: Icon(AppIcons.close),
             onPressed: () => Navigator.pop(context),
           ),
           actions: [
@@ -185,8 +186,8 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _breadcrumbs.length,
-                separatorBuilder: (_, _) => const Icon(
-                  Icons.chevron_right,
+                separatorBuilder: (_, _) => Icon(
+                  AppIcons.chevronForward,
                   size: 16,
                   color: HoodikColors.iconMuted,
                 ),
@@ -233,12 +234,12 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
                         final dir = _dirs[i];
                         final name = _names[dir.id] ?? dir.id.substring(0, 8);
                         return ListTile(
-                          leading: const Icon(
-                            Icons.folder,
+                          leading: Icon(
+                            AppIcons.folder,
                             color: HoodikColors.orangy600,
                           ),
                           title: Text(name),
-                          trailing: const Icon(Icons.chevron_right),
+                          trailing: Icon(AppIcons.chevronForward),
                           onTap: () => _navigateInto(dir),
                         );
                       },

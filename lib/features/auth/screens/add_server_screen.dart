@@ -14,6 +14,7 @@ import '../../../core/storage/database.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../widgets/cloud_nudge.dart';
 import '../../../core/theme/hoodik_colors.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Shown as the selected server for the login screen.
 final selectedServerProvider = StateProvider<Server?>((ref) => null);
@@ -135,7 +136,7 @@ class _AddServerScreenState extends ConsumerState<AddServerScreen> {
               leading: IconButton(
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                 icon: Icon(
-                  isApplePlatform ? CupertinoIcons.back : Icons.arrow_back,
+                  isApplePlatform ? CupertinoIcons.back : AppIcons.back,
                 ),
                 onPressed: () => Navigator.of(context).pop(),
               ),
@@ -197,7 +198,7 @@ class _AddServerScreenState extends ConsumerState<AddServerScreen> {
                               ? const CupertinoListTileChevron()
                               : IconButton(
                                   icon: Icon(
-                                    Icons.delete_outline,
+                                    AppIcons.delete,
                                     color: theme.colorScheme.error,
                                     size: 20,
                                   ),

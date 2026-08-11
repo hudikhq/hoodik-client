@@ -9,6 +9,7 @@ import '../../../core/providers.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Paginated user list with search. Tapping a row pushes to user detail.
 class AdminUsersTab extends ConsumerStatefulWidget {
@@ -116,7 +117,7 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab>
             onChanged: _onSearchChanged,
             decoration: InputDecoration(
               hintText: l10n.adminSearchUsersHint,
-              prefixIcon: const Icon(Icons.search, size: 20),
+              prefixIcon: Icon(AppIcons.search, size: 20),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       tooltip: MaterialLocalizations.of(
@@ -259,7 +260,9 @@ class _UserTile extends StatelessWidget {
         ),
       ),
       trailing: Icon(
-        isApplePlatform ? CupertinoIcons.chevron_right : Icons.chevron_right,
+        isApplePlatform
+            ? CupertinoIcons.chevron_right
+            : AppIcons.chevronForward,
         size: 16,
         color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
       ),
@@ -317,7 +320,7 @@ class PaginationBar extends StatelessWidget {
               ),
               IconButton(
                 tooltip: MaterialLocalizations.of(context).nextPageTooltip,
-                icon: const Icon(Icons.chevron_right, size: 20),
+                icon: Icon(AppIcons.chevronForward, size: 20),
                 onPressed: onNext,
                 visualDensity: VisualDensity.compact,
               ),

@@ -16,6 +16,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../files/helpers/file_helpers.dart';
 import '../../files/widgets/file_list_item.dart';
 import '../../preview/providers/preview_providers.dart';
+import '../../../core/widgets/app_icons.dart';
 
 const _log = Logger('SearchScreen');
 
@@ -307,7 +308,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.search,
+              AppIcons.search,
               size: 64,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
             ),

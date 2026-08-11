@@ -18,6 +18,7 @@ import 'package:hoodik_app/features/shares/shared_constants.dart';
 import 'package:hoodik_app/l10n/generated/app_localizations.dart';
 
 import '../../helpers/fakes.dart';
+import 'package:hoodik_app/core/widgets/app_icons.dart';
 
 FileItem _recipientRow() {
   return FileItem(
@@ -171,7 +172,7 @@ void main() {
     testWidgets('a normal folder renders the kebab', (tester) async {
       final folder = FileItem(id: 'dir-1', encryptedName: 'enc', mime: 'dir');
       await tester.pumpWidget(_wrapTile(folder, sharingEnabled: true));
-      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+      expect(find.byIcon(AppIcons.overflowVertical), findsOneWidget);
     });
 
     testWidgets('the "Shared with me" virtual folder renders no kebab', (
@@ -180,7 +181,7 @@ void main() {
       await tester.pumpWidget(
         _wrapTile(sharedWithMeFolder(), sharingEnabled: true),
       );
-      expect(find.byIcon(Icons.more_vert), findsNothing);
+      expect(find.byIcon(AppIcons.overflowVertical), findsNothing);
     });
   });
 
@@ -194,7 +195,7 @@ void main() {
         mime: 'dir',
       );
       expect(fileIcon(synthetic), Icons.folder_shared);
-      expect(fileIcon(plainFolder), Icons.folder);
+      expect(fileIcon(plainFolder), AppIcons.folder);
       expect(fileIconColor(synthetic), isNot(fileIconColor(plainFolder)));
     });
 

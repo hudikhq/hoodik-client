@@ -12,6 +12,7 @@ import '../../shares/shared_constants.dart';
 import '../providers/files_notifier.dart';
 import 'failed_uploads_badge.dart';
 import 'file_sort_controls.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// App bar for the files screen with two modes:
 /// - Normal: title, search, refresh, offline chip, view mode, sort,
@@ -89,7 +90,10 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
       leading: IconButton(
         tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
         icon: Icon(
-          adaptiveIcon(material: Icons.close, cupertino: CupertinoIcons.xmark),
+          adaptiveIcon(
+            material: AppIcons.close,
+            cupertino: CupertinoIcons.xmark,
+          ),
         ),
         onPressed: onExitSelection,
       ),
@@ -98,7 +102,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
         IconButton(
           icon: Icon(
             adaptiveIcon(
-              material: Icons.drive_file_move_outline,
+              material: AppIcons.move,
               cupertino: CupertinoIcons.folder_badge_plus,
             ),
           ),
@@ -108,7 +112,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
         IconButton(
           icon: Icon(
             adaptiveIcon(
-              material: Icons.delete_outline,
+              material: AppIcons.delete,
               cupertino: CupertinoIcons.trash,
             ),
           ),
@@ -132,7 +136,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
               tooltip: MaterialLocalizations.of(context).backButtonTooltip,
               icon: Icon(
                 adaptiveIcon(
-                  material: Icons.arrow_back,
+                  material: AppIcons.back,
                   cupertino: CupertinoIcons.back,
                 ),
               ),
@@ -144,7 +148,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
         IconButton(
           icon: Icon(
             adaptiveIcon(
-              material: Icons.search,
+              material: AppIcons.search,
               cupertino: CupertinoIcons.search,
             ),
           ),
@@ -155,7 +159,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
           IconButton(
             icon: Icon(
               adaptiveIcon(
-                material: Icons.refresh,
+                material: AppIcons.refresh,
                 cupertino: CupertinoIcons.arrow_clockwise,
               ),
             ),
@@ -275,11 +279,7 @@ class _ViewModeButton extends ConsumerWidget {
               ),
               if (selected) ...[
                 const Spacer(),
-                const Icon(
-                  Icons.check,
-                  size: 16,
-                  color: HoodikColors.orangy500,
-                ),
+                Icon(AppIcons.check, size: 16, color: HoodikColors.orangy500),
               ],
             ],
           ),

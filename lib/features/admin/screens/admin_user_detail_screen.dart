@@ -10,6 +10,7 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/theme/hoodik_colors.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Detail screen for a single user. Shows info, storage breakdown, sessions,
 /// and admin actions (edit role/quota, disable 2FA, delete).
@@ -302,7 +303,7 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
           trailing: IconButton(
             tooltip: l10n.commonCopy,
             icon: Icon(
-              isApplePlatform ? CupertinoIcons.doc_on_doc : Icons.copy,
+              isApplePlatform ? CupertinoIcons.doc_on_doc : AppIcons.copy,
               size: 16,
             ),
             onPressed: () {
@@ -435,7 +436,7 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
         if (user.hasTfa)
           AdaptiveListTile(
             leading: Icon(
-              Icons.lock_open,
+              AppIcons.unlocked,
               size: 20,
               color: theme.colorScheme.error,
             ),
@@ -448,7 +449,7 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
         if (_sessions.isNotEmpty)
           AdaptiveListTile(
             leading: Icon(
-              Icons.logout,
+              AppIcons.signOut,
               size: 20,
               color: theme.colorScheme.error,
             ),

@@ -5,6 +5,7 @@ import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../models/editor_tab.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Horizontally scrollable tab bar for open notes.
 ///
@@ -173,7 +174,7 @@ class _TabItem extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(6),
                   child: Icon(
-                    isApplePlatform ? CupertinoIcons.xmark : Icons.close,
+                    isApplePlatform ? CupertinoIcons.xmark : AppIcons.close,
                     size: 12,
                     color: HoodikColors.iconMuted,
                   ),

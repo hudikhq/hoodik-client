@@ -6,6 +6,7 @@ import '../../../core/utils/l10n_lookup.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../../shares/shared_constants.dart';
 import 'file_context_menu.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Callbacks the menu-actions builder needs. Grouped so the call site
 /// passes one object instead of a long parameter list.
@@ -77,21 +78,21 @@ List<FileMenuAction> buildFileMenuActions({
   return [
     if (!file.isDir && isPreviewable(file))
       FileMenuAction(
-        icon: Icons.visibility,
+        icon: AppIcons.preview,
         iconColor: HoodikColors.greeny400,
         label: ambientL10n.filesPreview,
         onTap: () => callbacks.onPreview(file),
       ),
     if (!file.isDir && file.mime == 'text/markdown' && !file.editable)
       FileMenuAction(
-        icon: Icons.edit_note,
+        icon: AppIcons.noteEdit,
         iconColor: HoodikColors.orangy400,
         label: ambientL10n.filesConvertToNote,
         onTap: () => callbacks.onConvertToNote(file),
       ),
     if (!file.isDir) ...[
       FileMenuAction(
-        icon: Icons.save_alt,
+        icon: AppIcons.download,
         iconColor: HoodikColors.blueish300,
         label: ambientL10n.filesExport,
         onTap: () => callbacks.onDownload(file),
@@ -105,20 +106,20 @@ List<FileMenuAction> buildFileMenuActions({
         )
       else
         FileMenuAction(
-          icon: Icons.cloud_download,
+          icon: AppIcons.cloudDownload,
           iconColor: HoodikColors.greeny400,
           label: ambientL10n.filesMakeAvailableOffline,
           onTap: () => callbacks.onMakeOffline(file),
         ),
     ],
     FileMenuAction(
-      icon: Icons.edit,
+      icon: AppIcons.edit,
       iconColor: HoodikColors.orangy400,
       label: ambientL10n.commonRename,
       onTap: () => callbacks.onRename(file),
     ),
     FileMenuAction(
-      icon: Icons.delete_outline,
+      icon: AppIcons.delete,
       iconColor: HoodikColors.iconCrimson,
       label: ambientL10n.commonDelete,
       onTap: () => callbacks.onDelete(file),
@@ -126,7 +127,7 @@ List<FileMenuAction> buildFileMenuActions({
     if (callbacks.onLeave != null &&
         canLeaveFile(file, sharingEnabled: sharingEnabled))
       FileMenuAction(
-        icon: Icons.logout,
+        icon: AppIcons.signOut,
         iconColor: HoodikColors.iconCrimson,
         label: ambientL10n.filesLeave,
         onTap: () => callbacks.onLeave!(file),
@@ -135,14 +136,14 @@ List<FileMenuAction> buildFileMenuActions({
         callbacks.onShare != null &&
         canShareFolder(file, sharingEnabled: sharingEnabled))
       FileMenuAction(
-        icon: Icons.group_outlined,
+        icon: AppIcons.members,
         iconColor: HoodikColors.greeny400,
         label: ambientL10n.filesMembers,
         onTap: () => callbacks.onShare!(file),
       ),
     if (!file.isDir) ...[
       FileMenuAction(
-        icon: Icons.link,
+        icon: AppIcons.link,
         iconColor: HoodikColors.blueish400,
         label: ambientL10n.filesCreateLink,
         onTap: () => callbacks.onCreateLink(file),
@@ -150,7 +151,7 @@ List<FileMenuAction> buildFileMenuActions({
       if (callbacks.onShare != null &&
           canShareFile(file, sharingEnabled: sharingEnabled))
         FileMenuAction(
-          icon: Icons.group_add_outlined,
+          icon: AppIcons.memberAdd,
           iconColor: HoodikColors.greeny400,
           label: ambientL10n.commonShare,
           onTap: () => callbacks.onShare!(file),
@@ -158,13 +159,13 @@ List<FileMenuAction> buildFileMenuActions({
       if (callbacks.onFork != null &&
           canFork(file, sharingEnabled: sharingEnabled))
         FileMenuAction(
-          icon: Icons.drive_file_move_outline,
+          icon: AppIcons.move,
           iconColor: HoodikColors.blueish300,
           label: ambientL10n.filesSaveToMyDrive,
           onTap: () => callbacks.onFork!(file),
         ),
       FileMenuAction(
-        icon: Icons.info_outline,
+        icon: AppIcons.info,
         iconColor: HoodikColors.iconMuted,
         label: ambientL10n.filesDetails,
         onTap: () => callbacks.onDetails(file),

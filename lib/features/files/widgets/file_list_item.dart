@@ -7,6 +7,7 @@ import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shares/shared_constants.dart';
 import '../helpers/file_helpers.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// A single row in the file list, displaying a file or folder.
 class FileListItem extends StatelessWidget {
@@ -67,7 +68,11 @@ class FileListItem extends StatelessWidget {
         subtitle: Row(
           children: [
             if (!file.isDir && isOffline) ...[
-              Icon(Icons.offline_pin, size: 13, color: HoodikColors.greeny300),
+              Icon(
+                AppIcons.offlineAvailable,
+                size: 13,
+                color: HoodikColors.greeny300,
+              ),
               const SizedBox(width: 4),
             ],
             // Surfaced when another session is in the middle of saving
@@ -89,7 +94,7 @@ class FileListItem extends StatelessWidget {
               const SizedBox(width: 6),
             ],
             if (sharedWithLabel != null) ...[
-              _SharePill(icon: Icons.group_outlined, label: sharedWithLabel),
+              _SharePill(icon: AppIcons.members, label: sharedWithLabel),
               const SizedBox(width: 6),
             ],
             Expanded(
@@ -119,7 +124,7 @@ class FileListItem extends StatelessWidget {
                   if (file.id != sharedWithMeDirId)
                     Builder(
                       builder: (ctx) => IconButton(
-                        icon: const Icon(Icons.more_vert),
+                        icon: Icon(AppIcons.overflowVertical),
                         tooltip: l10n.filesMoreActions,
                         visualDensity: VisualDensity.compact,
                         onPressed: () {
@@ -131,7 +136,7 @@ class FileListItem extends StatelessWidget {
                         },
                       ),
                     ),
-                  if (file.isDir) const Icon(Icons.chevron_right),
+                  if (file.isDir) Icon(AppIcons.chevronForward),
                 ],
               ),
         selected: isSelected,

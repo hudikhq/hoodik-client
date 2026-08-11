@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
 import 'package:hoodik_app/features/files/widgets/file_grid_item.dart';
 import 'package:hoodik_app/features/shares/shared_constants.dart';
+import 'package:hoodik_app/core/widgets/app_icons.dart';
 
 Widget _wrap(
   FileItem file, {
@@ -39,8 +40,8 @@ void main() {
         ),
       );
 
-      expect(find.byIcon(Icons.more_vert), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.more_vert));
+      expect(find.byIcon(AppIcons.overflowVertical), findsOneWidget);
+      await tester.tap(find.byIcon(AppIcons.overflowVertical));
       await tester.pump();
       expect(requested, isNotNull);
     });
@@ -50,7 +51,7 @@ void main() {
     ) async {
       await tester.pumpWidget(_wrap(sharedWithMeFolder()));
 
-      expect(find.byIcon(Icons.more_vert), findsNothing);
+      expect(find.byIcon(AppIcons.overflowVertical), findsNothing);
     });
 
     testWidgets('selection mode hides the kebab for a normal folder too', (
@@ -63,7 +64,7 @@ void main() {
         ),
       );
 
-      expect(find.byIcon(Icons.more_vert), findsNothing);
+      expect(find.byIcon(AppIcons.overflowVertical), findsNothing);
     });
   });
 }

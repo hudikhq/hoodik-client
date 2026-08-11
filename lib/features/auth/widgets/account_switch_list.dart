@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/storage/database.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// An account other than the one the unlock screen currently targets, offered
 /// in the "switch account" list.
@@ -106,7 +107,7 @@ class _AccountRow extends StatelessWidget {
               ),
             ),
             Icon(
-              Icons.chevron_right,
+              AppIcons.chevronForward,
               size: 20,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),

@@ -5,6 +5,7 @@ import '../../../core/providers.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../services/trusted_fingerprint_dao.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Emails of every peer the active account has previously shared with,
 /// sorted, for recipient autocomplete. Rows recorded before the email
@@ -101,7 +102,7 @@ class _RecipientEmailFieldState extends ConsumerState<RecipientEmailField> {
                   for (final email in options)
                     ListTile(
                       dense: true,
-                      leading: const Icon(Icons.history, size: 18),
+                      leading: Icon(AppIcons.history, size: 18),
                       title: Text(
                         email,
                         maxLines: 1,

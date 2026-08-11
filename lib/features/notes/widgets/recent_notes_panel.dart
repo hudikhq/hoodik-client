@@ -13,6 +13,7 @@ import '../../../core/utils/logger.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/helpers/file_helpers.dart';
+import '../../../core/widgets/app_icons.dart';
 
 const _log = Logger('RecentNotesPanel');
 
@@ -174,11 +175,7 @@ class RecentNotesPanelState extends ConsumerState<RecentNotesPanel> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.error_outline,
-                size: 32,
-                color: HoodikColors.iconCrimson,
-              ),
+              Icon(AppIcons.error, size: 32, color: HoodikColors.iconCrimson),
               const SizedBox(height: 12),
               Text(
                 _error!,
@@ -238,7 +235,7 @@ class _RecentHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
         children: [
-          const Icon(Icons.history, size: 16, color: HoodikColors.iconMuted),
+          Icon(AppIcons.history, size: 16, color: HoodikColors.iconMuted),
           const SizedBox(width: 8),
           Text(
             AppLocalizations.of(context).notesRecentHeader,
@@ -272,10 +269,7 @@ class _NoteTile extends StatelessWidget {
 
     return ListTile(
       onTap: onTap,
-      leading: const Icon(
-        Icons.sticky_note_2_outlined,
-        color: HoodikColors.orangy500,
-      ),
+      leading: Icon(AppIcons.note, color: HoodikColors.orangy500),
       title: Tooltip(
         message: name,
         waitDuration: const Duration(milliseconds: 400),
@@ -306,11 +300,7 @@ class _NotesEmptyIllustration extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.sticky_note_2_outlined,
-              size: 48,
-              color: HoodikColors.iconMuted,
-            ),
+            Icon(AppIcons.note, size: 48, color: HoodikColors.iconMuted),
             const SizedBox(height: 12),
             Text(
               l10n.notesEmptyTitle,

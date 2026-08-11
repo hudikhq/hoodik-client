@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/widgets/app_notification.dart';
+import 'package:hoodik_app/core/widgets/app_icons.dart';
 
 void main() {
   tearDown(() => AppNotification.dismiss());
@@ -48,7 +49,7 @@ void main() {
       await tester.tap(find.text('Show'));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      expect(find.byIcon(AppIcons.success), findsOneWidget);
     });
 
     testWidgets('shows error_outline icon for error type', (tester) async {
@@ -70,7 +71,7 @@ void main() {
       await tester.tap(find.text('Show'));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+      expect(find.byIcon(AppIcons.error), findsOneWidget);
     });
 
     testWidgets('shows info_outline icon for info type', (tester) async {
@@ -92,7 +93,7 @@ void main() {
       await tester.tap(find.text('Show'));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.info_outline), findsOneWidget);
+      expect(find.byIcon(AppIcons.info), findsOneWidget);
     });
 
     testWidgets('auto-dismisses after duration', (tester) async {

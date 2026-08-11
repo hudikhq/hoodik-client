@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hoodik_app/features/search/screens/search_screen.dart';
 import 'package:hoodik_app/l10n/generated/app_localizations.dart';
+import 'package:hoodik_app/core/widgets/app_icons.dart';
 
 void main() {
   group('SearchScreen', () {
@@ -20,7 +21,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Search your files'), findsOneWidget);
-      expect(find.byIcon(Icons.search), findsWidgets);
+      expect(find.byIcon(AppIcons.search), findsWidgets);
     });
 
     testWidgets('shows text field with autofocus', (tester) async {

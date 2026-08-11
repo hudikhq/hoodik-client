@@ -13,6 +13,7 @@ import 'file_list_item.dart';
 import 'file_sort_controls.dart';
 import 'files_drag_feedback.dart';
 import 'files_tree_view.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Renders the file listing for the active directory in whichever view
 /// mode (list / icons / tree) the user picked. Owns the drag-and-drop
@@ -120,7 +121,7 @@ class FilesList extends ConsumerWidget {
         color: HoodikColors.redish400,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        child: const Icon(Icons.delete_outline, color: Colors.white),
+        child: Icon(AppIcons.delete, color: Colors.white),
       ),
       child: child,
     );

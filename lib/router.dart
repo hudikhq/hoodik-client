@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'core/theme/hoodik_colors.dart';
 import 'core/widgets/adaptive.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'features/auth/screens/add_server_screen.dart';
@@ -369,6 +370,43 @@ class MainShell extends ConsumerWidget {
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     final hideTabBar = notesActive && keyboardOpen;
 
+    final destinations = _destinations(l10n);
+
+    // A window wide enough for a rail gets one: the five sections move to the
+    // leading edge and the bottom belongs to content again. Driven by the
+    // width the shell is handed, so an iPad in Split View or a half-width
+    // macOS window correctly stays on the tab bar.
+    if (isExpandedWidth(context)) {
+      final content = Column(
+        children: [
+          Expanded(child: ShellBranchInsets(child: navigationShell)),
+          if (showOverlay && !notesActive) const TransferOverlay(),
+        ],
+      );
+
+      return Scaffold(
+        resizeToAvoidBottomInset: !notesActive,
+        body: SafeArea(
+          bottom: false,
+          child: Row(
+            children: [
+              _ShellRail(
+                destinations: destinations,
+                currentIndex: currentIndex,
+                onSelected: _onTap,
+              ),
+              const VerticalDivider(
+                width: 0.5,
+                thickness: 0.5,
+                color: HoodikColors.brownish600,
+              ),
+              Expanded(child: content),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (isApplePlatform) {
       return CupertinoPageScaffold(
         // The notes editor anchors its toolbar above the keyboard and
@@ -386,31 +424,12 @@ class MainShell extends ConsumerWidget {
                 onTap: _onTap,
                 activeColor: CupertinoTheme.of(context).primaryColor,
                 items: [
-                  BottomNavigationBarItem(
-                    icon: const Icon(CupertinoIcons.folder),
-                    activeIcon: const Icon(CupertinoIcons.folder_fill),
-                    label: l10n.tabFiles,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(CupertinoIcons.doc_text),
-                    activeIcon: const Icon(CupertinoIcons.doc_text_fill),
-                    label: l10n.tabNotes,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(CupertinoIcons.search),
-                    activeIcon: const Icon(CupertinoIcons.search),
-                    label: l10n.tabSearch,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(CupertinoIcons.share),
-                    activeIcon: const Icon(CupertinoIcons.share_solid),
-                    label: l10n.tabShare,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(CupertinoIcons.person),
-                    activeIcon: const Icon(CupertinoIcons.person_fill),
-                    label: l10n.tabAccount,
-                  ),
+                  for (final d in destinations)
+                    BottomNavigationBarItem(
+                      icon: Icon(d.cupertino),
+                      activeIcon: Icon(d.cupertinoActive),
+                      label: d.label,
+                    ),
                 ],
               ),
           ],
@@ -432,33 +451,117 @@ class MainShell extends ConsumerWidget {
               selectedIndex: currentIndex,
               onDestinationSelected: _onTap,
               destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.folder_outlined),
-                  selectedIcon: const Icon(Icons.folder),
-                  label: l10n.tabFiles,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.sticky_note_2_outlined),
-                  selectedIcon: const Icon(Icons.sticky_note_2),
-                  label: l10n.tabNotes,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.search_outlined),
-                  selectedIcon: const Icon(Icons.search),
-                  label: l10n.tabSearch,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.share_outlined),
-                  selectedIcon: const Icon(Icons.share),
-                  label: l10n.tabShare,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.person_outline),
-                  selectedIcon: const Icon(Icons.person),
-                  label: l10n.tabAccount,
-                ),
+                for (final d in destinations)
+                  NavigationDestination(
+                    icon: Icon(d.material),
+                    selectedIcon: Icon(d.materialActive),
+                    label: d.label,
+                  ),
               ],
             ),
+    );
+  }
+
+  List<_ShellDestination> _destinations(AppLocalizations l10n) => [
+    _ShellDestination(
+      label: l10n.tabFiles,
+      material: Icons.folder_outlined,
+      materialActive: Icons.folder,
+      cupertino: CupertinoIcons.folder,
+      cupertinoActive: CupertinoIcons.folder_fill,
+    ),
+    _ShellDestination(
+      label: l10n.tabNotes,
+      material: Icons.sticky_note_2_outlined,
+      materialActive: Icons.sticky_note_2,
+      cupertino: CupertinoIcons.doc_text,
+      cupertinoActive: CupertinoIcons.doc_text_fill,
+    ),
+    _ShellDestination(
+      label: l10n.tabSearch,
+      material: Icons.search_outlined,
+      materialActive: Icons.search,
+      cupertino: CupertinoIcons.search,
+      cupertinoActive: CupertinoIcons.search,
+    ),
+    _ShellDestination(
+      label: l10n.tabShare,
+      material: Icons.share_outlined,
+      materialActive: Icons.share,
+      cupertino: CupertinoIcons.share,
+      cupertinoActive: CupertinoIcons.share_solid,
+    ),
+    _ShellDestination(
+      label: l10n.tabAccount,
+      material: Icons.person_outline,
+      materialActive: Icons.person,
+      cupertino: CupertinoIcons.person,
+      cupertinoActive: CupertinoIcons.person_fill,
+    ),
+  ];
+}
+
+/// One top-level section, carrying both platforms' glyph pair so the tab bar,
+/// nav bar and rail all read from a single list.
+class _ShellDestination {
+  const _ShellDestination({
+    required this.label,
+    required this.material,
+    required this.materialActive,
+    required this.cupertino,
+    required this.cupertinoActive,
+  });
+
+  final String label;
+  final IconData material;
+  final IconData materialActive;
+  final IconData cupertino;
+  final IconData cupertinoActive;
+}
+
+/// Leading-edge navigation for expanded windows. Wears the app-bar shade so
+/// it reads as chrome against the body, and keeps each platform's own glyphs
+/// rather than flattening both to Material.
+class _ShellRail extends StatelessWidget {
+  const _ShellRail({
+    required this.destinations,
+    required this.currentIndex,
+    required this.onSelected,
+  });
+
+  final List<_ShellDestination> destinations;
+  final int currentIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return NavigationRail(
+      selectedIndex: currentIndex,
+      onDestinationSelected: onSelected,
+      labelType: NavigationRailLabelType.all,
+      backgroundColor: HoodikColors.brownish800,
+      indicatorColor: HoodikColors.redish700,
+      selectedIconTheme: const IconThemeData(color: HoodikColors.dirtyWhite),
+      unselectedIconTheme: const IconThemeData(color: HoodikColors.iconMuted),
+      selectedLabelTextStyle: const TextStyle(
+        color: HoodikColors.dirtyWhite,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+      unselectedLabelTextStyle: const TextStyle(
+        color: HoodikColors.textMuted,
+        fontSize: 12,
+      ),
+      destinations: [
+        for (final d in destinations)
+          NavigationRailDestination(
+            icon: Icon(isApplePlatform ? d.cupertino : d.material),
+            selectedIcon: Icon(
+              isApplePlatform ? d.cupertinoActive : d.materialActive,
+            ),
+            label: Text(d.label),
+          ),
+      ],
     );
   }
 }

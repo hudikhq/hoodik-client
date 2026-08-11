@@ -9,6 +9,7 @@ import '../../links/screens/links_body.dart';
 import '../providers/audit_log_notifier.dart';
 import 'audit_log_body.dart';
 import 'share_groups_body.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// The three sub-surfaces the hub can show. Public links pre-date
 /// account-to-account sharing and work on any server, so it is always present;
@@ -185,20 +186,20 @@ class _TabAction extends ConsumerWidget {
       case _ShareTab.publicLinks:
         return IconButton(
           tooltip: l10n.sharesRefresh,
-          icon: const Icon(Icons.refresh),
+          icon: Icon(AppIcons.refresh),
           onPressed: onRefreshLinks,
         );
       case _ShareTab.activity:
         return IconButton(
           tooltip: l10n.sharesRefresh,
-          icon: const Icon(Icons.refresh),
+          icon: Icon(AppIcons.refresh),
           onPressed: () =>
               ref.read(auditLogNotifierProvider.notifier).refresh(),
         );
       case _ShareTab.groups:
         return IconButton(
           tooltip: l10n.sharesNewGroup,
-          icon: const Icon(Icons.group_add_outlined),
+          icon: Icon(AppIcons.memberAdd),
           onPressed: () => createShareGroup(context, ref),
         );
     }

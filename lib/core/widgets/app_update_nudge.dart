@@ -9,6 +9,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../providers.dart';
 import '../services/app_update.dart';
 import 'adaptive.dart';
+import 'app_icons.dart';
 
 /// Nudges the user to update the app when a newer build is available in the
 /// store they installed from. Two platform-native paths:
@@ -188,7 +189,7 @@ class _DismissButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = Icon(
-      isApplePlatform ? CupertinoIcons.xmark : Icons.close,
+      isApplePlatform ? CupertinoIcons.xmark : AppIcons.close,
       color: color,
       size: 18,
     );
@@ -205,7 +206,10 @@ class _DismissButton extends StatelessWidget {
       onPressed: onTap,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+      constraints: BoxConstraints(
+        minWidth: kMinTapTarget,
+        minHeight: kMinTapTarget,
+      ),
       tooltip: AppLocalizations.of(context).widgetDismiss,
       icon: icon,
     );

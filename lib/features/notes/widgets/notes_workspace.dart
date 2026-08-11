@@ -30,6 +30,7 @@ import 'notes_main_area.dart';
 import 'notes_sidebar.dart';
 import 'recent_notes_panel.dart';
 import 'unsaved_changes_dialog.dart';
+import '../../../core/widgets/app_icons.dart';
 
 const _log = Logger('NotesWorkspace');
 
@@ -868,7 +869,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
             child: Text(AppLocalizations.of(context).commonSave),
           ),
         IconButton(
-          icon: Icon(isApplePlatform ? CupertinoIcons.xmark : Icons.close),
+          icon: Icon(isApplePlatform ? CupertinoIcons.xmark : AppIcons.close),
           tooltip: AppLocalizations.of(context).notesCloseNote,
           onPressed: () => _closeTab(_activeTabIndex),
         ),

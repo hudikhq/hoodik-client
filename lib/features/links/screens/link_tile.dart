@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Decrypted public-link row for display. Names, sizes, and thumbnails are
 /// decrypted client-side before reaching this model — the server never holds
@@ -99,14 +100,14 @@ class LinkTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: const Icon(Icons.copy, size: 18),
+            icon: Icon(AppIcons.copy, size: 18),
             tooltip: l10n.linksCopyTooltip,
             onPressed: onCopy,
             color: HoodikColors.iconMuted,
           ),
           PopupMenuButton<String>(
-            icon: const Icon(
-              Icons.more_vert,
+            icon: Icon(
+              AppIcons.overflowVertical,
               size: 20,
               color: HoodikColors.iconMuted,
             ),
@@ -134,7 +135,7 @@ class LinkTile extends StatelessWidget {
               PopupMenuItem(
                 value: 'share',
                 child: _MenuRow(
-                  icon: Icons.share,
+                  icon: AppIcons.share,
                   label: l10n.commonShare,
                   color: HoodikColors.dirtyWhite,
                 ),
@@ -143,7 +144,7 @@ class LinkTile extends StatelessWidget {
               PopupMenuItem(
                 value: 'expiry',
                 child: _MenuRow(
-                  icon: Icons.schedule,
+                  icon: AppIcons.schedule,
                   label: l10n.linksSetExpiry,
                   color: HoodikColors.dirtyWhite,
                 ),
@@ -161,7 +162,7 @@ class LinkTile extends StatelessWidget {
               PopupMenuItem(
                 value: 'delete',
                 child: _MenuRow(
-                  icon: Icons.delete_outline,
+                  icon: AppIcons.delete,
                   label: l10n.linksDeleteLink,
                   color: HoodikColors.textCrimson,
                 ),
@@ -201,7 +202,7 @@ class LinkTile extends StatelessWidget {
           ? HoodikColors.brownish600
           : HoodikColors.blueish400.withValues(alpha: 0.15),
       child: Icon(
-        Icons.link,
+        AppIcons.link,
         size: 20,
         color: expired ? HoodikColors.iconMuted : HoodikColors.blueish400,
       ),

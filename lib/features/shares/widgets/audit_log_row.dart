@@ -6,6 +6,7 @@ import '../../../core/utils/format.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/audit_log_notifier.dart';
 import 'audit_event_sentence.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// One audit-log row: the action sentence, the timestamp, and a tri-state
 /// integrity badge. Mirrors the web `ShareHubAudit` row treatment —
@@ -107,21 +108,21 @@ class AuditLogRow extends StatelessWidget {
     switch (row.badge) {
       case AuditRowBadge.verified:
         return _pill(
-          icon: Icons.verified_user_outlined,
+          icon: AppIcons.verified,
           label: l10n.sharesAuditBadgeVerified,
           fg: HoodikColors.greeny300,
           bg: HoodikColors.greeny900,
         );
       case AuditRowBadge.system:
         return _pill(
-          icon: Icons.settings_outlined,
+          icon: AppIcons.settings,
           label: l10n.sharesAuditBadgeSystem,
           fg: HoodikColors.textMuted,
           bg: HoodikColors.brownish700,
         );
       case AuditRowBadge.tampered:
         return _pill(
-          icon: Icons.error_outline,
+          icon: AppIcons.error,
           label: l10n.sharesAuditBadgeMismatch,
           fg: HoodikColors.redish50,
           bg: HoodikColors.redish700,
@@ -141,13 +142,9 @@ class AuditLogRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(right: 8, top: 1),
-            child: Icon(
-              Icons.error_outline,
-              size: 18,
-              color: HoodikColors.redish50,
-            ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8, top: 1),
+            child: Icon(AppIcons.error, size: 18, color: HoodikColors.redish50),
           ),
           Expanded(
             child: Column(

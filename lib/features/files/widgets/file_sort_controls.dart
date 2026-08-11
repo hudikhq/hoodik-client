@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// What field to sort files by.
 enum SortField { name, size, type, date }
@@ -77,8 +78,8 @@ class FileSortButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = currentOrder == SortOrder.asc
-        ? Icons.arrow_upward
-        : Icons.arrow_downward;
+        ? AppIcons.sortAscending
+        : AppIcons.sortDescending;
     final l10n = AppLocalizations.of(context);
 
     return PopupMenuButton<SortField>(
@@ -91,8 +92,8 @@ class FileSortButton extends StatelessWidget {
       onSelected: onFieldSelected,
       itemBuilder: (_) => [
         _sortMenuItem(SortField.name, Icons.sort_by_alpha, l10n.filesNameLabel),
-        _sortMenuItem(SortField.date, Icons.schedule, l10n.filesDateLabel),
-        _sortMenuItem(SortField.size, Icons.storage, l10n.filesSizeLabel),
+        _sortMenuItem(SortField.date, AppIcons.schedule, l10n.filesDateLabel),
+        _sortMenuItem(SortField.size, AppIcons.storage, l10n.filesSizeLabel),
         _sortMenuItem(SortField.type, Icons.category, l10n.filesTypeLabel),
       ],
     );
@@ -128,8 +129,8 @@ class FileSortButton extends StatelessWidget {
           if (isActive)
             Icon(
               currentOrder == SortOrder.asc
-                  ? Icons.arrow_upward
-                  : Icons.arrow_downward,
+                  ? AppIcons.sortAscending
+                  : AppIcons.sortDescending,
               size: 16,
               color: HoodikColors.orangy500,
             ),

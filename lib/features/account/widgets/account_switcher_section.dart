@@ -15,6 +15,7 @@ import '../../../core/widgets/user_avatar.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/screens/add_server_screen.dart' show selectedServerProvider;
 import '../../../core/theme/hoodik_colors.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Lists every account known to the app and lets the user switch between
 /// them. Hidden (collapses to `SizedBox.shrink`) when only one account
@@ -158,7 +159,7 @@ class _AccountSwitcherSectionState
                   ? Icon(
                       isApplePlatform
                           ? CupertinoIcons.checkmark_alt
-                          : Icons.check,
+                          : AppIcons.check,
                       color: HoodikColors.iconCrimson,
                       size: 20,
                     )

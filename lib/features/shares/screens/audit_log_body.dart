@@ -7,6 +7,7 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/audit_log_notifier.dart';
 import '../widgets/audit_log_row.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// Sharing activity log: the caller's share events newest-first, each with the
 /// action in plain English, the timestamp, and a tri-state integrity badge
@@ -48,7 +49,7 @@ class _ErrorBody extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              offline ? Icons.cloud_off_outlined : Icons.error_outline,
+              offline ? Icons.cloud_off_outlined : AppIcons.error,
               size: 32,
               color: HoodikColors.iconMuted,
             ),
@@ -155,21 +156,21 @@ class _Legend extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _LegendItem(
-            icon: Icons.verified_user_outlined,
+            icon: AppIcons.verified,
             color: HoodikColors.greeny300,
             label: l10n.sharesAuditBadgeVerified,
             description: l10n.sharesAuditLegendVerified,
           ),
           const SizedBox(height: 6),
           _LegendItem(
-            icon: Icons.settings_outlined,
+            icon: AppIcons.settings,
             color: HoodikColors.brownish100,
             label: l10n.sharesAuditBadgeSystem,
             description: l10n.sharesAuditLegendSystem,
           ),
           const SizedBox(height: 6),
           _LegendItem(
-            icon: Icons.error_outline,
+            icon: AppIcons.error,
             color: HoodikColors.redish50,
             label: l10n.sharesAuditBadgeMismatch,
             description: l10n.sharesAuditLegendMismatch,

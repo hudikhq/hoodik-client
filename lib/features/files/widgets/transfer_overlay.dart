@@ -7,6 +7,8 @@ import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'failed_uploads_panel.dart';
 import 'transfer_row.dart';
+import '../../../core/widgets/adaptive.dart';
+import '../../../core/widgets/app_icons.dart';
 
 /// An inline transfer-progress widget placed between content and bottom nav.
 ///
@@ -243,8 +245,8 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                   ],
                 ],
                 if (display.status == TransferStatus.completed)
-                  const Icon(
-                    Icons.check_circle,
+                  Icon(
+                    AppIcons.success,
                     color: HoodikColors.greeny300,
                     size: 18,
                   ),
@@ -374,23 +376,23 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                   ),
                   onPressed: () => setState(() => _expanded = false),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
+                  constraints: BoxConstraints(
+                    minWidth: kMinTapTarget,
+                    minHeight: kMinTapTarget,
                   ),
                 ),
                 // Dismiss button
                 IconButton(
-                  icon: const Icon(
-                    Icons.close,
+                  icon: Icon(
+                    AppIcons.close,
                     color: HoodikColors.iconMuted,
                     size: 18,
                   ),
                   onPressed: () => setState(() => _dismissed = true),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
+                  constraints: BoxConstraints(
+                    minWidth: kMinTapTarget,
+                    minHeight: kMinTapTarget,
                   ),
                   tooltip: AppLocalizations.of(
                     context,
