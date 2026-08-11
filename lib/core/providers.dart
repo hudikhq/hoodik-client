@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:ui' show Locale;
 
+import 'package:flutter/material.dart' show ThemeMode;
+
 import 'package:drift/drift.dart' as drift show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -391,6 +393,23 @@ final landingBranchProvider =
     NotifierProvider<LandingBranchNotifier, LandingBranch>(
       LandingBranchNotifier.new,
     );
+
+/// Persisted appearance preference. [ThemeMode.system] follows the OS;
+/// the other two pin the app regardless of what the device is doing.
+class AppThemeModeNotifier extends Notifier<ThemeMode> {
+  @override
+  ThemeMode build() => ref.read(preferencesProvider).themeMode;
+
+  Future<void> set(ThemeMode mode) async {
+    if (state == mode) return;
+    state = mode;
+    await ref.read(preferencesProvider).setThemeMode(mode);
+  }
+}
+
+final appThemeModeProvider = NotifierProvider<AppThemeModeNotifier, ThemeMode>(
+  AppThemeModeNotifier.new,
+);
 
 /// Persisted app display language. `null` follows the device locale;
 /// otherwise one of the codes in [AppLocaleNotifier.supported].

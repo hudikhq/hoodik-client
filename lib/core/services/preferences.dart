@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers.dart' show FilesViewMode;
@@ -75,4 +76,19 @@ class Preferences {
 
   Future<void> setLandingBranch(LandingBranch branch) =>
       _prefs.setString(_kLandingBranch, branch.name);
+
+  // ── Appearance ────────────────────────────────────────────────────
+  static const _kThemeMode = 'app.themeMode';
+
+  /// Light, dark, or [ThemeMode.system] to follow the OS setting.
+  ThemeMode get themeMode {
+    final raw = _prefs.getString(_kThemeMode);
+    return ThemeMode.values.firstWhere(
+      (m) => m.name == raw,
+      orElse: () => ThemeMode.system,
+    );
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) =>
+      _prefs.setString(_kThemeMode, mode.name);
 }

@@ -34,6 +34,12 @@ class AppLocalizationsHr extends AppLocalizations {
   String get accountAllAccountsHeader => 'SVI RAČUNI';
 
   @override
+  String get accountAppearance => 'Izgled';
+
+  @override
+  String get accountAppearanceSubtitle => 'Svijetlo, tamno ili prema sustavu';
+
+  @override
   String get accountAuditAllStatuses => 'Svi statusi';
 
   @override
@@ -2367,7 +2373,7 @@ class AppLocalizationsHr extends AppLocalizations {
   String get notesSidebarEmpty => 'Nema bilješki ni foldera';
 
   @override
-  String get notesSidebarHeader => 'BILJEŠKE';
+  String get notesSidebarHeader => 'Bilješke';
 
   @override
   String get notesStillUploading =>
@@ -2378,6 +2384,9 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get notesTable => 'Tablica';
+
+  @override
+  String get notesTaskList => 'Popis zadataka';
 
   @override
   String get notesThisFolder => 'ovaj folder';
@@ -2537,6 +2546,15 @@ class AppLocalizationsHr extends AppLocalizations {
   @override
   String get serviceOfflineManagerUnavailable =>
       'Offline upravitelj nije dostupan';
+
+  @override
+  String get serviceThemeModeDark => 'Tamno';
+
+  @override
+  String get serviceThemeModeLight => 'Svijetlo';
+
+  @override
+  String get serviceThemeModeSystem => 'Sustav';
 
   @override
   String get serviceTransferCancelled => 'Otkazano';

@@ -35,6 +35,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get accountAllAccountsHeader => 'ALLE KONTEN';
 
   @override
+  String get accountAppearance => 'Erscheinungsbild';
+
+  @override
+  String get accountAppearanceSubtitle => 'Hell, dunkel oder dem System folgen';
+
+  @override
   String get accountAuditAllStatuses => 'Alle Status';
 
   @override
@@ -2378,7 +2384,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get notesSidebarEmpty => 'Keine Notizen oder Ordner';
 
   @override
-  String get notesSidebarHeader => 'NOTIZEN';
+  String get notesSidebarHeader => 'Notizen';
 
   @override
   String get notesStillUploading =>
@@ -2389,6 +2395,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get notesTable => 'Tabelle';
+
+  @override
+  String get notesTaskList => 'Checkliste';
 
   @override
   String get notesThisFolder => 'dieser Ordner';
@@ -2549,6 +2558,15 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get serviceOfflineManagerUnavailable =>
       'Offline-Verwaltung nicht verfügbar';
+
+  @override
+  String get serviceThemeModeDark => 'Dunkel';
+
+  @override
+  String get serviceThemeModeLight => 'Hell';
+
+  @override
+  String get serviceThemeModeSystem => 'System';
 
   @override
   String get serviceTransferCancelled => 'Abgebrochen';

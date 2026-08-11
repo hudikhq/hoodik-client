@@ -35,6 +35,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get accountAllAccountsHeader => 'TOUS LES COMPTES';
 
   @override
+  String get accountAppearance => 'Apparence';
+
+  @override
+  String get accountAppearanceSubtitle => 'Clair, sombre ou selon le système';
+
+  @override
   String get accountAuditAllStatuses => 'Tous les statuts';
 
   @override
@@ -2374,7 +2380,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get notesSidebarEmpty => 'Aucune note ni dossier';
 
   @override
-  String get notesSidebarHeader => 'NOTES';
+  String get notesSidebarHeader => 'Notes';
 
   @override
   String get notesStillUploading =>
@@ -2385,6 +2391,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get notesTable => 'Tableau';
+
+  @override
+  String get notesTaskList => 'Liste de tâches';
 
   @override
   String get notesThisFolder => 'ce dossier';
@@ -2545,6 +2554,15 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get serviceOfflineManagerUnavailable =>
       'Gestionnaire hors ligne indisponible';
+
+  @override
+  String get serviceThemeModeDark => 'Sombre';
+
+  @override
+  String get serviceThemeModeLight => 'Clair';
+
+  @override
+  String get serviceThemeModeSystem => 'Système';
 
   @override
   String get serviceTransferCancelled => 'Annulé';

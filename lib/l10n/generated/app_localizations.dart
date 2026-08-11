@@ -150,6 +150,18 @@ abstract class AppLocalizations {
   /// **'ALL ACCOUNTS'**
   String get accountAllAccountsHeader;
 
+  /// No description provided for @accountAppearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get accountAppearance;
+
+  /// No description provided for @accountAppearanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Light, dark, or follow the system'**
+  String get accountAppearanceSubtitle;
+
   /// No description provided for @accountAuditAllStatuses.
   ///
   /// In en, this message translates to:
@@ -3987,7 +3999,7 @@ abstract class AppLocalizations {
   /// No description provided for @notesSidebarHeader.
   ///
   /// In en, this message translates to:
-  /// **'NOTES'**
+  /// **'Notes'**
   String get notesSidebarHeader;
 
   /// No description provided for @notesStillUploading.
@@ -4007,6 +4019,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Table'**
   String get notesTable;
+
+  /// No description provided for @notesTaskList.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist'**
+  String get notesTaskList;
 
   /// No description provided for @notesThisFolder.
   ///
@@ -4271,6 +4289,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Offline manager not available'**
   String get serviceOfflineManagerUnavailable;
+
+  /// No description provided for @serviceThemeModeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get serviceThemeModeDark;
+
+  /// No description provided for @serviceThemeModeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get serviceThemeModeLight;
+
+  /// No description provided for @serviceThemeModeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get serviceThemeModeSystem;
 
   /// No description provided for @serviceTransferCancelled.
   ///

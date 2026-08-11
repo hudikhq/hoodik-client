@@ -5,6 +5,7 @@ import '../../../core/providers.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'ai_access_tile.dart';
+import 'appearance_tile.dart';
 import 'diagnostics_tile.dart';
 import 'landing_branch_tile.dart';
 import 'language_tile.dart';
@@ -32,6 +33,7 @@ class AccountSettingsSection extends ConsumerWidget {
         const SecuritySettings(),
         const RecoveryKeyTile(),
         const LandingBranchTile(),
+        const AppearanceTile(),
         const LanguageTile(),
         if (showMcp) const AiAccessTile(),
         const DiagnosticsTile(),
