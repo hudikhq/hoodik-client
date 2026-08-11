@@ -243,7 +243,6 @@ class _RecentHeader extends StatelessWidget {
               color: context.colors.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              letterSpacing: 1.0,
             ),
           ),
         ],

@@ -274,11 +274,7 @@ class _GroupsList extends ConsumerWidget {
 
   static Widget _sectionLabel(BuildContext context, String text) => Text(
     text,
-    style: TextStyle(
-      fontSize: 12,
-      letterSpacing: 0.5,
-      color: context.colors.textMuted,
-    ),
+    style: TextStyle(fontSize: 12, color: context.colors.textMuted),
   );
 
   static Widget _emptyCard(BuildContext context, String text, {Key? key}) =>

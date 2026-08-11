@@ -5,6 +5,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/theme/hoodik_type.dart';
 
 /// A single row in the expanded transfer list.
 ///
@@ -263,7 +264,7 @@ class _WorkerBadge extends StatelessWidget {
         label,
         style: TextStyle(
           color: color,
-          fontSize: 9,
+          fontSize: HoodikType.minimumSize,
           fontWeight: FontWeight.w700,
           height: 1,
         ),

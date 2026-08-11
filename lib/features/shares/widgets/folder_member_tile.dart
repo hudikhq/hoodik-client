@@ -6,6 +6,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../providers/folder_members_notifier.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/theme/hoodik_type.dart';
 
 /// One row in the folder members roster: email/id, role badge, the "added by"
 /// attribution, the abbreviated fingerprint, and a per-row signature badge.
@@ -80,7 +81,8 @@ class FolderMemberTile extends StatelessWidget {
                         ),
                         style: TextStyle(
                           fontSize: 11,
-                          fontFamily: 'monospace',
+                          fontFamily: HoodikType.monoFamily,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                           color: context.colors.textMuted,
                         ),
                         maxLines: 1,

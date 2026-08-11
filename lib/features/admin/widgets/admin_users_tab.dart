@@ -10,6 +10,8 @@ import '../../../core/utils/format.dart' as fmt;
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_type.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Paginated user list with search. Tapping a row pushes to user detail.
 class AdminUsersTab extends ConsumerStatefulWidget {
@@ -216,7 +218,7 @@ class _UserTile extends StatelessWidget {
           user.email.isNotEmpty ? user.email[0].toUpperCase() : '?',
           style: TextStyle(
             color: user.isAdmin
-                ? theme.colorScheme.secondary
+                ? context.colors.iconEmber
                 : theme.colorScheme.primary,
             fontWeight: FontWeight.w600,
             fontSize: 14,
@@ -236,7 +238,7 @@ class _UserTile extends StatelessWidget {
             const SizedBox(width: 6),
             _Badge(
               label: l10n.adminBadgeAdmin,
-              color: theme.colorScheme.secondary,
+              color: context.colors.iconEmber,
             ),
           ],
           if (user.hasTfa) ...[
@@ -360,7 +362,7 @@ class _Badge extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 10,
+          fontSize: HoodikType.minimumSize,
           fontWeight: FontWeight.w500,
           color: color,
         ),

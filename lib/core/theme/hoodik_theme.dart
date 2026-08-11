@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../widgets/adaptive.dart';
 import 'hoodik_scheme.dart';
+import 'hoodik_type.dart';
 
 /// Hoodik's global theme.
 ///
@@ -14,9 +14,6 @@ import 'hoodik_scheme.dart';
 /// should be commented explaining why the theme default wasn't enough.
 class HoodikTheme {
   HoodikTheme._();
-
-  /// Font family — system default (San Francisco) on Apple, Inter elsewhere.
-  static String? get _fontFamily => isApplePlatform ? null : 'Inter';
 
   static CupertinoThemeData cupertinoDark() => CupertinoThemeData(
     brightness: Brightness.dark,
@@ -53,7 +50,8 @@ class HoodikTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
-      fontFamily: _fontFamily,
+      fontFamily: HoodikType.fontFamily,
+      textTheme: HoodikType.theme(c.text, c.textMuted),
       colorScheme: ColorScheme(
         brightness: brightness,
         primary: c.crimsonFill,
@@ -61,7 +59,7 @@ class HoodikTheme {
         primaryContainer: c.crimsonContainer,
         onPrimaryContainer: c.onCrimsonContainer,
         secondary: c.emberFill,
-        onSecondary: c.onFill,
+        onSecondary: c.onEmberFill,
         secondaryContainer: c.textEmber,
         onSecondaryContainer: c.onFill,
         tertiary: c.sageFill,

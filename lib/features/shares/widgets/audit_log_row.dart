@@ -212,10 +212,7 @@ class AuditLogRow extends StatelessWidget {
         children: [
           Icon(icon, size: 12, color: fg),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11, letterSpacing: 0.3, color: fg),
-          ),
+          Text(label, style: TextStyle(fontSize: 11, color: fg)),
         ],
       ),
     );

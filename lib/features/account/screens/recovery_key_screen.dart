@@ -7,6 +7,7 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/services/recovery_bundle.dart';
+import '../../../core/theme/hoodik_type.dart';
 
 /// Shows the active account's recovery key — the credential that gets the
 /// user back in when the password is gone. Assembled entirely from the keys
@@ -132,7 +133,8 @@ class _RecoveryKeyBody extends StatelessWidget {
             child: SelectableText(
               recoveryKey,
               style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
+                fontFamily: HoodikType.monoFamily,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),

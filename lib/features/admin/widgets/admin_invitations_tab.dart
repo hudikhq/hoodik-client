@@ -11,6 +11,8 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'admin_users_tab.dart' show PaginationBar;
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_type.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Lists invitations with create / expire actions.
 class AdminInvitationsTab extends ConsumerStatefulWidget {
@@ -298,7 +300,7 @@ class _InvitationTile extends StatelessWidget {
             child: Text(
               statusLabel,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: HoodikType.minimumSize,
                 fontWeight: FontWeight.w500,
                 color: statusColor,
               ),
@@ -315,9 +317,9 @@ class _InvitationTile extends StatelessWidget {
               child: Text(
                 invitation.role!,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: HoodikType.minimumSize,
                   fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.secondary,
+                  color: context.colors.iconEmber,
                 ),
               ),
             ),
