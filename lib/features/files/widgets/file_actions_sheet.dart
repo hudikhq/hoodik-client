@@ -2,12 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../../shares/shared_constants.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Callbacks for file actions triggered from the bottom sheet.
 class FileActionCallbacks {
@@ -96,48 +96,48 @@ void showFileActionsSheet({
       _SheetAction(
         l10n.filesPreview,
         AppIcons.preview,
-        HoodikColors.greeny400,
+        context.colors.sageFill,
         () => callbacks.onPreview(file),
       ),
     if (!file.isDir && file.mime == 'text/markdown' && !file.editable)
       _SheetAction(
         l10n.filesConvertToNote,
         AppIcons.noteEdit,
-        HoodikColors.orangy400,
+        context.colors.textEmber,
         () => callbacks.onConvertToNote(file),
       ),
     if (!file.isDir) ...[
       _SheetAction(
         l10n.filesExport,
         AppIcons.download,
-        HoodikColors.blueish300,
+        context.colors.iconSlate,
         () => callbacks.onDownload(file),
       ),
       if (isOffline)
         _SheetAction(
           l10n.filesRemoveOfflineCopy,
           Icons.cloud_off,
-          HoodikColors.iconMuted,
+          context.colors.iconMuted,
           () => callbacks.onRemoveOffline(file),
         )
       else
         _SheetAction(
           l10n.filesMakeAvailableOffline,
           AppIcons.cloudDownload,
-          HoodikColors.greeny400,
+          context.colors.sageFill,
           () => callbacks.onMakeOffline(file),
         ),
     ],
     _SheetAction(
       l10n.commonRename,
       AppIcons.edit,
-      HoodikColors.orangy400,
+      context.colors.textEmber,
       () => callbacks.onRename(file),
     ),
     _SheetAction(
       l10n.commonDelete,
       AppIcons.delete,
-      HoodikColors.iconCrimson,
+      context.colors.iconCrimson,
       () => callbacks.onDelete(file),
       isDestructive: true,
     ),
@@ -146,7 +146,7 @@ void showFileActionsSheet({
       _SheetAction(
         l10n.filesLeave,
         AppIcons.signOut,
-        HoodikColors.iconCrimson,
+        context.colors.iconCrimson,
         () => callbacks.onLeave!(file),
         isDestructive: true,
       ),
@@ -156,14 +156,14 @@ void showFileActionsSheet({
       _SheetAction(
         l10n.filesMembers,
         AppIcons.members,
-        HoodikColors.greeny400,
+        context.colors.sageFill,
         () => callbacks.onShare!(file),
       ),
     if (!file.isDir) ...[
       _SheetAction(
         l10n.filesCreateLink,
         AppIcons.link,
-        HoodikColors.blueish400,
+        context.colors.iconSlate,
         () => callbacks.onCreateLink(file),
         sectionBreak: true,
       ),
@@ -172,7 +172,7 @@ void showFileActionsSheet({
         _SheetAction(
           l10n.commonShare,
           AppIcons.memberAdd,
-          HoodikColors.greeny400,
+          context.colors.sageFill,
           () => callbacks.onShare!(file),
         ),
       if (callbacks.onFork != null &&
@@ -180,13 +180,13 @@ void showFileActionsSheet({
         _SheetAction(
           l10n.filesSaveToMyDrive,
           AppIcons.move,
-          HoodikColors.blueish300,
+          context.colors.iconSlate,
           () => callbacks.onFork!(file),
         ),
       _SheetAction(
         l10n.filesDetails,
         AppIcons.info,
-        HoodikColors.iconMuted,
+        context.colors.iconMuted,
         () => callbacks.onDetails(file),
       ),
     ],
@@ -212,19 +212,19 @@ void showFabMenuSheet({
     _SheetAction(
       l10n.filesCreateFolder,
       Icons.create_new_folder,
-      HoodikColors.orangy600,
+      context.colors.emberFill,
       onCreateFolder,
     ),
     _SheetAction(
       l10n.notesNewNote,
       AppIcons.noteEdit,
-      HoodikColors.orangy400,
+      context.colors.textEmber,
       onCreateNote,
     ),
     _SheetAction(
       l10n.filesUploadFile,
       AppIcons.cloudUpload,
-      HoodikColors.blueish400,
+      context.colors.iconSlate,
       onUploadFile,
       sectionBreak: true,
     ),
@@ -232,14 +232,14 @@ void showFabMenuSheet({
       _SheetAction(
         l10n.filesUploadMedia,
         Icons.photo_library,
-        HoodikColors.greeny400,
+        context.colors.sageFill,
         onUploadPhoto,
       ),
     if (onTakePhoto != null)
       _SheetAction(
         l10n.filesTakePhoto,
         Icons.camera_alt,
-        HoodikColors.redish500,
+        context.colors.dangerFill,
         onTakePhoto,
       ),
   ];
@@ -302,7 +302,7 @@ void _showActionSheet(
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: HoodikColors.brownish400,
+                    color: context.colors.track,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -312,10 +312,10 @@ void _showActionSheet(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: HoodikColors.dirtyWhite,
+                        color: context.colors.text,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -328,7 +328,7 @@ void _showActionSheet(
                     const Divider(height: 1),
                   if (sectionHeaders.isNotEmpty &&
                       (identical(action, actions.first) || action.sectionBreak))
-                    _sheetSectionHeader(sectionHeaders[headerIndex++]),
+                    _sheetSectionHeader(ctx, sectionHeaders[headerIndex++]),
                   ListTile(
                     leading: Icon(action.icon, color: action.iconColor),
                     title: Text(action.label),
@@ -348,17 +348,17 @@ void _showActionSheet(
   );
 }
 
-Widget _sheetSectionHeader(String label) {
+Widget _sheetSectionHeader(BuildContext context, String label) {
   return Padding(
     padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
     child: Align(
       alignment: Alignment.centerLeft,
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: HoodikColors.textMuted,
+          color: context.colors.textMuted,
         ),
       ),
     ),

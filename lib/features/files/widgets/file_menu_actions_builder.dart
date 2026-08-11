@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../../shares/shared_constants.dart';
 import 'file_context_menu.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Callbacks the menu-actions builder needs. Grouped so the call site
 /// passes one object instead of a long parameter list.
@@ -67,6 +67,7 @@ class FileMenuCallbacks {
 ///   ([canFork]).
 /// - Links, details, and file-specific actions are hidden for folders.
 List<FileMenuAction> buildFileMenuActions({
+  required BuildContext context,
   required FileItem file,
   required bool isOffline,
   required FileMenuCallbacks callbacks,
@@ -79,48 +80,48 @@ List<FileMenuAction> buildFileMenuActions({
     if (!file.isDir && isPreviewable(file))
       FileMenuAction(
         icon: AppIcons.preview,
-        iconColor: HoodikColors.greeny400,
+        iconColor: context.colors.sageFill,
         label: ambientL10n.filesPreview,
         onTap: () => callbacks.onPreview(file),
       ),
     if (!file.isDir && file.mime == 'text/markdown' && !file.editable)
       FileMenuAction(
         icon: AppIcons.noteEdit,
-        iconColor: HoodikColors.orangy400,
+        iconColor: context.colors.textEmber,
         label: ambientL10n.filesConvertToNote,
         onTap: () => callbacks.onConvertToNote(file),
       ),
     if (!file.isDir) ...[
       FileMenuAction(
         icon: AppIcons.download,
-        iconColor: HoodikColors.blueish300,
+        iconColor: context.colors.iconSlate,
         label: ambientL10n.filesExport,
         onTap: () => callbacks.onDownload(file),
       ),
       if (isOffline)
         FileMenuAction(
           icon: Icons.cloud_off,
-          iconColor: HoodikColors.iconMuted,
+          iconColor: context.colors.iconMuted,
           label: ambientL10n.filesRemoveOfflineCopy,
           onTap: () => callbacks.onRemoveOffline(file),
         )
       else
         FileMenuAction(
           icon: AppIcons.cloudDownload,
-          iconColor: HoodikColors.greeny400,
+          iconColor: context.colors.sageFill,
           label: ambientL10n.filesMakeAvailableOffline,
           onTap: () => callbacks.onMakeOffline(file),
         ),
     ],
     FileMenuAction(
       icon: AppIcons.edit,
-      iconColor: HoodikColors.orangy400,
+      iconColor: context.colors.textEmber,
       label: ambientL10n.commonRename,
       onTap: () => callbacks.onRename(file),
     ),
     FileMenuAction(
       icon: AppIcons.delete,
-      iconColor: HoodikColors.iconCrimson,
+      iconColor: context.colors.iconCrimson,
       label: ambientL10n.commonDelete,
       onTap: () => callbacks.onDelete(file),
     ),
@@ -128,7 +129,7 @@ List<FileMenuAction> buildFileMenuActions({
         canLeaveFile(file, sharingEnabled: sharingEnabled))
       FileMenuAction(
         icon: AppIcons.signOut,
-        iconColor: HoodikColors.iconCrimson,
+        iconColor: context.colors.iconCrimson,
         label: ambientL10n.filesLeave,
         onTap: () => callbacks.onLeave!(file),
       ),
@@ -137,14 +138,14 @@ List<FileMenuAction> buildFileMenuActions({
         canShareFolder(file, sharingEnabled: sharingEnabled))
       FileMenuAction(
         icon: AppIcons.members,
-        iconColor: HoodikColors.greeny400,
+        iconColor: context.colors.sageFill,
         label: ambientL10n.filesMembers,
         onTap: () => callbacks.onShare!(file),
       ),
     if (!file.isDir) ...[
       FileMenuAction(
         icon: AppIcons.link,
-        iconColor: HoodikColors.blueish400,
+        iconColor: context.colors.iconSlate,
         label: ambientL10n.filesCreateLink,
         onTap: () => callbacks.onCreateLink(file),
       ),
@@ -152,7 +153,7 @@ List<FileMenuAction> buildFileMenuActions({
           canShareFile(file, sharingEnabled: sharingEnabled))
         FileMenuAction(
           icon: AppIcons.memberAdd,
-          iconColor: HoodikColors.greeny400,
+          iconColor: context.colors.sageFill,
           label: ambientL10n.commonShare,
           onTap: () => callbacks.onShare!(file),
         ),
@@ -160,20 +161,20 @@ List<FileMenuAction> buildFileMenuActions({
           canFork(file, sharingEnabled: sharingEnabled))
         FileMenuAction(
           icon: AppIcons.move,
-          iconColor: HoodikColors.blueish300,
+          iconColor: context.colors.iconSlate,
           label: ambientL10n.filesSaveToMyDrive,
           onTap: () => callbacks.onFork!(file),
         ),
       FileMenuAction(
         icon: AppIcons.info,
-        iconColor: HoodikColors.iconMuted,
+        iconColor: context.colors.iconMuted,
         label: ambientL10n.filesDetails,
         onTap: () => callbacks.onDetails(file),
       ),
     ],
     FileMenuAction(
       icon: Icons.checklist,
-      iconColor: HoodikColors.iconMuted,
+      iconColor: context.colors.iconMuted,
       label: ambientL10n.filesSelect,
       onTap: () => callbacks.onSelect(file),
     ),

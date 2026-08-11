@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../widgets/adaptive.dart';
-import 'hoodik_colors.dart';
 import 'hoodik_scheme.dart';
 
 /// Hoodik's global theme.
@@ -19,21 +18,31 @@ class HoodikTheme {
   /// Font family — system default (San Francisco) on Apple, Inter elsewhere.
   static String? get _fontFamily => isApplePlatform ? null : 'Inter';
 
-  static CupertinoThemeData cupertinoDark() {
-    return const CupertinoThemeData(
-      brightness: Brightness.dark,
-      primaryColor: HoodikColors.redish400,
-      scaffoldBackgroundColor: HoodikColors.brownish900,
-      barBackgroundColor: HoodikColors.brownish800,
-      textTheme: CupertinoTextThemeData(primaryColor: HoodikColors.textCrimson),
-    );
-  }
+  static CupertinoThemeData cupertinoDark() => CupertinoThemeData(
+    brightness: Brightness.dark,
+    primaryColor: HoodikScheme.dark.crimsonFill,
+    scaffoldBackgroundColor: HoodikScheme.dark.canvas,
+    barBackgroundColor: HoodikScheme.dark.panel,
+    textTheme: CupertinoTextThemeData(
+      primaryColor: HoodikScheme.dark.textCrimson,
+    ),
+  );
 
-  /// Light theme is unused — the app hardcodes `ThemeMode.dark`.
-  /// Returns the dark theme to avoid maintaining a dead code path.
-  static CupertinoThemeData cupertinoLight() => cupertinoDark();
+  static CupertinoThemeData cupertinoLight() => CupertinoThemeData(
+    brightness: Brightness.light,
+    primaryColor: HoodikScheme.light.crimsonFill,
+    scaffoldBackgroundColor: HoodikScheme.light.canvas,
+    barBackgroundColor: HoodikScheme.light.panel,
+    textTheme: CupertinoTextThemeData(
+      primaryColor: HoodikScheme.light.textCrimson,
+    ),
+  );
 
-  static ThemeData dark() {
+  static ThemeData dark() => _build(HoodikScheme.dark, Brightness.dark);
+
+  static ThemeData light() => _build(HoodikScheme.light, Brightness.light);
+
+  static ThemeData _build(HoodikScheme c, Brightness brightness) {
     const shape12 = RoundedRectangleBorder(
       borderRadius: BorderRadius.all(Radius.circular(12)),
     );
@@ -43,77 +52,74 @@ class HoodikTheme {
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: brightness,
       fontFamily: _fontFamily,
-      colorScheme: const ColorScheme.dark(
-        primary: HoodikColors.redish400,
-        onPrimary: HoodikColors.white,
-        primaryContainer: HoodikColors.redish700,
-        onPrimaryContainer: HoodikColors.redish50,
-        secondary: HoodikColors.orangy600,
-        onSecondary: HoodikColors.white,
-        secondaryContainer: HoodikColors.orangy800,
-        onSecondaryContainer: HoodikColors.orangy50,
-        tertiary: HoodikColors.greeny100,
-        onTertiary: HoodikColors.greeny900,
-        tertiaryContainer: HoodikColors.greeny700,
-        onTertiaryContainer: HoodikColors.greeny50,
-        surface: HoodikColors.brownish900,
-        onSurface: HoodikColors.dirtyWhite,
-        surfaceContainerHighest: HoodikColors.brownish600,
-        error: HoodikColors.redish400,
-        onError: HoodikColors.white,
+      colorScheme: ColorScheme(
+        brightness: brightness,
+        primary: c.crimsonFill,
+        onPrimary: c.onFill,
+        primaryContainer: c.crimsonContainer,
+        onPrimaryContainer: c.onCrimsonContainer,
+        secondary: c.emberFill,
+        onSecondary: c.onFill,
+        secondaryContainer: c.textEmber,
+        onSecondaryContainer: c.onFill,
+        tertiary: c.sageFill,
+        onTertiary: c.onFill,
+        tertiaryContainer: c.sageWash,
+        onTertiaryContainer: c.textSage,
+        surface: c.canvas,
+        onSurface: c.text,
+        surfaceContainerHighest: c.seam,
+        error: c.dangerFill,
+        onError: c.onFill,
       ),
 
       // Screen body — matches the notes editor's main area.
-      scaffoldBackgroundColor: HoodikColors.brownish900,
+      scaffoldBackgroundColor: c.canvas,
 
       // App bar is one step lighter than the body, matching the notes
       // editor's sidebar/toolbar chrome. Height shrunk from Material's
       // default 56 to iOS-HIG 44 so the header doesn't eat screen real
       // estate on small phones.
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         toolbarHeight: 44,
-        backgroundColor: HoodikColors.brownish800,
-        foregroundColor: HoodikColors.dirtyWhite,
+        backgroundColor: c.panel,
+        foregroundColor: c.text,
         elevation: 0,
         scrolledUnderElevation: 0.5,
         surfaceTintColor: Colors.transparent,
       ),
 
-      cardTheme: CardThemeData(
-        color: HoodikColors.brownish800,
-        elevation: 0,
-        shape: shape12,
-      ),
+      cardTheme: CardThemeData(color: c.panel, elevation: 0, shape: shape12),
 
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: HoodikColors.redish400,
-        foregroundColor: HoodikColors.white,
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: c.crimsonFill,
+        foregroundColor: c.onFill,
       ),
 
       // Bottom nav — same shade as the app bar so both chromes match.
-      navigationBarTheme: const NavigationBarThemeData(
-        backgroundColor: HoodikColors.brownish800,
-        indicatorColor: HoodikColors.redish700,
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: c.panel,
+        indicatorColor: c.crimsonContainer,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: HoodikColors.brownish800,
+        fillColor: c.panel,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: HoodikColors.brownish500),
+          borderSide: BorderSide(color: c.seamStrong),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: HoodikColors.brownish500),
+          borderSide: BorderSide(color: c.seamStrong),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: HoodikColors.redish400, width: 2),
+          borderSide: BorderSide(color: c.crimsonFill, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -122,49 +128,42 @@ class HoodikTheme {
         // Material defaults error text to `colorScheme.error`, which is the
         // crimson fill at 2.4:1 — legible as a background, not as the line
         // telling someone what they got wrong.
-        errorStyle: const TextStyle(color: HoodikColors.textCrimson),
+        errorStyle: TextStyle(color: c.textCrimson),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: HoodikColors.redish400,
-          foregroundColor: HoodikColors.white,
+          backgroundColor: c.crimsonFill,
+          foregroundColor: c.onFill,
           shape: shape10,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         ),
       ),
 
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: HoodikColors.textCrimson),
+        style: TextButton.styleFrom(foregroundColor: c.textCrimson),
       ),
 
-      dividerTheme: const DividerThemeData(
-        color: HoodikColors.brownish600,
-        thickness: 0.5,
-        space: 0,
-      ),
+      dividerTheme: DividerThemeData(color: c.seam, thickness: 0.5, space: 0),
 
       // Dialogs match the app-bar shade — slightly raised off the body.
-      dialogTheme: const DialogThemeData(
-        backgroundColor: HoodikColors.brownish800,
+      dialogTheme: DialogThemeData(
+        backgroundColor: c.panel,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         titleTextStyle: TextStyle(
-          color: HoodikColors.dirtyWhite,
+          color: c.text,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
-        contentTextStyle: TextStyle(
-          color: HoodikColors.dirtyWhite,
-          fontSize: 14,
-        ),
+        contentTextStyle: TextStyle(color: c.text, fontSize: 14),
         shape: shape12,
       ),
 
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: HoodikColors.brownish800,
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: c.panel,
         surfaceTintColor: Colors.transparent,
-        modalBackgroundColor: HoodikColors.brownish800,
+        modalBackgroundColor: c.panel,
         modalBarrierColor: Color(0x88000000),
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -172,57 +171,52 @@ class HoodikTheme {
         ),
       ),
 
-      popupMenuTheme: const PopupMenuThemeData(
-        color: HoodikColors.brownish800,
+      popupMenuTheme: PopupMenuThemeData(
+        color: c.panel,
         surfaceTintColor: Colors.transparent,
         elevation: 2,
         shape: shape10,
-        textStyle: TextStyle(color: HoodikColors.dirtyWhite, fontSize: 14),
+        textStyle: TextStyle(color: c.text, fontSize: 14),
       ),
 
-      snackBarTheme: const SnackBarThemeData(
-        backgroundColor: HoodikColors.brownish800,
-        contentTextStyle: TextStyle(color: HoodikColors.dirtyWhite),
-        actionTextColor: HoodikColors.textCrimson,
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: c.panel,
+        contentTextStyle: TextStyle(color: c.text),
+        actionTextColor: c.textCrimson,
         behavior: SnackBarBehavior.floating,
       ),
 
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
-          color: HoodikColors.brownish700,
+          color: c.recess,
           borderRadius: BorderRadius.circular(6),
         ),
-        textStyle: const TextStyle(
-          color: HoodikColors.dirtyWhite,
-          fontSize: 12,
-        ),
+        textStyle: TextStyle(color: c.text, fontSize: 12),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       ),
 
-      tabBarTheme: const TabBarThemeData(
-        labelColor: HoodikColors.dirtyWhite,
-        unselectedLabelColor: HoodikColors.textMuted,
-        indicatorColor: HoodikColors.redish400,
-        dividerColor: HoodikColors.brownish600,
+      tabBarTheme: TabBarThemeData(
+        labelColor: c.text,
+        unselectedLabelColor: c.textMuted,
+        indicatorColor: c.crimsonFill,
+        dividerColor: c.seam,
       ),
 
-      iconTheme: const IconThemeData(color: HoodikColors.dirtyWhite),
+      iconTheme: IconThemeData(color: c.text),
 
-      listTileTheme: const ListTileThemeData(
-        iconColor: HoodikColors.iconMuted,
-        textColor: HoodikColors.dirtyWhite,
+      listTileTheme: ListTileThemeData(
+        iconColor: c.iconMuted,
+        textColor: c.text,
       ),
 
-      cupertinoOverrideTheme: cupertinoDark(),
+      cupertinoOverrideTheme: brightness == Brightness.dark
+          ? cupertinoDark()
+          : cupertinoLight(),
 
       // Widgets read semantic roles through `context.colors`; registering the
       // scheme here is what makes that resolve per appearance rather than
       // falling back to the dark constant.
-      extensions: const [HoodikScheme.dark],
+      extensions: [c],
     );
   }
-
-  /// Light theme is unused — the app hardcodes `ThemeMode.dark`.
-  /// Returns the dark theme to avoid maintaining a dead code path.
-  static ThemeData light() => dark();
 }

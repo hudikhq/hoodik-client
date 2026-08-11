@@ -3,11 +3,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shares/shared_constants.dart';
 import '../helpers/file_helpers.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// A single row in the file list, displaying a file or folder.
 class FileListItem extends StatelessWidget {
@@ -61,9 +61,9 @@ class FileListItem extends StatelessWidget {
             ? Checkbox(
                 value: isSelected,
                 onChanged: (_) => onToggleSelection(),
-                activeColor: HoodikColors.redish500,
+                activeColor: context.colors.dangerFill,
               )
-            : _buildLeading(),
+            : _buildLeading(context),
         title: Text(displayName, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Row(
           children: [
@@ -71,7 +71,7 @@ class FileListItem extends StatelessWidget {
               Icon(
                 AppIcons.offlineAvailable,
                 size: 13,
-                color: HoodikColors.greeny300,
+                color: context.colors.textSage,
               ),
               const SizedBox(width: 4),
             ],
@@ -82,7 +82,7 @@ class FileListItem extends StatelessWidget {
               Icon(
                 Icons.cloud_sync_outlined,
                 size: 13,
-                color: HoodikColors.orangy400.withValues(alpha: 0.85),
+                color: context.colors.textEmber.withValues(alpha: 0.85),
               ),
               const SizedBox(width: 4),
             ],
@@ -140,7 +140,7 @@ class FileListItem extends StatelessWidget {
                 ],
               ),
         selected: isSelected,
-        selectedTileColor: HoodikColors.redish900.withValues(alpha: 0.3),
+        selectedTileColor: context.colors.crimsonWash.withValues(alpha: 0.3),
         onTap: onTap,
       ),
     );
@@ -174,7 +174,7 @@ class FileListItem extends StatelessWidget {
     return '${formatFileSize(file.size)} ${formatFileDate(file.createdAt)}';
   }
 
-  Widget _buildLeading() {
+  Widget _buildLeading(BuildContext context) {
     if (thumbnailBytes != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(6),
@@ -184,16 +184,16 @@ class FileListItem extends StatelessWidget {
           child: Image.memory(
             thumbnailBytes!,
             fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _buildIcon(),
+            errorBuilder: (_, _, _) => _buildIcon(context),
           ),
         ),
       );
     }
-    return _buildIcon();
+    return _buildIcon(context);
   }
 
-  Widget _buildIcon() {
-    final color = fileIconColor(file, displayName: displayName);
+  Widget _buildIcon(BuildContext context) {
+    final color = fileIconColor(context, file, displayName: displayName);
     return CircleAvatar(
       backgroundColor: color.withValues(alpha: 0.15),
       child: Icon(fileIcon(file, displayName: displayName), color: color),
@@ -212,7 +212,7 @@ class _SharePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = HoodikColors.blueish300;
+    final color = context.colors.iconSlate;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(

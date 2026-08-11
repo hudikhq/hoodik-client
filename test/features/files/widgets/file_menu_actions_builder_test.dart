@@ -3,6 +3,8 @@ import 'package:hoodik_app/core/api/api_client.dart';
 import 'package:hoodik_app/core/crypto/share_crypto.dart';
 import 'package:hoodik_app/features/files/widgets/file_menu_actions_builder.dart';
 import 'package:hoodik_app/features/shares/shared_constants.dart';
+import 'package:flutter/material.dart';
+import 'package:hoodik_app/core/theme/hoodik_theme.dart';
 
 FileMenuCallbacks _noopCallbacks({
   void Function(FileItem)? onPreview,
@@ -58,10 +60,30 @@ FileItem _dir({bool isOwner = true}) {
   );
 }
 
+/// Pumps a themed shell and hands back a context the builder can resolve
+/// colours from.
+Future<BuildContext> _ctx(WidgetTester tester) async {
+  late BuildContext ctx;
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: HoodikTheme.dark(),
+      home: Builder(
+        builder: (context) {
+          ctx = context;
+          return const SizedBox.shrink();
+        },
+      ),
+    ),
+  );
+  return ctx;
+}
+
 void main() {
   group('buildFileMenuActions', () {
-    test('folder menu omits file-only actions', () {
+    testWidgets('folder menu omits file-only actions', (tester) async {
+      final ctx = await _ctx(tester);
       final actions = buildFileMenuActions(
+        context: ctx,
         file: _dir(),
         isOffline: false,
         sharingEnabled: false,
@@ -77,8 +99,12 @@ void main() {
       expect(labels, containsAll(['Rename', 'Delete', 'Select']));
     });
 
-    test('synthetic "Shared with me" folder has no actions', () {
+    testWidgets('synthetic "Shared with me" folder has no actions', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       final actions = buildFileMenuActions(
+        context: ctx,
         file: sharedWithMeFolder(),
         isOffline: false,
         sharingEnabled: true,
@@ -87,8 +113,12 @@ void main() {
       expect(actions, isEmpty);
     });
 
-    test('previewable image file includes Preview and Export', () {
+    testWidgets('previewable image file includes Preview and Export', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       final actions = buildFileMenuActions(
+        context: ctx,
         file: _file(mime: 'image/jpeg'),
         isOffline: false,
         sharingEnabled: false,
@@ -102,8 +132,10 @@ void main() {
       expect(labels, isNot(contains('Remove Offline Copy')));
     });
 
-    test('offline toggle flips based on isOffline flag', () {
+    testWidgets('offline toggle flips based on isOffline flag', (tester) async {
+      final ctx = await _ctx(tester);
       final offline = buildFileMenuActions(
+        context: ctx,
         file: _file(mime: 'image/jpeg'),
         isOffline: true,
         sharingEnabled: false,
@@ -116,8 +148,12 @@ void main() {
       );
     });
 
-    test('non-editable markdown file shows "Convert to note"', () {
+    testWidgets('non-editable markdown file shows "Convert to note"', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       final actions = buildFileMenuActions(
+        context: ctx,
         file: _file(mime: 'text/markdown'),
         isOffline: false,
         sharingEnabled: false,
@@ -126,8 +162,12 @@ void main() {
       expect(actions.map((a) => a.label), contains('Convert to note'));
     });
 
-    test('editable markdown file does not show "Convert to note"', () {
+    testWidgets('editable markdown file does not show "Convert to note"', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       final actions = buildFileMenuActions(
+        context: ctx,
         file: _file(mime: 'text/markdown', editable: true),
         isOffline: false,
         sharingEnabled: false,
@@ -136,27 +176,34 @@ void main() {
       expect(actions.map((a) => a.label), isNot(contains('Convert to note')));
     });
 
-    test('tapping an action invokes the matching callback with the file', () {
-      FileItem? selected;
-      final file = _file(mime: 'image/png');
-      final actions = buildFileMenuActions(
-        file: file,
-        isOffline: false,
-        sharingEnabled: false,
-        callbacks: _noopCallbacks(onSelect: (f) => selected = f),
-      );
-      actions.firstWhere((a) => a.label == 'Select').onTap();
-      expect(selected, same(file));
-    });
+    testWidgets(
+      'tapping an action invokes the matching callback with the file',
+      (tester) async {
+        final ctx = await _ctx(tester);
+        FileItem? selected;
+        final file = _file(mime: 'image/png');
+        final actions = buildFileMenuActions(
+          context: ctx,
+          file: file,
+          isOffline: false,
+          sharingEnabled: false,
+          callbacks: _noopCallbacks(onSelect: (f) => selected = f),
+        );
+        actions.firstWhere((a) => a.label == 'Select').onTap();
+        expect(selected, same(file));
+      },
+    );
   });
 
   group('Share action visibility', () {
     List<String> labelsFor(
+      BuildContext ctx,
       FileItem file, {
       required bool sharingEnabled,
       bool wired = true,
     }) {
       return buildFileMenuActions(
+        context: ctx,
         file: file,
         isOffline: false,
         sharingEnabled: sharingEnabled,
@@ -164,30 +211,46 @@ void main() {
       ).map((a) => a.label).toList();
     }
 
-    test('owned non-dir file shows Share when sharing is enabled', () {
+    testWidgets('owned non-dir file shows Share when sharing is enabled', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
-        labelsFor(_file(mime: 'image/png'), sharingEnabled: true),
+        labelsFor(ctx, _file(mime: 'image/png'), sharingEnabled: true),
         contains('Share'),
       );
     });
 
-    test('hidden when sharing is disabled on the server', () {
+    testWidgets('hidden when sharing is disabled on the server', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
-        labelsFor(_file(mime: 'image/png'), sharingEnabled: false),
+        labelsFor(ctx, _file(mime: 'image/png'), sharingEnabled: false),
         isNot(contains('Share')),
       );
     });
 
-    test('hidden when the caller did not wire an onShare handler', () {
-      expect(
-        labelsFor(_file(mime: 'image/png'), sharingEnabled: true, wired: false),
-        isNot(contains('Share')),
-      );
-    });
-
-    test('hidden for a file the caller does not own', () {
+    testWidgets('hidden when the caller did not wire an onShare handler', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
         labelsFor(
+          ctx,
+          _file(mime: 'image/png'),
+          sharingEnabled: true,
+          wired: false,
+        ),
+        isNot(contains('Share')),
+      );
+    });
+
+    testWidgets('hidden for a file the caller does not own', (tester) async {
+      final ctx = await _ctx(tester);
+      expect(
+        labelsFor(
+          ctx,
           _file(mime: 'image/png', isOwner: false),
           sharingEnabled: true,
         ),
@@ -195,14 +258,22 @@ void main() {
       );
     });
 
-    test('hidden for folders even when owned and sharing is enabled', () {
-      expect(labelsFor(_dir(), sharingEnabled: true), isNot(contains('Share')));
+    testWidgets('hidden for folders even when owned and sharing is enabled', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
+      expect(
+        labelsFor(ctx, _dir(), sharingEnabled: true),
+        isNot(contains('Share')),
+      );
     });
 
-    test('tapping Share invokes onShare with the file', () {
+    testWidgets('tapping Share invokes onShare with the file', (tester) async {
+      final ctx = await _ctx(tester);
       FileItem? shared;
       final file = _file(mime: 'image/png');
       final actions = buildFileMenuActions(
+        context: ctx,
         file: file,
         isOffline: false,
         sharingEnabled: true,
@@ -215,11 +286,13 @@ void main() {
 
   group('Leave action visibility', () {
     List<String> labelsFor(
+      BuildContext ctx,
       FileItem file, {
       required bool sharingEnabled,
       bool wired = true,
     }) {
       return buildFileMenuActions(
+        context: ctx,
         file: file,
         isOffline: false,
         sharingEnabled: sharingEnabled,
@@ -227,9 +300,13 @@ void main() {
       ).map((a) => a.label).toList();
     }
 
-    test('shown for a non-owned file when sharing is enabled', () {
+    testWidgets('shown for a non-owned file when sharing is enabled', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
         labelsFor(
+          ctx,
           _file(mime: 'image/png', isOwner: false),
           sharingEnabled: true,
         ),
@@ -237,23 +314,31 @@ void main() {
       );
     });
 
-    test('shown for a non-owned folder (recipients can leave folders)', () {
+    testWidgets('shown for a non-owned folder (recipients can leave folders)', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
-        labelsFor(_dir(isOwner: false), sharingEnabled: true),
+        labelsFor(ctx, _dir(isOwner: false), sharingEnabled: true),
         contains('Leave'),
       );
     });
 
-    test('hidden for an owned file (nothing to leave)', () {
+    testWidgets('hidden for an owned file (nothing to leave)', (tester) async {
+      final ctx = await _ctx(tester);
       expect(
-        labelsFor(_file(mime: 'image/png'), sharingEnabled: true),
+        labelsFor(ctx, _file(mime: 'image/png'), sharingEnabled: true),
         isNot(contains('Leave')),
       );
     });
 
-    test('hidden when sharing is disabled on the server', () {
+    testWidgets('hidden when sharing is disabled on the server', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
         labelsFor(
+          ctx,
           _file(mime: 'image/png', isOwner: false),
           sharingEnabled: false,
         ),
@@ -261,9 +346,13 @@ void main() {
       );
     });
 
-    test('hidden when the caller did not wire an onLeave handler', () {
+    testWidgets('hidden when the caller did not wire an onLeave handler', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
         labelsFor(
+          ctx,
           _file(mime: 'image/png', isOwner: false),
           sharingEnabled: true,
           wired: false,
@@ -272,17 +361,22 @@ void main() {
       );
     });
 
-    test('hidden for the synthetic "Shared with me" root row', () {
+    testWidgets('hidden for the synthetic "Shared with me" root row', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
-        labelsFor(sharedWithMeFolder(), sharingEnabled: true),
+        labelsFor(ctx, sharedWithMeFolder(), sharingEnabled: true),
         isNot(contains('Leave')),
       );
     });
 
-    test('tapping Leave invokes onLeave with the file', () {
+    testWidgets('tapping Leave invokes onLeave with the file', (tester) async {
+      final ctx = await _ctx(tester);
       FileItem? left;
       final file = _file(mime: 'image/png', isOwner: false);
       final actions = buildFileMenuActions(
+        context: ctx,
         file: file,
         isOffline: false,
         sharingEnabled: true,
@@ -295,11 +389,13 @@ void main() {
 
   group('Save to my drive (Fork) action visibility', () {
     List<String> labelsFor(
+      BuildContext ctx,
       FileItem file, {
       required bool sharingEnabled,
       bool wired = true,
     }) {
       return buildFileMenuActions(
+        context: ctx,
         file: file,
         isOffline: false,
         sharingEnabled: sharingEnabled,
@@ -307,9 +403,13 @@ void main() {
       ).map((a) => a.label).toList();
     }
 
-    test('shown for a co-owned non-dir share when sharing is enabled', () {
+    testWidgets('shown for a co-owned non-dir share when sharing is enabled', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
         labelsFor(
+          ctx,
           _file(
             mime: 'image/png',
             isOwner: false,
@@ -321,9 +421,11 @@ void main() {
       );
     });
 
-    test('hidden for a reader or editor share', () {
+    testWidgets('hidden for a reader or editor share', (tester) async {
+      final ctx = await _ctx(tester);
       expect(
         labelsFor(
+          ctx,
           _file(mime: 'image/png', isOwner: false, shareRole: ShareRole.reader),
           sharingEnabled: true,
         ),
@@ -331,6 +433,7 @@ void main() {
       );
       expect(
         labelsFor(
+          ctx,
           _file(mime: 'image/png', isOwner: false, shareRole: ShareRole.editor),
           sharingEnabled: true,
         ),
@@ -338,23 +441,31 @@ void main() {
       );
     });
 
-    test('hidden for an owned file', () {
+    testWidgets('hidden for an owned file', (tester) async {
+      final ctx = await _ctx(tester);
       expect(
-        labelsFor(_file(mime: 'image/png'), sharingEnabled: true),
+        labelsFor(ctx, _file(mime: 'image/png'), sharingEnabled: true),
         isNot(contains('Save to my drive')),
       );
     });
 
-    test('hidden for a co-owned folder (cannot fork a directory)', () {
+    testWidgets('hidden for a co-owned folder (cannot fork a directory)', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
-        labelsFor(_dir(isOwner: false), sharingEnabled: true),
+        labelsFor(ctx, _dir(isOwner: false), sharingEnabled: true),
         isNot(contains('Save to my drive')),
       );
     });
 
-    test('hidden when sharing is disabled on the server', () {
+    testWidgets('hidden when sharing is disabled on the server', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
         labelsFor(
+          ctx,
           _file(
             mime: 'image/png',
             isOwner: false,
@@ -366,9 +477,13 @@ void main() {
       );
     });
 
-    test('hidden when the caller did not wire an onFork handler', () {
+    testWidgets('hidden when the caller did not wire an onFork handler', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       expect(
         labelsFor(
+          ctx,
           _file(
             mime: 'image/png',
             isOwner: false,
@@ -381,7 +496,10 @@ void main() {
       );
     });
 
-    test('tapping Save to my drive invokes onFork with the file', () {
+    testWidgets('tapping Save to my drive invokes onFork with the file', (
+      tester,
+    ) async {
+      final ctx = await _ctx(tester);
       FileItem? forked;
       final file = _file(
         mime: 'image/png',
@@ -389,6 +507,7 @@ void main() {
         shareRole: ShareRole.coOwner,
       );
       final actions = buildFileMenuActions(
+        context: ctx,
         file: file,
         isOffline: false,
         sharingEnabled: true,

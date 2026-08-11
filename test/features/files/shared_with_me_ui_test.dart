@@ -19,6 +19,7 @@ import 'package:hoodik_app/l10n/generated/app_localizations.dart';
 
 import '../../helpers/fakes.dart';
 import 'package:hoodik_app/core/widgets/app_icons.dart';
+import 'package:hoodik_app/core/theme/hoodik_theme.dart';
 
 FileItem _recipientRow() {
   return FileItem(
@@ -188,7 +189,9 @@ void main() {
   group('synthetic folder helpers', () {
     final synthetic = sharedWithMeFolder();
 
-    test('icon is folder_shared and color differs from a plain folder', () {
+    testWidgets('icon is folder_shared and color differs from a plain folder', (
+      tester,
+    ) async {
       final plainFolder = FileItem(
         id: 'dir-1',
         encryptedName: 'enc',
@@ -196,7 +199,24 @@ void main() {
       );
       expect(fileIcon(synthetic), Icons.folder_shared);
       expect(fileIcon(plainFolder), AppIcons.folder);
-      expect(fileIconColor(synthetic), isNot(fileIconColor(plainFolder)));
+
+      // The colour now resolves from the theme, so it needs a real context.
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: HoodikTheme.dark(),
+          home: Builder(
+            builder: (context) {
+              ctx = context;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      expect(
+        fileIconColor(ctx, synthetic),
+        isNot(fileIconColor(ctx, plainFolder)),
+      );
     });
 
     test('displayName renders the friendly label', () {

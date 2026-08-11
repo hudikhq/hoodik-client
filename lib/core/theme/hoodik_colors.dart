@@ -76,10 +76,11 @@ class HoodikColors {
   static const Color paper = Color(0xFFFAFAF9);
   static const Color paperRaised = Color(0xFFF1F1EF);
   static const Color paperEdge = Color(0xFFD2D2CE);
-  static const Color paperSunken = Color(0xFFE3E3E0); // derived
+  static const Color paperSunken = Color(0xFFEDEDEA); // derived
   static const Color paperEdgeStrong = Color(0xFFB2B2AD); // derived
   static const Color paperTrack = Color(0xFFC5C5C1); // derived
   static const Color paperCrimsonWash = Color(0xFFF2E6E7); // derived
+  static const Color paperSageWash = Color(0xFFE9EFE2); // derived
 
   /// Light-theme text steps from DESIGN.md's Text Steps table.
   static const Color greeny500 = Color(0xFF4E7228);

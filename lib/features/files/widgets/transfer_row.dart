@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/services/transfer_manager.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/adaptive.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// A single row in the expanded transfer list.
 ///
@@ -20,8 +20,8 @@ class TransferRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accentColor = item.type.isUpload
-        ? HoodikColors.orangy500
-        : HoodikColors.blueish400;
+        ? context.colors.iconEmber
+        : context.colors.iconSlate;
 
     final l10n = AppLocalizations.of(context);
     return Padding(
@@ -29,20 +29,25 @@ class TransferRow extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildHeader(accentColor, l10n),
+          _buildHeader(context, accentColor, l10n),
           if (item.status == TransferStatus.active)
-            ..._buildActiveBody(accentColor),
+            ..._buildActiveBody(context, accentColor),
           if (item.status == TransferStatus.completed)
-            _buildCompletedFooter(l10n),
-          if (item.status == TransferStatus.failed) _buildFailedFooter(l10n),
+            _buildCompletedFooter(context, l10n),
+          if (item.status == TransferStatus.failed)
+            _buildFailedFooter(context, l10n),
           if (item.status == TransferStatus.cancelled)
-            _buildCancelledFooter(l10n),
+            _buildCancelledFooter(context, l10n),
         ],
       ),
     );
   }
 
-  Row _buildHeader(Color accentColor, AppLocalizations l10n) {
+  Row _buildHeader(
+    BuildContext context,
+    Color accentColor,
+    AppLocalizations l10n,
+  ) {
     return Row(
       children: [
         _StatusIcon(item: item),
@@ -52,8 +57,8 @@ class TransferRow extends StatelessWidget {
         Expanded(
           child: Text(
             item.fileName,
-            style: const TextStyle(
-              color: HoodikColors.dirtyWhite,
+            style: TextStyle(
+              color: context.colors.text,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
@@ -66,7 +71,11 @@ class TransferRow extends StatelessWidget {
         if (item.status == TransferStatus.active ||
             item.status == TransferStatus.queued)
           IconButton(
-            icon: Icon(AppIcons.close, size: 16, color: HoodikColors.iconMuted),
+            icon: Icon(
+              AppIcons.close,
+              size: 16,
+              color: context.colors.iconMuted,
+            ),
             onPressed: () => manager.cancelTransfer(item.id),
             padding: EdgeInsets.zero,
             constraints: BoxConstraints(
@@ -79,15 +88,15 @@ class TransferRow extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildActiveBody(Color accentColor) {
+  List<Widget> _buildActiveBody(BuildContext context, Color accentColor) {
     return [
       const SizedBox(height: 6),
       Row(
         children: [
           Text(
             '${item.type.label} ${(item.progress * 100).toInt()}%',
-            style: const TextStyle(
-              color: HoodikColors.textMuted,
+            style: TextStyle(
+              color: context.colors.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
@@ -96,20 +105,14 @@ class TransferRow extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               item.speedString,
-              style: const TextStyle(
-                color: HoodikColors.textMuted,
-                fontSize: 11,
-              ),
+              style: TextStyle(color: context.colors.textMuted, fontSize: 11),
             ),
           ],
           if (item.type.isNetworkTransfer && item.etaString.isNotEmpty) ...[
             const SizedBox(width: 8),
             Text(
               item.etaString,
-              style: const TextStyle(
-                color: HoodikColors.textMuted,
-                fontSize: 11,
-              ),
+              style: TextStyle(color: context.colors.textMuted, fontSize: 11),
             ),
           ],
         ],
@@ -123,7 +126,7 @@ class TransferRow extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: item.progress,
                 minHeight: 4,
-                backgroundColor: HoodikColors.brownish600,
+                backgroundColor: context.colors.seam,
                 valueColor: AlwaysStoppedAnimation<Color>(accentColor),
               ),
             ),
@@ -144,14 +147,14 @@ class TransferRow extends StatelessWidget {
         children: [
           Text(
             item.sizeProgressString,
-            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 11),
+            style: TextStyle(color: context.colors.textMuted, fontSize: 11),
           ),
         ],
       ),
     ];
   }
 
-  Widget _buildCompletedFooter(AppLocalizations l10n) {
+  Widget _buildCompletedFooter(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Row(
@@ -161,14 +164,14 @@ class TransferRow extends StatelessWidget {
             l10n.filesTransferDoneSize(
               TransferItem.formatBytes(item.totalBytes),
             ),
-            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 11),
+            style: TextStyle(color: context.colors.textMuted, fontSize: 11),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFailedFooter(AppLocalizations l10n) {
+  Widget _buildFailedFooter(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Row(
@@ -177,10 +180,7 @@ class TransferRow extends StatelessWidget {
           Expanded(
             child: Text(
               item.errorMessage ?? l10n.filesUnknownError,
-              style: const TextStyle(
-                color: HoodikColors.textCrimson,
-                fontSize: 11,
-              ),
+              style: TextStyle(color: context.colors.textCrimson, fontSize: 11),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -190,7 +190,7 @@ class TransferRow extends StatelessWidget {
     );
   }
 
-  Widget _buildCancelledFooter(AppLocalizations l10n) {
+  Widget _buildCancelledFooter(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Row(
@@ -198,7 +198,7 @@ class TransferRow extends StatelessWidget {
           const SizedBox(width: 26),
           Text(
             l10n.filesCancelled,
-            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 11),
+            style: TextStyle(color: context.colors.textMuted, fontSize: 11),
           ),
         ],
       ),
@@ -225,21 +225,17 @@ class _StatusIcon extends StatelessWidget {
       case TransferStatus.active:
       case TransferStatus.queued:
         final color = item.type.isUpload
-            ? HoodikColors.orangy500
-            : HoodikColors.blueish400;
+            ? context.colors.iconEmber
+            : context.colors.iconSlate;
         return Icon(transferTypeIcon(item.type), color: color, size: 18);
       case TransferStatus.completed:
-        return Icon(AppIcons.success, color: HoodikColors.greeny300, size: 18);
+        return Icon(AppIcons.success, color: context.colors.textSage, size: 18);
       case TransferStatus.failed:
-        return const Icon(
-          Icons.error,
-          color: HoodikColors.iconCrimson,
-          size: 18,
-        );
+        return Icon(Icons.error, color: context.colors.iconCrimson, size: 18);
       case TransferStatus.cancelled:
-        return const Icon(
+        return Icon(
           Icons.cancel_outlined,
-          color: HoodikColors.iconMuted,
+          color: context.colors.iconMuted,
           size: 18,
         );
     }
@@ -253,7 +249,7 @@ class _WorkerBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = onWorker ? 'W' : 'M';
-    final color = onWorker ? HoodikColors.greeny300 : HoodikColors.orangy500;
+    final color = onWorker ? context.colors.textSage : context.colors.iconEmber;
 
     return Container(
       width: 16,
@@ -290,19 +286,13 @@ class _TrailingInfo extends StatelessWidget {
             if (item.speedString.isNotEmpty)
               Text(
                 item.speedString,
-                style: const TextStyle(
-                  color: HoodikColors.textMuted,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: context.colors.textMuted, fontSize: 12),
               ),
             if (item.etaString.isNotEmpty) ...[
               const SizedBox(width: 8),
               Text(
                 item.etaString,
-                style: const TextStyle(
-                  color: HoodikColors.textMuted,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: context.colors.textMuted, fontSize: 12),
               ),
             ],
           ],
@@ -314,7 +304,7 @@ class _TrailingInfo extends StatelessWidget {
       case TransferStatus.queued:
         return Text(
           AppLocalizations.of(context).filesQueued,
-          style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
+          style: TextStyle(color: context.colors.textMuted, fontSize: 12),
         );
     }
   }

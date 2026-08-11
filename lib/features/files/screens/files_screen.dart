@@ -400,6 +400,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       context: context,
       position: globalPosition,
       actions: buildFileMenuActions(
+        context: context,
         file: file,
         isOffline: state.offlineFileIds.contains(file.id),
         callbacks: _menuCallbacks,

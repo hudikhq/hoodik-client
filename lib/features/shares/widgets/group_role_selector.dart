@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/api/share_group_models.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Segmented reader / editor / co-owner picker for a member's *group* role —
 /// a different axis from the file [ShareRoleSelector], so the label and copy
@@ -46,9 +46,9 @@ class GroupRoleSelector extends StatelessWidget {
       children: [
         Text(
           l10n.sharesGroupRoleLabel,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: HoodikColors.textMuted,
+            color: context.colors.textMuted,
             letterSpacing: 0.5,
           ),
         ),
@@ -56,7 +56,7 @@ class GroupRoleSelector extends StatelessWidget {
         Row(
           children: [
             for (final role in roles) ...[
-              Expanded(child: _chip(role)),
+              Expanded(child: _chip(context, role)),
               if (role != roles.last) const SizedBox(width: 8),
             ],
           ],
@@ -64,13 +64,13 @@ class GroupRoleSelector extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           _description(l10n, value),
-          style: const TextStyle(fontSize: 12, color: HoodikColors.textMuted),
+          style: TextStyle(fontSize: 12, color: context.colors.textMuted),
         ),
       ],
     );
   }
 
-  Widget _chip(GroupRole role) {
+  Widget _chip(BuildContext context, GroupRole role) {
     final selected = role == value;
     return InkWell(
       key: ValueKey('group-role-${role.wireString}'),
@@ -80,10 +80,12 @@ class GroupRoleSelector extends StatelessWidget {
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color: selected ? HoodikColors.redish500 : Colors.transparent,
+          color: selected ? context.colors.dangerFill : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: selected ? HoodikColors.redish500 : HoodikColors.brownish500,
+            color: selected
+                ? context.colors.dangerFill
+                : context.colors.seamStrong,
           ),
         ),
         child: Text(
@@ -91,7 +93,7 @@ class GroupRoleSelector extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected ? HoodikColors.white : HoodikColors.dirtyWhite,
+            color: selected ? context.colors.onFill : context.colors.text,
           ),
         ),
       ),
@@ -128,13 +130,13 @@ class GroupRoleChip extends StatelessWidget {
       key: ValueKey('group-role-chip-${role.wireString}'),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: HoodikColors.brownish700,
+        color: context.colors.recess,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: HoodikColors.brownish500, width: 0.5),
+        border: Border.all(color: context.colors.seamStrong, width: 0.5),
       ),
       child: Text(
         groupRoleLabel(role),
-        style: const TextStyle(fontSize: 11, color: HoodikColors.dirtyWhite),
+        style: TextStyle(fontSize: 11, color: context.colors.text),
       ),
     );
   }
