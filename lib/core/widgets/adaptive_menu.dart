@@ -156,60 +156,125 @@ Future<void> _showAnchoredMenu(
   required Offset anchor,
   required List<AdaptiveMenuAction> actions,
 }) {
-  // A pointer-driven menu is dense: macOS and Windows both draw ~22pt rows at
-  // 13pt, and Material's 48dp default reads as a mobile sheet pinned to a
-  // button. Touch keeps the full target — a kebab menu on Android is still
-  // something a thumb has to hit.
-  final dense = !isTouchPlatform;
-  final rowHeight = dense ? 28.0 : kMinTapTarget;
-  final iconSize = dense ? 16.0 : 20.0;
+  // A pointer-driven menu is dense: AppKit draws 22pt rows at 13pt with the
+  // highlight inset from the menu's edge, and Material's 48dp full-bleed rows
+  // read as a mobile sheet pinned to a button. Touch keeps the full target —
+  // a kebab menu on Android is still something a thumb has to hit.
+  final pointer = !isTouchPlatform;
+  final c = context.colors;
 
   return showMenu<void>(
     context: context,
     position: menuAnchorAt(context, anchor),
+    color: c.panel,
+    elevation: pointer ? 8 : 3,
+    menuPadding: pointer
+        ? const EdgeInsets.all(5)
+        : const EdgeInsets.symmetric(vertical: 8),
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(dense ? 6 : 8),
-      side: BorderSide(color: context.colors.seam, width: 0.5),
+      borderRadius: BorderRadius.circular(pointer ? 8 : 10),
+      side: BorderSide(color: c.seamStrong, width: 0.5),
     ),
     items: [
-      for (final action in actions)
+      for (final action in actions) ...[
+        if (action.sectionBreak && pointer)
+          PopupMenuDivider(
+            height: 11,
+            color: c.seam,
+            indent: 10,
+            endIndent: 10,
+          ),
         PopupMenuItem<void>(
           key: action.key,
-          height: rowHeight,
-          padding: EdgeInsets.symmetric(horizontal: dense ? 10 : 16),
+          height: pointer ? 24 : kMinTapTarget,
+          padding: EdgeInsets.zero,
           onTap: action.onTap,
-          child: Row(
-            children: [
-              Icon(action.icon, color: action.iconColor, size: iconSize),
-              SizedBox(width: dense ? 8 : 12),
-              // Menus are width-capped, and a long label would otherwise
-              // overflow the row rather than shorten.
-              Flexible(
-                child: Text(
-                  action.label,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: dense ? 13 : 14,
-                    color: action.isDestructive
-                        ? context.colors.textCrimson
-                        : context.colors.text,
-                    fontWeight: action.isSelected ? FontWeight.w600 : null,
-                  ),
-                ),
-              ),
-              if (action.isSelected) ...[
-                SizedBox(width: dense ? 10 : 12),
-                Icon(
-                  AppIcons.check,
-                  size: iconSize - 2,
-                  color: context.colors.iconCrimson,
-                ),
-              ],
-            ],
-          ),
+          child: _MenuRow(action: action, pointer: pointer),
         ),
+      ],
     ],
   );
+}
+
+/// A single row. On pointer platforms the hover state is an inset rounded
+/// accent fill rather than Material's edge-to-edge grey wash, which is the
+/// difference between a menu that reads as the system's and one that reads as
+/// a list with a highlight on it.
+class _MenuRow extends StatefulWidget {
+  const _MenuRow({required this.action, required this.pointer});
+
+  final AdaptiveMenuAction action;
+  final bool pointer;
+
+  @override
+  State<_MenuRow> createState() => _MenuRowState();
+}
+
+class _MenuRowState extends State<_MenuRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final action = widget.action;
+    final active = widget.pointer && _hovered;
+
+    final foreground = active
+        ? c.onFill
+        : action.isDestructive
+        ? c.textCrimson
+        : c.text;
+
+    final row = Container(
+      height: widget.pointer ? 22 : null,
+      padding: EdgeInsets.symmetric(horizontal: widget.pointer ? 8 : 16),
+      decoration: active
+          ? BoxDecoration(
+              color: c.crimsonFill,
+              borderRadius: BorderRadius.circular(5),
+            )
+          : null,
+      child: Row(
+        children: [
+          Icon(
+            action.icon,
+            size: widget.pointer ? 15 : 20,
+            color: active ? c.onFill : action.iconColor,
+          ),
+          SizedBox(width: widget.pointer ? 8 : 12),
+          // Menus are width-capped, and a long label would otherwise overflow
+          // the row rather than shorten.
+          Flexible(
+            child: Text(
+              action.label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: widget.pointer ? 13 : 14,
+                height: 1.2,
+                color: foreground,
+                fontWeight: action.isSelected ? FontWeight.w600 : null,
+              ),
+            ),
+          ),
+          if (action.isSelected) ...[
+            SizedBox(width: widget.pointer ? 10 : 12),
+            Icon(
+              AppIcons.check,
+              size: widget.pointer ? 13 : 18,
+              color: active ? c.onFill : c.iconCrimson,
+            ),
+          ],
+        ],
+      ),
+    );
+
+    if (!widget.pointer) return row;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: row,
+    );
+  }
 }
 
 Future<void> _showBottomSheet(

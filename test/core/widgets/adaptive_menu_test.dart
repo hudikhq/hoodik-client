@@ -135,6 +135,6 @@ void main() {
     );
     // Mouse-driven platforms draw ~22pt rows; Material's 48dp default reads
     // as a mobile sheet stuck to a button.
-    expect(item.height, Platform.isAndroid ? kMinTapTarget : 28.0);
+    expect(item.height, Platform.isAndroid ? kMinTapTarget : 24.0);
   });
 }
