@@ -18,6 +18,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../services/mcp_token_crypto.dart';
 import '../widgets/mcp_config_snippet.dart';
 import '../widgets/mcp_security_settings.dart';
+import '../../../core/theme/hoodik_colors.dart';
 
 /// Settings screen for the MCP (AI Access) server feature.
 ///
@@ -301,7 +302,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                       leading: Icon(
                         CupertinoIcons.wand_stars,
                         size: 22,
-                        color: theme.colorScheme.primary,
+                        color: HoodikColors.iconCrimson,
                       ),
                       title: Text(l10n.accountMcpConnectClientTitle),
                       subtitle: Text(l10n.accountMcpConnectClientSubtitle),
@@ -330,7 +331,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       _error!,
-                      style: TextStyle(color: theme.colorScheme.error),
+                      style: TextStyle(color: HoodikColors.textCrimson),
                     ),
                   ),
                 ],
@@ -386,7 +387,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 13,
-                            color: theme.colorScheme.primary,
+                            color: HoodikColors.textCrimson,
                           ),
                         ),
                       ),

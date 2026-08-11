@@ -150,7 +150,7 @@ class LinksBodyState extends ConsumerState<LinksBody> {
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               l10n.commonDelete,
-              style: const TextStyle(color: HoodikColors.redish400),
+              style: const TextStyle(color: HoodikColors.textCrimson),
             ),
           ),
         ],
@@ -243,7 +243,7 @@ class LinksBodyState extends ConsumerState<LinksBody> {
               const Icon(
                 Icons.error_outline,
                 size: 48,
-                color: HoodikColors.redish400,
+                color: HoodikColors.iconCrimson,
               ),
               const SizedBox(height: 16),
               Text(_error!, textAlign: TextAlign.center),
@@ -273,16 +273,12 @@ class LinksBodyState extends ConsumerState<LinksBody> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.link_off,
-                    size: 64,
-                    color: HoodikColors.brownish300,
-                  ),
+                  Icon(Icons.link_off, size: 64, color: HoodikColors.iconMuted),
                   const SizedBox(height: 16),
                   Text(
                     AppLocalizations.of(context).linksEmptyTitle,
                     style: TextStyle(
-                      color: HoodikColors.brownish100,
+                      color: HoodikColors.textMuted,
                       fontSize: 16,
                     ),
                   ),
@@ -290,7 +286,7 @@ class LinksBodyState extends ConsumerState<LinksBody> {
                   Text(
                     AppLocalizations.of(context).linksEmptySubtitle,
                     style: TextStyle(
-                      color: HoodikColors.brownish300,
+                      color: HoodikColors.textMuted,
                       fontSize: 13,
                     ),
                   ),

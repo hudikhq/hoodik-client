@@ -19,13 +19,13 @@ class FilesDropOverlay extends StatelessWidget {
             Icon(
               Icons.cloud_upload_outlined,
               size: 56,
-              color: HoodikColors.blueish400.withValues(alpha: 0.8),
+              color: HoodikColors.blueish300.withValues(alpha: 0.9),
             ),
             const SizedBox(height: 12),
             Text(
               AppLocalizations.of(context).filesDropToUpload,
               style: TextStyle(
-                color: HoodikColors.blueish400.withValues(alpha: 0.9),
+                color: HoodikColors.dirtyWhite,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),

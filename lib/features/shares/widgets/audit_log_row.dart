@@ -44,7 +44,7 @@ class AuditLogRow extends StatelessWidget {
                   child: Icon(
                     Icons.person_outline,
                     size: 18,
-                    color: HoodikColors.brownish100,
+                    color: HoodikColors.iconMuted,
                   ),
                 ),
                 Expanded(
@@ -73,7 +73,7 @@ class AuditLogRow extends StatelessWidget {
                           formatRelativeTimestamp(row.event.createdAt),
                           style: const TextStyle(
                             fontSize: 12,
-                            color: HoodikColors.brownish100,
+                            color: HoodikColors.textMuted,
                           ),
                         ),
                       ),
@@ -85,7 +85,7 @@ class AuditLogRow extends StatelessWidget {
                             l10n.sharesAuditPageBoundaryNote,
                             style: const TextStyle(
                               fontSize: 11,
-                              color: HoodikColors.brownish100,
+                              color: HoodikColors.textMuted,
                             ),
                           ),
                         ),
@@ -116,7 +116,7 @@ class AuditLogRow extends StatelessWidget {
         return _pill(
           icon: Icons.settings_outlined,
           label: l10n.sharesAuditBadgeSystem,
-          fg: HoodikColors.brownish100,
+          fg: HoodikColors.textMuted,
           bg: HoodikColors.brownish700,
         );
       case AuditRowBadge.tampered:

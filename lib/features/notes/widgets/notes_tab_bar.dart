@@ -88,7 +88,7 @@ class _ExpandSidebarButton extends StatelessWidget {
           child: const Icon(
             Icons.menu,
             size: 18,
-            color: HoodikColors.brownish100,
+            color: HoodikColors.iconMuted,
           ),
         ),
       ),
@@ -137,7 +137,7 @@ class _TabItem extends StatelessWidget {
                 child: Text(
                   tab.fileName,
                   style: TextStyle(
-                    color: isActive ? Colors.white : HoodikColors.brownish100,
+                    color: isActive ? Colors.white : HoodikColors.textMuted,
                     fontSize: 12,
                     fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
                   ),
@@ -175,7 +175,7 @@ class _TabItem extends StatelessWidget {
                   child: Icon(
                     isApplePlatform ? CupertinoIcons.xmark : Icons.close,
                     size: 12,
-                    color: HoodikColors.brownish200,
+                    color: HoodikColors.iconMuted,
                   ),
                 ),
               ),

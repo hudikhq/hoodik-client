@@ -96,7 +96,7 @@ class _ErrorBody extends StatelessWidget {
           child: Text(
             l10n.sharesNoLongerHaveAccess,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: HoodikColors.brownish100),
+            style: const TextStyle(color: HoodikColors.textMuted),
           ),
         ),
       );
@@ -112,7 +112,7 @@ class _ErrorBody extends StatelessWidget {
             Icon(
               offline ? Icons.cloud_off_outlined : Icons.error_outline,
               size: 32,
-              color: HoodikColors.brownish100,
+              color: HoodikColors.iconMuted,
             ),
             const SizedBox(height: 12),
             Text(
@@ -120,7 +120,7 @@ class _ErrorBody extends StatelessWidget {
                   ? l10n.sharesMembersLoadFailedOffline
                   : l10n.sharesMembersLoadFailed,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: HoodikColors.brownish100),
+              style: const TextStyle(color: HoodikColors.textMuted),
             ),
             if (!offline) ...[
               const SizedBox(height: 6),
@@ -129,7 +129,7 @@ class _ErrorBody extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 12,
-                  color: HoodikColors.brownish100,
+                  color: HoodikColors.textMuted,
                 ),
               ),
             ],
@@ -168,7 +168,7 @@ class _MembersBody extends ConsumerWidget {
                 style: const TextStyle(
                   fontSize: 12,
                   letterSpacing: 0.5,
-                  color: HoodikColors.brownish100,
+                  color: HoodikColors.textMuted,
                 ),
               ),
             ),

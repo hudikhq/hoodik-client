@@ -99,7 +99,7 @@ List<FileMenuAction> buildFileMenuActions({
       if (isOffline)
         FileMenuAction(
           icon: Icons.cloud_off,
-          iconColor: HoodikColors.brownish200,
+          iconColor: HoodikColors.iconMuted,
           label: ambientL10n.filesRemoveOfflineCopy,
           onTap: () => callbacks.onRemoveOffline(file),
         )
@@ -119,7 +119,7 @@ List<FileMenuAction> buildFileMenuActions({
     ),
     FileMenuAction(
       icon: Icons.delete_outline,
-      iconColor: HoodikColors.redish400,
+      iconColor: HoodikColors.iconCrimson,
       label: ambientL10n.commonDelete,
       onTap: () => callbacks.onDelete(file),
     ),
@@ -127,7 +127,7 @@ List<FileMenuAction> buildFileMenuActions({
         canLeaveFile(file, sharingEnabled: sharingEnabled))
       FileMenuAction(
         icon: Icons.logout,
-        iconColor: HoodikColors.redish400,
+        iconColor: HoodikColors.iconCrimson,
         label: ambientL10n.filesLeave,
         onTap: () => callbacks.onLeave!(file),
       ),
@@ -165,14 +165,14 @@ List<FileMenuAction> buildFileMenuActions({
         ),
       FileMenuAction(
         icon: Icons.info_outline,
-        iconColor: HoodikColors.brownish100,
+        iconColor: HoodikColors.iconMuted,
         label: ambientL10n.filesDetails,
         onTap: () => callbacks.onDetails(file),
       ),
     ],
     FileMenuAction(
       icon: Icons.checklist,
-      iconColor: HoodikColors.brownish100,
+      iconColor: HoodikColors.iconMuted,
       label: ambientL10n.filesSelect,
       onTap: () => callbacks.onSelect(file),
     ),

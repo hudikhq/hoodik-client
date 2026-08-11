@@ -178,7 +178,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
               avatar: Icon(
                 Icons.cloud_off,
                 size: 14,
-                color: theme.colorScheme.primary,
+                color: HoodikColors.iconCrimson,
               ),
             ),
           ),
@@ -261,7 +261,7 @@ class _ViewModeButton extends ConsumerWidget {
                 size: 18,
                 color: selected
                     ? HoodikColors.orangy500
-                    : HoodikColors.brownish100,
+                    : HoodikColors.iconMuted,
               ),
               const SizedBox(width: 12),
               Text(
@@ -269,7 +269,7 @@ class _ViewModeButton extends ConsumerWidget {
                 style: TextStyle(
                   color: selected
                       ? HoodikColors.dirtyWhite
-                      : HoodikColors.brownish100,
+                      : HoodikColors.textMuted,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),

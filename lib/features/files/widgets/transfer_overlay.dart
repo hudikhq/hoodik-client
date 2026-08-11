@@ -236,7 +236,7 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                     Text(
                       display.speedString,
                       style: const TextStyle(
-                        color: HoodikColors.brownish100,
+                        color: HoodikColors.textMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -251,19 +251,19 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                 if (display.status == TransferStatus.failed)
                   const Icon(
                     Icons.error,
-                    color: HoodikColors.redish400,
+                    color: HoodikColors.iconCrimson,
                     size: 18,
                   ),
                 if (display.status == TransferStatus.cancelled)
                   const Icon(
                     Icons.cancel_outlined,
-                    color: HoodikColors.brownish100,
+                    color: HoodikColors.iconMuted,
                     size: 18,
                   ),
                 const SizedBox(width: 4),
                 Icon(
                   Icons.keyboard_arrow_up,
-                  color: HoodikColors.brownish300,
+                  color: HoodikColors.iconMuted,
                   size: 18,
                 ),
               ],
@@ -358,7 +358,7 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                     child: Text(
                       AppLocalizations.of(context).filesClear,
                       style: const TextStyle(
-                        color: HoodikColors.brownish100,
+                        color: HoodikColors.textMuted,
                         fontSize: 13,
                       ),
                     ),
@@ -370,7 +370,7 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                   ).filesTransfersMinimizeTooltip,
                   icon: const Icon(
                     Icons.keyboard_arrow_down,
-                    color: HoodikColors.brownish300,
+                    color: HoodikColors.iconMuted,
                   ),
                   onPressed: () => setState(() => _expanded = false),
                   padding: EdgeInsets.zero,
@@ -383,7 +383,7 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                 IconButton(
                   icon: const Icon(
                     Icons.close,
-                    color: HoodikColors.brownish300,
+                    color: HoodikColors.iconMuted,
                     size: 18,
                   ),
                   onPressed: () => setState(() => _dismissed = true),

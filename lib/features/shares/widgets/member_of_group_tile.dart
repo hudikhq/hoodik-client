@@ -61,7 +61,7 @@ class MemberOfGroupTile extends StatelessWidget {
                       l10n.sharesOwnedBy(group.ownerEmail),
                       style: const TextStyle(
                         fontSize: 12,
-                        color: HoodikColors.brownish100,
+                        color: HoodikColors.textMuted,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -76,7 +76,7 @@ class MemberOfGroupTile extends StatelessWidget {
                   icon: const Icon(
                     Icons.person_add_alt,
                     size: 18,
-                    color: HoodikColors.brownish100,
+                    color: HoodikColors.iconMuted,
                   ),
                   onPressed: onAddMember,
                 ),
@@ -88,7 +88,7 @@ class MemberOfGroupTile extends StatelessWidget {
               l10n.sharesShareFromShareMenu,
               style: const TextStyle(
                 fontSize: 12,
-                color: HoodikColors.brownish100,
+                color: HoodikColors.textMuted,
               ),
             ),
           ],

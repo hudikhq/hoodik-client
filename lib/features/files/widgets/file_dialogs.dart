@@ -29,7 +29,7 @@ Future<String?> showTextInputDialog({
           autofocus: true,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: HoodikColors.brownish300),
+            hintStyle: const TextStyle(color: HoodikColors.textMuted),
           ),
           onSubmitted: (v) => Navigator.pop(ctx, v),
         ),
@@ -173,7 +173,7 @@ void showLinkCreatedDialog({
               linkUrl,
               style: const TextStyle(
                 fontSize: 12,
-                color: HoodikColors.brownish100,
+                color: HoodikColors.textMuted,
               ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -215,10 +215,7 @@ Widget _detailRow(String label, String value) {
           width: 72,
           child: Text(
             label,
-            style: const TextStyle(
-              color: HoodikColors.brownish100,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
           ),
         ),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 12))),
@@ -239,10 +236,7 @@ Widget _copyableRow(BuildContext context, String label, String value) {
           width: 72,
           child: Text(
             label,
-            style: const TextStyle(
-              color: HoodikColors.brownish100,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
           ),
         ),
         Expanded(
@@ -268,7 +262,7 @@ Widget _copyableRow(BuildContext context, String label, String value) {
           child: const Icon(
             Icons.copy,
             size: 16,
-            color: HoodikColors.brownish300,
+            color: HoodikColors.iconMuted,
           ),
         ),
       ],

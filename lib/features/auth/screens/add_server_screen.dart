@@ -13,6 +13,7 @@ import '../../../core/providers.dart';
 import '../../../core/storage/database.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../widgets/cloud_nudge.dart';
+import '../../../core/theme/hoodik_colors.dart';
 
 /// Shown as the selected server for the login screen.
 final selectedServerProvider = StateProvider<Server?>((ref) => null);
@@ -165,7 +166,7 @@ class _AddServerScreenState extends ConsumerState<AddServerScreen> {
                     'Hoodik',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.primary,
+                      color: HoodikColors.textCrimson,
                     ),
                   ),
                   const SizedBox(height: 4),

@@ -31,7 +31,7 @@ class PreviewUnsupported extends StatelessWidget {
                   ? Icons.insert_drive_file
                   : Icons.insert_drive_file_outlined,
               size: 64,
-              color: HoodikColors.brownish200,
+              color: HoodikColors.iconMuted,
             ),
             const SizedBox(height: 24),
             Text(
@@ -49,7 +49,7 @@ class PreviewUnsupported extends StatelessWidget {
             Text(
               mime,
               style: const TextStyle(
-                color: HoodikColors.brownish200,
+                color: HoodikColors.textMuted,
                 fontSize: 13,
               ),
             ),
@@ -57,7 +57,7 @@ class PreviewUnsupported extends StatelessWidget {
             Text(
               l10n.previewNoPreviewAvailable,
               style: const TextStyle(
-                color: HoodikColors.brownish100,
+                color: HoodikColors.textMuted,
                 fontSize: 14,
               ),
             ),

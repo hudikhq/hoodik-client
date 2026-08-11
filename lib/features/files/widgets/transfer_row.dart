@@ -67,7 +67,7 @@ class TransferRow extends StatelessWidget {
             icon: const Icon(
               Icons.close,
               size: 16,
-              color: HoodikColors.brownish100,
+              color: HoodikColors.iconMuted,
             ),
             onPressed: () => manager.cancelTransfer(item.id),
             padding: EdgeInsets.zero,
@@ -86,7 +86,7 @@ class TransferRow extends StatelessWidget {
           Text(
             '${item.type.label} ${(item.progress * 100).toInt()}%',
             style: const TextStyle(
-              color: HoodikColors.brownish50,
+              color: HoodikColors.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
@@ -96,7 +96,7 @@ class TransferRow extends StatelessWidget {
             Text(
               item.speedString,
               style: const TextStyle(
-                color: HoodikColors.brownish100,
+                color: HoodikColors.textMuted,
                 fontSize: 11,
               ),
             ),
@@ -106,7 +106,7 @@ class TransferRow extends StatelessWidget {
             Text(
               item.etaString,
               style: const TextStyle(
-                color: HoodikColors.brownish100,
+                color: HoodikColors.textMuted,
                 fontSize: 11,
               ),
             ),
@@ -143,10 +143,7 @@ class TransferRow extends StatelessWidget {
         children: [
           Text(
             item.sizeProgressString,
-            style: const TextStyle(
-              color: HoodikColors.brownish100,
-              fontSize: 11,
-            ),
+            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 11),
           ),
         ],
       ),
@@ -163,10 +160,7 @@ class TransferRow extends StatelessWidget {
             l10n.filesTransferDoneSize(
               TransferItem.formatBytes(item.totalBytes),
             ),
-            style: const TextStyle(
-              color: HoodikColors.brownish100,
-              fontSize: 11,
-            ),
+            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 11),
           ),
         ],
       ),
@@ -183,7 +177,7 @@ class TransferRow extends StatelessWidget {
             child: Text(
               item.errorMessage ?? l10n.filesUnknownError,
               style: const TextStyle(
-                color: HoodikColors.redish300,
+                color: HoodikColors.textCrimson,
                 fontSize: 11,
               ),
               maxLines: 2,
@@ -203,10 +197,7 @@ class TransferRow extends StatelessWidget {
           const SizedBox(width: 26),
           Text(
             l10n.filesCancelled,
-            style: const TextStyle(
-              color: HoodikColors.brownish100,
-              fontSize: 11,
-            ),
+            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 11),
           ),
         ],
       ),
@@ -243,11 +234,15 @@ class _StatusIcon extends StatelessWidget {
           size: 18,
         );
       case TransferStatus.failed:
-        return const Icon(Icons.error, color: HoodikColors.redish400, size: 18);
+        return const Icon(
+          Icons.error,
+          color: HoodikColors.iconCrimson,
+          size: 18,
+        );
       case TransferStatus.cancelled:
         return const Icon(
           Icons.cancel_outlined,
-          color: HoodikColors.brownish100,
+          color: HoodikColors.iconMuted,
           size: 18,
         );
     }
@@ -299,7 +294,7 @@ class _TrailingInfo extends StatelessWidget {
               Text(
                 item.speedString,
                 style: const TextStyle(
-                  color: HoodikColors.brownish50,
+                  color: HoodikColors.textMuted,
                   fontSize: 12,
                 ),
               ),
@@ -308,7 +303,7 @@ class _TrailingInfo extends StatelessWidget {
               Text(
                 item.etaString,
                 style: const TextStyle(
-                  color: HoodikColors.brownish100,
+                  color: HoodikColors.textMuted,
                   fontSize: 12,
                 ),
               ),
@@ -322,7 +317,7 @@ class _TrailingInfo extends StatelessWidget {
       case TransferStatus.queued:
         return Text(
           AppLocalizations.of(context).filesQueued,
-          style: const TextStyle(color: HoodikColors.brownish100, fontSize: 12),
+          style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
         );
     }
   }

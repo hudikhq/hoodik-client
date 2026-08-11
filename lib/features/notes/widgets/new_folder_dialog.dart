@@ -76,7 +76,7 @@ class _NewFolderDialogState extends State<_NewFolderDialog> {
                 Text(
                   _error!,
                   style: const TextStyle(
-                    color: HoodikColors.redish400,
+                    color: HoodikColors.textCrimson,
                     fontSize: 12,
                   ),
                 ),

@@ -61,7 +61,7 @@ class _BadgedIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final icon = Icon(
       isApplePlatform ? CupertinoIcons.exclamationmark_triangle : Icons.report,
-      color: HoodikColors.redish300,
+      color: HoodikColors.iconCrimson,
     );
 
     return Stack(

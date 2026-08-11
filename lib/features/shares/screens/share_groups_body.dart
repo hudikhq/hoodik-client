@@ -52,7 +52,7 @@ class _ErrorBody extends StatelessWidget {
         child: Text(
           AppLocalizations.of(context).sharesGroupsLoadFailed,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: HoodikColors.brownish100),
+          style: const TextStyle(color: HoodikColors.textMuted),
         ),
       ),
     );
@@ -275,7 +275,7 @@ class _GroupsList extends ConsumerWidget {
     style: const TextStyle(
       fontSize: 12,
       letterSpacing: 0.5,
-      color: HoodikColors.brownish100,
+      color: HoodikColors.textMuted,
     ),
   );
 
@@ -289,7 +289,7 @@ class _GroupsList extends ConsumerWidget {
     ),
     child: Text(
       text,
-      style: const TextStyle(fontSize: 13, color: HoodikColors.brownish100),
+      style: const TextStyle(fontSize: 13, color: HoodikColors.textMuted),
     ),
   );
 }

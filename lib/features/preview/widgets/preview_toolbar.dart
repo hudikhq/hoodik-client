@@ -78,7 +78,7 @@ class PreviewToolbar extends StatelessWidget {
                           Text(
                             '${currentIndex + 1} / $totalCount',
                             style: const TextStyle(
-                              color: HoodikColors.brownish200,
+                              color: HoodikColors.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -105,7 +105,7 @@ class PreviewToolbar extends StatelessWidget {
                       isApplePlatform
                           ? CupertinoIcons.trash
                           : Icons.delete_outline,
-                      color: HoodikColors.redish400,
+                      color: HoodikColors.iconCrimson,
                     ),
                     onPressed: onDelete,
                   ),

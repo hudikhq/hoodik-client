@@ -67,11 +67,7 @@ class FileListItem extends StatelessWidget {
         subtitle: Row(
           children: [
             if (!file.isDir && isOffline) ...[
-              Icon(
-                Icons.offline_pin,
-                size: 13,
-                color: HoodikColors.greeny400.withValues(alpha: 0.7),
-              ),
+              Icon(Icons.offline_pin, size: 13, color: HoodikColors.greeny300),
               const SizedBox(width: 4),
             ],
             // Surfaced when another session is in the middle of saving

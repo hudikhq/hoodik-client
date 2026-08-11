@@ -59,13 +59,13 @@ IconData fileIcon(FileItem file, {String? displayName}) {
 /// Pass [displayName] so markdown notes pick up the notes accent color
 /// (otherwise they'd share the generic blue with other files).
 Color fileIconColor(FileItem file, {String? displayName}) {
-  if (file.id == sharedWithMeDirId) return HoodikColors.blueish500;
+  if (file.id == sharedWithMeDirId) return HoodikColors.blueish400;
   if (file.isDir) return HoodikColors.orangy600;
   if (file.isUploading) return HoodikColors.brownish50;
   if (isMarkdownNote(file, displayName: displayName)) {
     return HoodikColors.orangy500;
   }
-  return HoodikColors.blueish500;
+  return HoodikColors.blueish400;
 }
 
 /// Strip the 'Exception: ' prefix from an error message.

@@ -177,7 +177,7 @@ class RecentNotesPanelState extends ConsumerState<RecentNotesPanel> {
               const Icon(
                 Icons.error_outline,
                 size: 32,
-                color: HoodikColors.redish400,
+                color: HoodikColors.iconCrimson,
               ),
               const SizedBox(height: 12),
               Text(
@@ -238,12 +238,12 @@ class _RecentHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
         children: [
-          const Icon(Icons.history, size: 16, color: HoodikColors.brownish200),
+          const Icon(Icons.history, size: 16, color: HoodikColors.iconMuted),
           const SizedBox(width: 8),
           Text(
             AppLocalizations.of(context).notesRecentHeader,
             style: const TextStyle(
-              color: HoodikColors.brownish200,
+              color: HoodikColors.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               letterSpacing: 1.0,
@@ -288,7 +288,7 @@ class _NoteTile extends StatelessWidget {
       ),
       subtitle: Text(
         AppLocalizations.of(context).notesModified(subtitle),
-        style: const TextStyle(color: HoodikColors.brownish100, fontSize: 12),
+        style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
       ),
     );
   }
@@ -309,7 +309,7 @@ class _NotesEmptyIllustration extends StatelessWidget {
             const Icon(
               Icons.sticky_note_2_outlined,
               size: 48,
-              color: HoodikColors.brownish200,
+              color: HoodikColors.iconMuted,
             ),
             const SizedBox(height: 12),
             Text(
@@ -324,7 +324,7 @@ class _NotesEmptyIllustration extends StatelessWidget {
             Text(
               l10n.notesEmptyHint,
               style: const TextStyle(
-                color: HoodikColors.brownish100,
+                color: HoodikColors.textMuted,
                 fontSize: 13,
               ),
               textAlign: TextAlign.center,

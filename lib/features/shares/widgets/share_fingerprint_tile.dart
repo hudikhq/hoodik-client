@@ -63,7 +63,7 @@ class ShareFingerprintTile extends StatelessWidget {
             style: const TextStyle(
               fontSize: 12,
               fontFamily: 'monospace',
-              color: HoodikColors.brownish100,
+              color: HoodikColors.textMuted,
             ),
           ),
           const SizedBox(height: 10),
@@ -86,10 +86,10 @@ class ShareFingerprintTile extends StatelessWidget {
       ),
       ShareTrustStatus.firstSight => _banner(
         icon: Icons.shield_outlined,
-        color: HoodikColors.brownish100,
+        color: HoodikColors.iconMuted,
         child: Text(
           l10n.sharesTrustFirstSight,
-          style: const TextStyle(fontSize: 12, color: HoodikColors.brownish100),
+          style: const TextStyle(fontSize: 12, color: HoodikColors.textMuted),
         ),
       ),
       ShareTrustStatus.mismatch => _mismatchBody(l10n),

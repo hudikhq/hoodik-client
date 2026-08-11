@@ -134,17 +134,14 @@ class _ShareToGroupSheetState extends ConsumerState<_ShareToGroupSheet> {
         if (groups.isEmpty)
           Text(
             l10n.sharesNotGroupEditor,
-            style: const TextStyle(
-              fontSize: 13,
-              color: HoodikColors.brownish100,
-            ),
+            style: const TextStyle(fontSize: 13, color: HoodikColors.textMuted),
           )
         else ...[
           Text(
             l10n.sharesGroupLabel,
             style: const TextStyle(
               fontSize: 12,
-              color: HoodikColors.brownish100,
+              color: HoodikColors.textMuted,
               letterSpacing: 0.5,
             ),
           ),
@@ -193,8 +190,8 @@ class _ShareToGroupSheetState extends ConsumerState<_ShareToGroupSheet> {
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
               size: 18,
               color: selected
-                  ? HoodikColors.redish500
-                  : HoodikColors.brownish100,
+                  ? HoodikColors.iconCrimson
+                  : HoodikColors.iconMuted,
             ),
             const SizedBox(width: 10),
             Expanded(

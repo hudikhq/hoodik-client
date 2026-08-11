@@ -253,7 +253,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           // fit inside the compact AppBar.
           decoration: InputDecoration(
             hintText: AppLocalizations.of(context).searchHint,
-            hintStyle: TextStyle(color: HoodikColors.brownish100),
+            hintStyle: TextStyle(color: HoodikColors.textMuted),
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -290,7 +290,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           padding: const EdgeInsets.all(24),
           child: Text(
             _error!,
-            style: TextStyle(color: theme.colorScheme.error),
+            style: TextStyle(color: HoodikColors.textCrimson),
             textAlign: TextAlign.center,
           ),
         ),

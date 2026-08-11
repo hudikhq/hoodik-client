@@ -296,7 +296,9 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
           ),
           TextButton(
             style: destructive
-                ? TextButton.styleFrom(foregroundColor: HoodikColors.redish400)
+                ? TextButton.styleFrom(
+                    foregroundColor: HoodikColors.textCrimson,
+                  )
                 : null,
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(confirmLabel),
@@ -364,7 +366,7 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
           child: Text(
             _l10n.notesNoHistory,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: HoodikColors.brownish200),
+            style: const TextStyle(color: HoodikColors.textMuted),
           ),
         ),
       );
@@ -441,7 +443,7 @@ class _VersionRow extends StatelessWidget {
             child: Text(
               dateLabel,
               style: const TextStyle(
-                color: HoodikColors.brownish100,
+                color: HoodikColors.textMuted,
                 fontSize: 13,
               ),
             ),
@@ -450,7 +452,7 @@ class _VersionRow extends StatelessWidget {
       ),
       subtitle: Text(
         '${_author(version, l10n)} · ${l10n.notesChunkCount(version.chunks)}',
-        style: const TextStyle(color: HoodikColors.brownish300, fontSize: 12),
+        style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
       ),
       trailing: PopupMenuButton<VoidCallback>(
         enabled: !busy,
@@ -464,7 +466,7 @@ class _VersionRow extends StatelessWidget {
             value: onDelete,
             child: Text(
               l10n.notesDeleteThisVersion,
-              style: const TextStyle(color: HoodikColors.redish400),
+              style: const TextStyle(color: HoodikColors.textCrimson),
             ),
           ),
         ],

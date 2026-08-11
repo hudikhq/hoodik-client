@@ -150,8 +150,8 @@ class _AppNotificationState extends State<_AppNotificationWidget>
 
   Color get _accentColor => switch (widget.type) {
     NotificationType.success => HoodikColors.greeny300,
-    NotificationType.error => HoodikColors.redish400,
-    NotificationType.info => HoodikColors.brownish100,
+    NotificationType.error => HoodikColors.iconCrimson,
+    NotificationType.info => HoodikColors.iconMuted,
   };
 
   IconData get _icon => switch (widget.type) {
@@ -221,7 +221,7 @@ class _AppNotificationState extends State<_AppNotificationWidget>
                         const SizedBox(width: 8),
                         Icon(
                           Icons.close,
-                          color: HoodikColors.brownish300,
+                          color: HoodikColors.iconMuted,
                           size: 16,
                         ),
                         const SizedBox(width: 12),

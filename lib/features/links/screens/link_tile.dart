@@ -86,12 +86,12 @@ class LinkTile extends StatelessWidget {
         link.name,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: expired ? HoodikColors.brownish300 : null),
+        style: TextStyle(color: expired ? HoodikColors.textMuted : null),
       ),
       subtitle: Text(
         _subtitle(l10n),
         style: TextStyle(
-          color: expired ? HoodikColors.brownish400 : HoodikColors.brownish100,
+          color: expired ? HoodikColors.textMuted : HoodikColors.textMuted,
           fontSize: 12,
         ),
       ),
@@ -102,13 +102,13 @@ class LinkTile extends StatelessWidget {
             icon: const Icon(Icons.copy, size: 18),
             tooltip: l10n.linksCopyTooltip,
             onPressed: onCopy,
-            color: HoodikColors.brownish100,
+            color: HoodikColors.iconMuted,
           ),
           PopupMenuButton<String>(
             icon: const Icon(
               Icons.more_vert,
               size: 20,
-              color: HoodikColors.brownish100,
+              color: HoodikColors.iconMuted,
             ),
             color: HoodikColors.brownish800,
             shape: RoundedRectangleBorder(
@@ -163,7 +163,7 @@ class LinkTile extends StatelessWidget {
                 child: _MenuRow(
                   icon: Icons.delete_outline,
                   label: l10n.linksDeleteLink,
-                  color: HoodikColors.redish400,
+                  color: HoodikColors.textCrimson,
                 ),
               ),
             ],
@@ -203,7 +203,7 @@ class LinkTile extends StatelessWidget {
       child: Icon(
         Icons.link,
         size: 20,
-        color: expired ? HoodikColors.brownish300 : HoodikColors.blueish400,
+        color: expired ? HoodikColors.iconMuted : HoodikColors.blueish400,
       ),
     );
   }
