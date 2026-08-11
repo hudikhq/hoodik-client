@@ -3,8 +3,6 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -28,13 +26,6 @@ import 'new_note_dialog.dart';
 import 'rename_note_dialog.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
-
-/// True on platforms where touch is the primary interaction. On these, the
-/// row's kebab button is always visible because there's no hover to reveal
-/// it; on desktop it stays hidden until the user hovers the row.
-bool get _isTouchPlatform =>
-    defaultTargetPlatform == TargetPlatform.android ||
-    defaultTargetPlatform == TargetPlatform.iOS;
 
 /// Sidebar tree of folders and markdown notes.
 ///
@@ -1005,7 +996,7 @@ class _FolderRowState extends State<_FolderRow> {
                                 visible:
                                     _hovered ||
                                     widget.isSelected ||
-                                    _isTouchPlatform,
+                                    isTouchPlatform,
                                 onTap: () {
                                   final renderBox =
                                       context.findRenderObject() as RenderBox?;
@@ -1163,7 +1154,7 @@ class _NoteRowState extends State<_NoteRow> {
                     // Always in the tree so the row layout stays stable;
                     // Visibility hides the button without reclaiming its space.
                     _NoteRowActionButton(
-                      visible: _hovered || widget.isActive || _isTouchPlatform,
+                      visible: _hovered || widget.isActive || isTouchPlatform,
                       onTap: () {
                         final renderBox =
                             context.findRenderObject() as RenderBox?;

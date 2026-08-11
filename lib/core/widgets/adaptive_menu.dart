@@ -156,22 +156,32 @@ Future<void> _showAnchoredMenu(
   required Offset anchor,
   required List<AdaptiveMenuAction> actions,
 }) {
+  // A pointer-driven menu is dense: macOS and Windows both draw ~22pt rows at
+  // 13pt, and Material's 48dp default reads as a mobile sheet pinned to a
+  // button. Touch keeps the full target — a kebab menu on Android is still
+  // something a thumb has to hit.
+  final dense = !isTouchPlatform;
+  final rowHeight = dense ? 28.0 : kMinTapTarget;
+  final iconSize = dense ? 16.0 : 20.0;
+
   return showMenu<void>(
     context: context,
     position: menuAnchorAt(context, anchor),
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(dense ? 6 : 8),
       side: BorderSide(color: context.colors.seam, width: 0.5),
     ),
     items: [
       for (final action in actions)
         PopupMenuItem<void>(
           key: action.key,
+          height: rowHeight,
+          padding: EdgeInsets.symmetric(horizontal: dense ? 10 : 16),
           onTap: action.onTap,
           child: Row(
             children: [
-              Icon(action.icon, color: action.iconColor, size: 20),
-              const SizedBox(width: 12),
+              Icon(action.icon, color: action.iconColor, size: iconSize),
+              SizedBox(width: dense ? 8 : 12),
               // Menus are width-capped, and a long label would otherwise
               // overflow the row rather than shorten.
               Flexible(
@@ -179,6 +189,7 @@ Future<void> _showAnchoredMenu(
                   action.label,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
+                    fontSize: dense ? 13 : 14,
                     color: action.isDestructive
                         ? context.colors.textCrimson
                         : context.colors.text,
@@ -187,10 +198,10 @@ Future<void> _showAnchoredMenu(
                 ),
               ),
               if (action.isSelected) ...[
-                const SizedBox(width: 12),
+                SizedBox(width: dense ? 10 : 12),
                 Icon(
                   AppIcons.check,
-                  size: 16,
+                  size: iconSize - 2,
                   color: context.colors.iconCrimson,
                 ),
               ],

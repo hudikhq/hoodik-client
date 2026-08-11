@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hoodik_app/core/widgets/adaptive.dart';
 import 'package:hoodik_app/core/widgets/adaptive_menu.dart';
 import 'package:hoodik_app/l10n/generated/app_localizations.dart';
 
@@ -121,5 +122,19 @@ void main() {
     expect(find.byType(CupertinoActionSheet), findsNothing);
     expect(find.byType(BottomSheet), findsNothing);
     expect(find.byType(PopupMenuItem<void>), findsNothing);
+  });
+
+  testWidgets('a pointer menu is dense, a touch menu keeps its target', (
+    tester,
+  ) async {
+    await open(tester, anchor: const Offset(120, 200));
+    if (Platform.isIOS) return; // iOS never renders the anchored variant.
+
+    final item = tester.widget<PopupMenuItem<void>>(
+      find.byType(PopupMenuItem<void>).first,
+    );
+    // Mouse-driven platforms draw ~22pt rows; Material's 48dp default reads
+    // as a mobile sheet stuck to a button.
+    expect(item.height, Platform.isAndroid ? kMinTapTarget : 28.0);
   });
 }
