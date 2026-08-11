@@ -5,7 +5,6 @@ import '../../../core/api/api_client.dart';
 import '../../../core/api/shares_models.dart';
 import '../../../core/crypto/share_crypto.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -14,6 +13,7 @@ import 'recipient_discovery.dart';
 import 'recipient_email_field.dart';
 import 'share_fingerprint_tile.dart';
 import 'share_role_selector.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Add a member to [folder], or change an existing member's role. Discovers the
 /// recipient by email, gates on the trust-on-first-use fingerprint state
@@ -307,7 +307,9 @@ class _AllowAddFilesHint extends StatelessWidget {
         Icon(
           canAddFiles ? Icons.check_circle_outline : Icons.block,
           size: 16,
-          color: canAddFiles ? HoodikColors.greeny300 : HoodikColors.iconMuted,
+          color: canAddFiles
+              ? context.colors.textSage
+              : context.colors.iconMuted,
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -315,7 +317,7 @@ class _AllowAddFilesHint extends StatelessWidget {
             canAddFiles
                 ? l10n.sharesAllowAddFiles
                 : l10n.sharesPickEditorToEnable,
-            style: const TextStyle(fontSize: 12, color: HoodikColors.textMuted),
+            style: TextStyle(fontSize: 12, color: context.colors.textMuted),
           ),
         ),
       ],

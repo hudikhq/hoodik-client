@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'core/theme/hoodik_colors.dart';
 import 'core/widgets/adaptive.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'features/auth/screens/add_server_screen.dart';
@@ -32,6 +31,7 @@ import 'features/account/screens/mcp_connect_wizard_screen.dart';
 import 'features/account/screens/mcp_settings_screen.dart';
 import 'core/providers.dart';
 import 'core/services/window_title.dart';
+import 'core/theme/hoodik_scheme.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -395,10 +395,10 @@ class MainShell extends ConsumerWidget {
                 currentIndex: currentIndex,
                 onSelected: _onTap,
               ),
-              const VerticalDivider(
+              VerticalDivider(
                 width: 0.5,
                 thickness: 0.5,
-                color: HoodikColors.brownish600,
+                color: context.colors.seam,
               ),
               Expanded(child: content),
             ],
@@ -539,17 +539,19 @@ class _ShellRail extends StatelessWidget {
       selectedIndex: currentIndex,
       onDestinationSelected: onSelected,
       labelType: NavigationRailLabelType.all,
-      backgroundColor: HoodikColors.brownish800,
-      indicatorColor: HoodikColors.redish700,
-      selectedIconTheme: const IconThemeData(color: HoodikColors.dirtyWhite),
-      unselectedIconTheme: const IconThemeData(color: HoodikColors.iconMuted),
-      selectedLabelTextStyle: const TextStyle(
-        color: HoodikColors.dirtyWhite,
+      backgroundColor: context.colors.panel,
+      indicatorColor: context.colors.crimsonContainer,
+      selectedIconTheme: IconThemeData(
+        color: context.colors.onCrimsonContainer,
+      ),
+      unselectedIconTheme: IconThemeData(color: context.colors.iconMuted),
+      selectedLabelTextStyle: TextStyle(
+        color: context.colors.text,
         fontSize: 12,
         fontWeight: FontWeight.w600,
       ),
-      unselectedLabelTextStyle: const TextStyle(
-        color: HoodikColors.textMuted,
+      unselectedLabelTextStyle: TextStyle(
+        color: context.colors.textMuted,
         fontSize: 12,
       ),
       destinations: [

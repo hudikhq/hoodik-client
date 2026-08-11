@@ -7,10 +7,10 @@ import 'package:pdfx/pdfx.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
 import '../../../core/services/transfer_manager.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/preview_loader.dart';
 import 'preview_loading.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// PDF preview — downloads, writes to temp file, renders with pdfx.
 class PreviewPdf extends ConsumerStatefulWidget {
@@ -150,9 +150,9 @@ class _PreviewPdfState extends ConsumerState<PreviewPdf> {
           builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
             options: const DefaultBuilderOptions(),
             documentLoaderBuilder: (_) => const PreviewLoading(),
-            pageLoaderBuilder: (_) => const Center(
+            pageLoaderBuilder: (_) => Center(
               child: CircularProgressIndicator(
-                color: HoodikColors.iconCrimson,
+                color: context.colors.iconCrimson,
                 strokeWidth: 2,
               ),
             ),
@@ -189,8 +189,8 @@ class _PreviewPdfState extends ConsumerState<PreviewPdf> {
                   AppLocalizations.of(
                     context,
                   ).previewPageCounter(_currentPage, _totalPages),
-                  style: const TextStyle(
-                    color: HoodikColors.textMuted,
+                  style: TextStyle(
+                    color: context.colors.textMuted,
                     fontSize: 13,
                   ),
                 ),

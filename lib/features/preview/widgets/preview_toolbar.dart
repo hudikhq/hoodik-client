@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Animated toolbar overlay shown at the top of the preview screen.
 class PreviewToolbar extends StatelessWidget {
@@ -78,8 +78,8 @@ class PreviewToolbar extends StatelessWidget {
                         if (totalCount > 1)
                           Text(
                             '${currentIndex + 1} / $totalCount',
-                            style: const TextStyle(
-                              color: HoodikColors.textMuted,
+                            style: TextStyle(
+                              color: context.colors.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -104,7 +104,7 @@ class PreviewToolbar extends StatelessWidget {
                     tooltip: AppLocalizations.of(context).commonDelete,
                     icon: Icon(
                       isApplePlatform ? CupertinoIcons.trash : AppIcons.delete,
-                      color: HoodikColors.iconCrimson,
+                      color: context.colors.iconCrimson,
                     ),
                     onPressed: onDelete,
                   ),

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Reusable loading/progress indicator for preview widgets.
 ///
@@ -55,7 +55,7 @@ class PreviewLoading extends StatelessWidget {
                 height: 48,
                 child: CircularProgressIndicator(
                   value: isIndeterminate ? null : progress,
-                  color: HoodikColors.iconCrimson,
+                  color: context.colors.iconCrimson,
                   strokeWidth: 3,
                 ),
               ),
@@ -65,16 +65,16 @@ class PreviewLoading extends StatelessWidget {
                   showPercentage
                       ? '$stage ${(progress! * 100).toInt()}%'
                       : '$stage...',
-                  style: const TextStyle(
-                    color: HoodikColors.textMuted,
+                  style: TextStyle(
+                    color: context.colors.textMuted,
                     fontSize: 13,
                   ),
                 )
               else if (showPercentage)
                 Text(
                   '${(progress! * 100).toInt()}%',
-                  style: const TextStyle(
-                    color: HoodikColors.textMuted,
+                  style: TextStyle(
+                    color: context.colors.textMuted,
                     fontSize: 13,
                   ),
                 ),

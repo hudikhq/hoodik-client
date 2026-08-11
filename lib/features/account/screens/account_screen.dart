@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../widgets/account_header_section.dart';
@@ -13,6 +12,7 @@ import '../widgets/admin_section.dart';
 import '../widgets/legal_section.dart';
 import '../widgets/sharing_preferences_section.dart';
 import '../widgets/sign_out_section.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -43,7 +43,7 @@ class AccountScreen extends ConsumerWidget {
           slivers: [
             CupertinoSliverNavigationBar(
               largeTitle: Text(title),
-              backgroundColor: HoodikColors.brownish800,
+              backgroundColor: context.colors.panel,
               border: null,
             ),
             SliverPadding(

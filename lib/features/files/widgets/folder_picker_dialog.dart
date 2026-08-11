@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/crypto/file_crypto.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Result of the folder picker dialog.
 ///
@@ -189,7 +189,7 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
                 separatorBuilder: (_, _) => Icon(
                   AppIcons.chevronForward,
                   size: 16,
-                  color: HoodikColors.iconMuted,
+                  color: context.colors.iconMuted,
                 ),
                 itemBuilder: (_, i) {
                   final isLast = i == _breadcrumbs.length - 1;
@@ -200,8 +200,8 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
                         _breadcrumbs[i].name,
                         style: TextStyle(
                           color: isLast
-                              ? HoodikColors.dirtyWhite
-                              : HoodikColors.blueish300,
+                              ? context.colors.text
+                              : context.colors.iconSlate,
                           fontWeight: isLast
                               ? FontWeight.w600
                               : FontWeight.normal,
@@ -222,8 +222,8 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
                   ? Center(
                       child: Text(
                         AppLocalizations.of(context).filesNoSubfolders,
-                        style: const TextStyle(
-                          color: HoodikColors.textMuted,
+                        style: TextStyle(
+                          color: context.colors.textMuted,
                           fontSize: 14,
                         ),
                       ),
@@ -236,7 +236,7 @@ class _FolderPickerDialogState extends State<_FolderPickerDialog> {
                         return ListTile(
                           leading: Icon(
                             AppIcons.folder,
-                            color: HoodikColors.orangy600,
+                            color: context.colors.emberFill,
                           ),
                           title: Text(name),
                           trailing: Icon(AppIcons.chevronForward),

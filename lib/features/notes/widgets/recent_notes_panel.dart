@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../core/utils/log_redact.dart';
@@ -14,6 +13,7 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/helpers/file_helpers.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 const _log = Logger('RecentNotesPanel');
 
@@ -175,11 +175,11 @@ class RecentNotesPanelState extends ConsumerState<RecentNotesPanel> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(AppIcons.error, size: 32, color: HoodikColors.iconCrimson),
+              Icon(AppIcons.error, size: 32, color: context.colors.iconCrimson),
               const SizedBox(height: 12),
               Text(
                 _error!,
-                style: const TextStyle(color: HoodikColors.dirtyWhite),
+                style: TextStyle(color: context.colors.text),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -206,9 +206,9 @@ class RecentNotesPanelState extends ConsumerState<RecentNotesPanel> {
       itemCount: notes.length + 1,
       separatorBuilder: (_, i) {
         if (i == 0) return const SizedBox.shrink();
-        return const Divider(
+        return Divider(
           height: 1,
-          color: HoodikColors.brownish700,
+          color: context.colors.recess,
           indent: 16,
           endIndent: 16,
         );
@@ -235,12 +235,12 @@ class _RecentHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
         children: [
-          Icon(AppIcons.history, size: 16, color: HoodikColors.iconMuted),
+          Icon(AppIcons.history, size: 16, color: context.colors.iconMuted),
           const SizedBox(width: 8),
           Text(
             AppLocalizations.of(context).notesRecentHeader,
-            style: const TextStyle(
-              color: HoodikColors.textMuted,
+            style: TextStyle(
+              color: context.colors.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               letterSpacing: 1.0,
@@ -269,20 +269,20 @@ class _NoteTile extends StatelessWidget {
 
     return ListTile(
       onTap: onTap,
-      leading: Icon(AppIcons.note, color: HoodikColors.orangy500),
+      leading: Icon(AppIcons.note, color: context.colors.iconEmber),
       title: Tooltip(
         message: name,
         waitDuration: const Duration(milliseconds: 400),
         child: Text(
           name,
-          style: const TextStyle(color: HoodikColors.dirtyWhite, fontSize: 15),
+          style: TextStyle(color: context.colors.text, fontSize: 15),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
       ),
       subtitle: Text(
         AppLocalizations.of(context).notesModified(subtitle),
-        style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
+        style: TextStyle(color: context.colors.textMuted, fontSize: 12),
       ),
     );
   }
@@ -300,12 +300,12 @@ class _NotesEmptyIllustration extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(AppIcons.note, size: 48, color: HoodikColors.iconMuted),
+            Icon(AppIcons.note, size: 48, color: context.colors.iconMuted),
             const SizedBox(height: 12),
             Text(
               l10n.notesEmptyTitle,
-              style: const TextStyle(
-                color: HoodikColors.dirtyWhite,
+              style: TextStyle(
+                color: context.colors.text,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -313,10 +313,7 @@ class _NotesEmptyIllustration extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               l10n.notesEmptyHint,
-              style: const TextStyle(
-                color: HoodikColors.textMuted,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: context.colors.textMuted, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ],

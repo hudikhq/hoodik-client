@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// App-bar entry point for uploads that exhausted their retry budget.
 ///
@@ -61,7 +61,7 @@ class _BadgedIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final icon = Icon(
       isApplePlatform ? CupertinoIcons.exclamationmark_triangle : Icons.report,
-      color: HoodikColors.iconCrimson,
+      color: context.colors.iconCrimson,
     );
 
     return Stack(
@@ -86,7 +86,7 @@ class _CountBubble extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
       decoration: BoxDecoration(
-        color: HoodikColors.redish400,
+        color: context.colors.crimsonFill,
         borderRadius: BorderRadius.circular(9),
       ),
       alignment: Alignment.center,

@@ -8,12 +8,12 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/providers.dart';
 import '../../../core/utils/error_copy.dart';
 import '../services/links_loader.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'link_tile.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// The user's public links list with per-link actions (copy URL, share,
 /// edit/remove expiry, delete). Owns its own load/refresh state so it can be
@@ -151,7 +151,7 @@ class LinksBodyState extends ConsumerState<LinksBody> {
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               l10n.commonDelete,
-              style: const TextStyle(color: HoodikColors.textCrimson),
+              style: TextStyle(color: context.colors.textCrimson),
             ),
           ),
         ],
@@ -241,7 +241,7 @@ class LinksBodyState extends ConsumerState<LinksBody> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(AppIcons.error, size: 48, color: HoodikColors.iconCrimson),
+              Icon(AppIcons.error, size: 48, color: context.colors.iconCrimson),
               const SizedBox(height: 16),
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
@@ -270,12 +270,16 @@ class LinksBodyState extends ConsumerState<LinksBody> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.link_off, size: 64, color: HoodikColors.iconMuted),
+                  Icon(
+                    Icons.link_off,
+                    size: 64,
+                    color: context.colors.iconMuted,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     AppLocalizations.of(context).linksEmptyTitle,
                     style: TextStyle(
-                      color: HoodikColors.textMuted,
+                      color: context.colors.textMuted,
                       fontSize: 16,
                     ),
                   ),
@@ -283,7 +287,7 @@ class LinksBodyState extends ConsumerState<LinksBody> {
                   Text(
                     AppLocalizations.of(context).linksEmptySubtitle,
                     style: TextStyle(
-                      color: HoodikColors.textMuted,
+                      color: context.colors.textMuted,
                       fontSize: 13,
                     ),
                   ),

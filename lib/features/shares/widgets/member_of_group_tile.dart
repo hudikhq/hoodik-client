@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/api/share_group_models.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'group_role_selector.dart' show GroupRoleChip;
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// One "member of" group tile, role-aware. Every member sees the group name,
 /// the owner's email, and their own group-role chip. A co-owner can add a
@@ -34,9 +34,9 @@ class MemberOfGroupTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: HoodikColors.brownish800,
+        color: context.colors.panel,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: HoodikColors.brownish600, width: 0.5),
+        border: Border.all(color: context.colors.seam, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,9 +49,9 @@ class MemberOfGroupTile extends StatelessWidget {
                   children: [
                     Text(
                       group.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: HoodikColors.dirtyWhite,
+                        color: context.colors.text,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -59,9 +59,9 @@ class MemberOfGroupTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       l10n.sharesOwnedBy(group.ownerEmail),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: HoodikColors.textMuted,
+                        color: context.colors.textMuted,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -73,10 +73,10 @@ class MemberOfGroupTile extends StatelessWidget {
               if (role.canManageGroup)
                 IconButton(
                   tooltip: l10n.sharesAddMember,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.person_add_alt,
                     size: 18,
-                    color: HoodikColors.iconMuted,
+                    color: context.colors.iconMuted,
                   ),
                   onPressed: onAddMember,
                 ),
@@ -86,10 +86,7 @@ class MemberOfGroupTile extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               l10n.sharesShareFromShareMenu,
-              style: const TextStyle(
-                fontSize: 12,
-                color: HoodikColors.textMuted,
-              ),
+              style: TextStyle(fontSize: 12, color: context.colors.textMuted),
             ),
           ],
         ],

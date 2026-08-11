@@ -13,7 +13,6 @@ import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
 import '../../../core/services/file_operations.dart' show SaveConflictException;
 import '../../../core/services/transfer_manager.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/widgets/adaptive.dart';
@@ -31,6 +30,7 @@ import 'notes_sidebar.dart';
 import 'recent_notes_panel.dart';
 import 'unsaved_changes_dialog.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 const _log = Logger('NotesWorkspace');
 
@@ -191,7 +191,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       );
 
     if (!Platform.isMacOS) {
-      _webViewController.setBackgroundColor(HoodikColors.brownish900);
+      _webViewController.setBackgroundColor(context.colors.canvas);
     }
   }
 
@@ -603,7 +603,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
           ),
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: HoodikColors.textCrimson,
+              foregroundColor: context.colors.textCrimson,
             ),
             onPressed: () => Navigator.pop(ctx, 'overwrite'),
             child: Text(l10n.notesConflictOverwrite),
@@ -825,19 +825,19 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
     final tab = _activeTab;
     final saveWidget = tab.isSaving
-        ? const SizedBox(
+        ? SizedBox(
             width: 16,
             height: 16,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: HoodikColors.orangy500,
+              color: context.colors.iconEmber,
             ),
           )
         : tab.isDirty
         ? Icon(
             isApplePlatform ? CupertinoIcons.circle_fill : Icons.circle,
             size: 8,
-            color: HoodikColors.orangy500,
+            color: context.colors.iconEmber,
           )
         : null;
 
@@ -931,10 +931,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
           padding: const EdgeInsets.all(32),
           child: Text(
             tab.error!,
-            style: const TextStyle(
-              color: HoodikColors.dirtyWhite,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: context.colors.text, fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ),

@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
 import '../../../core/services/thumbnail_loader.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/log_redact.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/workers/worker_messages.dart';
@@ -17,6 +16,7 @@ import '../../files/helpers/file_helpers.dart';
 import '../../files/widgets/file_list_item.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 const _log = Logger('SearchScreen');
 
@@ -254,7 +254,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           // fit inside the compact AppBar.
           decoration: InputDecoration(
             hintText: AppLocalizations.of(context).searchHint,
-            hintStyle: TextStyle(color: HoodikColors.textMuted),
+            hintStyle: TextStyle(color: context.colors.textMuted),
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -291,7 +291,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           padding: const EdgeInsets.all(24),
           child: Text(
             _error!,
-            style: TextStyle(color: HoodikColors.textCrimson),
+            style: TextStyle(color: context.colors.textCrimson),
             textAlign: TextAlign.center,
           ),
         ),

@@ -9,8 +9,8 @@ import '../../../core/utils/format.dart' as fmt;
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Detail screen for a single user. Shows info, storage breakdown, sessions,
 /// and admin actions (edit role/quota, disable 2FA, delete).
@@ -442,7 +442,7 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
             ),
             title: Text(
               l10n.adminDisableTfa,
-              style: TextStyle(color: HoodikColors.textCrimson),
+              style: TextStyle(color: context.colors.textCrimson),
             ),
             onTap: _disableTfa,
           ),
@@ -455,7 +455,7 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
             ),
             title: Text(
               l10n.adminKillAllSessions,
-              style: TextStyle(color: HoodikColors.textCrimson),
+              style: TextStyle(color: context.colors.textCrimson),
             ),
             onTap: _killAllSessions,
           ),
@@ -468,7 +468,7 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
             ),
             title: Text(
               l10n.adminDeleteUser,
-              style: TextStyle(color: HoodikColors.textCrimson),
+              style: TextStyle(color: context.colors.textCrimson),
             ),
             subtitle: Text(l10n.adminDeleteUserSubtitle),
             onTap: _deleteUser,

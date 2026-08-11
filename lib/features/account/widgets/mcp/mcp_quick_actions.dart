@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/adaptive.dart';
 import '../../../../l10n/generated/app_localizations.dart';
-import '../../../../core/theme/hoodik_colors.dart';
+import '../../../../core/theme/hoodik_scheme.dart';
 
 /// Bundle of destructive-ish shortcuts for the MCP settings screen:
 /// stop the server, rotate the bearer token, clear the audit log. Each
@@ -37,7 +37,7 @@ class McpQuickActions extends StatelessWidget {
           leading: Icon(
             CupertinoIcons.stop_circle,
             size: 22,
-            color: isRunning ? HoodikColors.iconCrimson : null,
+            color: isRunning ? context.colors.iconCrimson : null,
           ),
           title: Text(l10n.accountMcpStopServer),
           subtitle: Text(

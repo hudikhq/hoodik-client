@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 class StorageQuotaTile extends ConsumerWidget {
   const StorageQuotaTile({super.key});
@@ -55,8 +55,8 @@ class StorageQuotaTile extends ConsumerWidget {
               child: LinearProgressIndicator(
                 value: (usage.usedSpace / quota).clamp(0.0, 1.0),
                 minHeight: 4,
-                backgroundColor: HoodikColors.brownish500,
-                color: HoodikColors.iconCrimson,
+                backgroundColor: context.colors.seamStrong,
+                color: context.colors.iconCrimson,
               ),
             ),
             const SizedBox(height: 2),

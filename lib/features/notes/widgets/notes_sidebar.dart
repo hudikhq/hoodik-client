@@ -13,7 +13,6 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
@@ -27,6 +26,7 @@ import 'new_folder_dialog.dart';
 import 'new_note_dialog.dart';
 import 'rename_note_dialog.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// True on platforms where touch is the primary interaction. On these, the
 /// row's kebab button is always visible because there's no hover to reveal
@@ -290,7 +290,7 @@ class _NotesSidebarState extends ConsumerState<NotesSidebar> {
           ),
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: HoodikColors.textCrimson,
+              foregroundColor: context.colors.textCrimson,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(_l10n.commonDelete),
@@ -500,7 +500,7 @@ class _NotesSidebarState extends ConsumerState<NotesSidebar> {
           ),
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: HoodikColors.textCrimson,
+              foregroundColor: context.colors.textCrimson,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(_l10n.commonDelete),
@@ -660,10 +660,10 @@ class _NotesSidebarState extends ConsumerState<NotesSidebar> {
         _loading.contains(null) && snapshot.children[null] == null;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: HoodikColors.brownish800,
+      decoration: BoxDecoration(
+        color: context.colors.panel,
         border: Border(
-          right: BorderSide(color: HoodikColors.brownish600, width: 0.5),
+          right: BorderSide(color: context.colors.seam, width: 0.5),
         ),
       ),
       child: Column(
@@ -780,7 +780,7 @@ class _SidebarHeader extends StatelessWidget {
           value: 'note',
           child: Row(
             children: [
-              Icon(AppIcons.note, size: 16, color: HoodikColors.iconMuted),
+              Icon(AppIcons.note, size: 16, color: context.colors.iconMuted),
               const SizedBox(width: 8),
               Text(AppLocalizations.of(context).notesNewNote),
             ],
@@ -790,10 +790,10 @@ class _SidebarHeader extends StatelessWidget {
           value: 'folder',
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.create_new_folder_outlined,
                 size: 16,
-                color: HoodikColors.iconMuted,
+                color: context.colors.iconMuted,
               ),
               const SizedBox(width: 8),
               Text(AppLocalizations.of(context).notesNewFolder),
@@ -826,7 +826,7 @@ class _SidebarHeader extends StatelessWidget {
                         ? CupertinoIcons.chevron_left
                         : AppIcons.back,
                     size: 16,
-                    color: HoodikColors.iconMuted,
+                    color: context.colors.iconMuted,
                   ),
                 ),
               ),
@@ -836,8 +836,8 @@ class _SidebarHeader extends StatelessWidget {
           Expanded(
             child: Text(
               AppLocalizations.of(context).notesSidebarHeader,
-              style: const TextStyle(
-                color: HoodikColors.textMuted,
+              style: TextStyle(
+                color: context.colors.textMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.0,
@@ -855,7 +855,7 @@ class _SidebarHeader extends StatelessWidget {
                   child: Icon(
                     AppIcons.add,
                     size: 16,
-                    color: HoodikColors.iconCrimson,
+                    color: context.colors.iconCrimson,
                   ),
                 ),
               ),
@@ -867,12 +867,12 @@ class _SidebarHeader extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(6),
                 onTap: onCollapse,
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(6),
                   child: Icon(
                     Icons.menu_open,
                     size: 16,
-                    color: HoodikColors.iconMuted,
+                    color: context.colors.iconMuted,
                   ),
                 ),
               ),
@@ -946,7 +946,7 @@ class _FolderRowState extends State<_FolderRow> {
           child: _MenuRow(
             icon: AppIcons.delete,
             label: l10n.commonDelete,
-            color: HoodikColors.textCrimson,
+            color: context.colors.textCrimson,
           ),
         ),
       ],
@@ -995,18 +995,18 @@ class _FolderRowState extends State<_FolderRow> {
                 ),
                 decoration: BoxDecoration(
                   color: widget.isSelected
-                      ? HoodikColors.brownish700
+                      ? context.colors.recess
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   children: [
-                    Icon(chevron, size: 14, color: HoodikColors.iconMuted),
+                    Icon(chevron, size: 14, color: context.colors.iconMuted),
                     const SizedBox(width: 4),
                     Icon(
                       widget.isExpanded ? AppIcons.folderOpen : AppIcons.folder,
                       size: 15,
-                      color: HoodikColors.orangy400,
+                      color: context.colors.textEmber,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -1133,7 +1133,7 @@ class _NoteRowState extends State<_NoteRow> {
           child: _MenuRow(
             icon: AppIcons.delete,
             label: l10n.commonDelete,
-            color: HoodikColors.textCrimson,
+            color: context.colors.textCrimson,
           ),
         ),
       ],
@@ -1178,7 +1178,7 @@ class _NoteRowState extends State<_NoteRow> {
                 ),
                 decoration: BoxDecoration(
                   color: widget.isActive
-                      ? HoodikColors.brownish700
+                      ? context.colors.recess
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -1188,8 +1188,8 @@ class _NoteRowState extends State<_NoteRow> {
                       AppIcons.note,
                       size: 14,
                       color: widget.isActive
-                          ? HoodikColors.iconCrimson
-                          : HoodikColors.iconMuted,
+                          ? context.colors.iconCrimson
+                          : context.colors.iconMuted,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -1201,7 +1201,7 @@ class _NoteRowState extends State<_NoteRow> {
                           style: TextStyle(
                             color: widget.isActive
                                 ? Colors.white
-                                : HoodikColors.textMuted,
+                                : context.colors.textMuted,
                             fontSize: 13,
                             fontWeight: widget.isActive
                                 ? FontWeight.w500
@@ -1261,7 +1261,7 @@ class _NoteRowActionButton extends StatelessWidget {
             child: Icon(
               AppIcons.overflowHorizontal,
               size: 14,
-              color: HoodikColors.iconMuted,
+              color: context.colors.iconMuted,
             ),
           ),
         ),
@@ -1284,7 +1284,7 @@ class _MenuRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: color ?? HoodikColors.iconMuted),
+        Icon(icon, size: 18, color: color ?? context.colors.iconMuted),
         const SizedBox(width: 12),
         Text(label, style: color == null ? null : TextStyle(color: color)),
       ],
@@ -1307,7 +1307,7 @@ class _SidebarError extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(AppIcons.error, size: 20, color: HoodikColors.iconCrimson),
+          Icon(AppIcons.error, size: 20, color: context.colors.iconCrimson),
           const SizedBox(height: 8),
           Text(
             l10n.notesLoadFailed,
@@ -1320,7 +1320,7 @@ class _SidebarError extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             message,
-            style: const TextStyle(color: HoodikColors.textMuted, fontSize: 11),
+            style: TextStyle(color: context.colors.textMuted, fontSize: 11),
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1342,7 +1342,7 @@ class _SidebarEmpty extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Text(
           AppLocalizations.of(context).notesSidebarEmpty,
-          style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
+          style: TextStyle(color: context.colors.textMuted, fontSize: 12),
         ),
       ),
     );

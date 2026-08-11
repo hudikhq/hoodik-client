@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Ask the user for a name for a new note.
 ///
@@ -76,8 +76,8 @@ class _NewNoteDialogState extends State<_NewNoteDialog> {
                 const SizedBox(height: 8),
                 Text(
                   _error!,
-                  style: const TextStyle(
-                    color: HoodikColors.textCrimson,
+                  style: TextStyle(
+                    color: context.colors.textCrimson,
                     fontSize: 12,
                   ),
                 ),

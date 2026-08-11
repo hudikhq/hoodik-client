@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/connectivity_error.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/audit_log_notifier.dart';
 import '../widgets/audit_log_row.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Sharing activity log: the caller's share events newest-first, each with the
 /// action in plain English, the timestamp, and a tri-state integrity badge
@@ -51,7 +51,7 @@ class _ErrorBody extends StatelessWidget {
             Icon(
               offline ? Icons.cloud_off_outlined : AppIcons.error,
               size: 32,
-              color: HoodikColors.iconMuted,
+              color: context.colors.iconMuted,
             ),
             const SizedBox(height: 12),
             Text(
@@ -59,17 +59,14 @@ class _ErrorBody extends StatelessWidget {
                   ? l10n.sharesAuditLoadFailedOffline
                   : l10n.sharesAuditLoadFailed,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: HoodikColors.textMuted),
+              style: TextStyle(color: context.colors.textMuted),
             ),
             if (!offline) ...[
               const SizedBox(height: 6),
               Text(
                 error.toString(),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: HoodikColors.textMuted,
-                ),
+                style: TextStyle(fontSize: 12, color: context.colors.textMuted),
               ),
             ],
             const SizedBox(height: 16),
@@ -97,17 +94,14 @@ class _AuditBody extends StatelessWidget {
             key: const ValueKey('audit-empty'),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: HoodikColors.brownish800,
+              color: context.colors.panel,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: HoodikColors.brownish600, width: 0.5),
+              border: Border.all(color: context.colors.seam, width: 0.5),
             ),
             child: Text(
               l10n.sharesAuditEmpty,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                color: HoodikColors.textMuted,
-              ),
+              style: TextStyle(fontSize: 13, color: context.colors.textMuted),
             ),
           ),
         ),
@@ -126,10 +120,7 @@ class _AuditBody extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               l10n.sharesAuditShowingRecent(state.rows.length, state.total),
-              style: const TextStyle(
-                fontSize: 12,
-                color: HoodikColors.textMuted,
-              ),
+              style: TextStyle(fontSize: 12, color: context.colors.textMuted),
             ),
           ),
       ],
@@ -148,30 +139,30 @@ class _Legend extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: HoodikColors.brownish900,
+        color: context.colors.canvas,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: HoodikColors.brownish600, width: 0.5),
+        border: Border.all(color: context.colors.seam, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _LegendItem(
             icon: AppIcons.verified,
-            color: HoodikColors.greeny300,
+            color: context.colors.textSage,
             label: l10n.sharesAuditBadgeVerified,
             description: l10n.sharesAuditLegendVerified,
           ),
           const SizedBox(height: 6),
           _LegendItem(
             icon: AppIcons.settings,
-            color: HoodikColors.brownish100,
+            color: context.colors.iconMuted,
             label: l10n.sharesAuditBadgeSystem,
             description: l10n.sharesAuditLegendSystem,
           ),
           const SizedBox(height: 6),
           _LegendItem(
             icon: AppIcons.error,
-            color: HoodikColors.redish50,
+            color: context.colors.onCrimsonWash,
             label: l10n.sharesAuditBadgeMismatch,
             description: l10n.sharesAuditLegendMismatch,
           ),
@@ -215,9 +206,9 @@ class _LegendItem extends StatelessWidget {
                 ),
                 TextSpan(
                   text: description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: HoodikColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                 ),
               ],

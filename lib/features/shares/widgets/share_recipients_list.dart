@@ -4,13 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/shares_models.dart';
 import '../../../core/crypto/share_crypto.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/controllers/files_share_controller.dart';
 import '../../files/providers/files_notifier.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Recipient roster for a file the caller owns, with per-recipient revoke.
 ///
@@ -130,17 +130,14 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
         if (snapshot.hasError) {
           return Text(
             l10n.sharesRecipientsLoadFailed,
-            style: const TextStyle(
-              fontSize: 12,
-              color: HoodikColors.textCrimson,
-            ),
+            style: TextStyle(fontSize: 12, color: context.colors.textCrimson),
           );
         }
         final recipients = snapshot.data ?? const [];
         if (recipients.isEmpty) {
           return Text(
             l10n.sharesNoAccessYet,
-            style: const TextStyle(fontSize: 12, color: HoodikColors.textMuted),
+            style: TextStyle(fontSize: 12, color: context.colors.textMuted),
           );
         }
         return Column(
@@ -148,9 +145,9 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
           children: [
             Text(
               l10n.sharesPeopleWithAccess,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: HoodikColors.textMuted,
+                color: context.colors.textMuted,
                 letterSpacing: 0.5,
               ),
             ),
@@ -179,19 +176,16 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
               children: [
                 Text(
                   recipient.recipientEmail,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: HoodikColors.dirtyWhite,
-                  ),
+                  style: TextStyle(fontSize: 13, color: context.colors.text),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   fingerprint,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: HoodikColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -206,7 +200,7 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
             icon: Icon(
               AppIcons.memberRemove,
               size: 18,
-              color: HoodikColors.iconCrimson,
+              color: context.colors.iconCrimson,
             ),
             onPressed: () => _revoke(recipient),
           ),
@@ -225,12 +219,12 @@ class ShareRecipientsListState extends ConsumerState<ShareRecipientsList> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: HoodikColors.brownish600,
+        color: context.colors.seam,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 11, color: HoodikColors.textMuted),
+        style: TextStyle(fontSize: 11, color: context.colors.textMuted),
       ),
     );
   }

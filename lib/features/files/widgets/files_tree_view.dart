@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../preview/providers/preview_providers.dart';
@@ -16,6 +15,7 @@ import '../providers/files_notifier.dart';
 import '../providers/files_state.dart';
 import 'files_tree_rows.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Recursive, lazy-loaded tree rooted at [rootDirId] (`null` = account
 /// root). Folders expand in-place; every row — folder or file — routes
@@ -229,11 +229,11 @@ class _FilesTreeViewState extends ConsumerState<FilesTreeView> {
           duration: const Duration(milliseconds: 120),
           decoration: BoxDecoration(
             color: hovering
-                ? HoodikColors.orangy500.withValues(alpha: 0.12)
+                ? context.colors.iconEmber.withValues(alpha: 0.12)
                 : null,
             border: Border(
               left: BorderSide(
-                color: hovering ? HoodikColors.orangy500 : Colors.transparent,
+                color: hovering ? context.colors.iconEmber : Colors.transparent,
                 width: 3,
               ),
             ),
@@ -338,12 +338,12 @@ class _FilesTreeViewState extends ConsumerState<FilesTreeView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(AppIcons.error, color: HoodikColors.iconCrimson, size: 28),
+              Icon(AppIcons.error, color: context.colors.iconCrimson, size: 28),
               const SizedBox(height: 8),
               Text(
                 _rootError!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: HoodikColors.dirtyWhite),
+                style: TextStyle(color: context.colors.text),
               ),
               const SizedBox(height: 12),
               TextButton(
@@ -362,7 +362,7 @@ class _FilesTreeViewState extends ConsumerState<FilesTreeView> {
           padding: const EdgeInsets.all(24),
           child: Text(
             AppLocalizations.of(context).filesEmptyFolder,
-            style: const TextStyle(color: HoodikColors.textMuted),
+            style: TextStyle(color: context.colors.textMuted),
           ),
         ),
       );
@@ -423,7 +423,7 @@ class _FilesTreeViewState extends ConsumerState<FilesTreeView> {
       onAcceptWithDetails: (d) => widget.onMove(d.data, widget.rootDirId),
       builder: (_, candidate, _) => ColoredBox(
         color: candidate.isNotEmpty
-            ? HoodikColors.orangy500.withValues(alpha: 0.06)
+            ? context.colors.iconEmber.withValues(alpha: 0.06)
             : Colors.transparent,
         child: list,
       ),

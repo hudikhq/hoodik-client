@@ -6,13 +6,13 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/storage/database.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shares/shared_constants.dart';
 import '../providers/files_notifier.dart';
 import 'failed_uploads_badge.dart';
 import 'file_sort_controls.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// App bar for the files screen with two modes:
 /// - Normal: title, search, refresh, offline chip, view mode, sort,
@@ -176,13 +176,13 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 l10n.filesOfflineChip,
                 style: const TextStyle(fontSize: 11),
               ),
-              backgroundColor: HoodikColors.brownish600,
+              backgroundColor: context.colors.seam,
               padding: EdgeInsets.zero,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               avatar: Icon(
                 Icons.cloud_off,
                 size: 14,
-                color: HoodikColors.iconCrimson,
+                color: context.colors.iconCrimson,
               ),
             ),
           ),
@@ -211,7 +211,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
               onTap: () => context.go('/account'),
               child: CircleAvatar(
                 radius: 16,
-                backgroundColor: HoodikColors.redish700,
+                backgroundColor: context.colors.crimsonContainer,
                 child: Text(
                   (account!.email.isNotEmpty ? account!.email[0] : '?')
                       .toUpperCase(),
@@ -264,22 +264,22 @@ class _ViewModeButton extends ConsumerWidget {
                 iconFor(mode),
                 size: 18,
                 color: selected
-                    ? HoodikColors.orangy500
-                    : HoodikColors.iconMuted,
+                    ? context.colors.iconEmber
+                    : context.colors.iconMuted,
               ),
               const SizedBox(width: 12),
               Text(
                 labelFor(mode),
                 style: TextStyle(
                   color: selected
-                      ? HoodikColors.dirtyWhite
-                      : HoodikColors.textMuted,
+                      ? context.colors.text
+                      : context.colors.textMuted,
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
               if (selected) ...[
                 const Spacer(),
-                Icon(AppIcons.check, size: 16, color: HoodikColors.orangy500),
+                Icon(AppIcons.check, size: 16, color: context.colors.iconEmber),
               ],
             ],
           ),

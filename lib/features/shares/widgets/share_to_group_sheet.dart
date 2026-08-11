@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/crypto/share_crypto.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../controllers/share_to_group_controller.dart';
 import 'share_role_selector.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Pick a group the caller can share to (editor or above) and a file role,
 /// then fan [file] out to every current member through [ShareToGroupController]
@@ -134,14 +134,14 @@ class _ShareToGroupSheetState extends ConsumerState<_ShareToGroupSheet> {
         if (groups.isEmpty)
           Text(
             l10n.sharesNotGroupEditor,
-            style: const TextStyle(fontSize: 13, color: HoodikColors.textMuted),
+            style: TextStyle(fontSize: 13, color: context.colors.textMuted),
           )
         else ...[
           Text(
             l10n.sharesGroupLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: HoodikColors.textMuted,
+              color: context.colors.textMuted,
               letterSpacing: 0.5,
             ),
           ),
@@ -190,17 +190,14 @@ class _ShareToGroupSheetState extends ConsumerState<_ShareToGroupSheet> {
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
               size: 18,
               color: selected
-                  ? HoodikColors.iconCrimson
-                  : HoodikColors.iconMuted,
+                  ? context.colors.iconCrimson
+                  : context.colors.iconMuted,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 g.name,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: HoodikColors.dirtyWhite,
-                ),
+                style: TextStyle(fontSize: 14, color: context.colors.text),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../theme/hoodik_colors.dart';
 import 'app_icons.dart';
+import '../../core/theme/hoodik_scheme.dart';
 
 /// Semantic type for in-app notifications.
 enum NotificationType { success, error, info }
@@ -150,9 +150,9 @@ class _AppNotificationState extends State<_AppNotificationWidget>
   }
 
   Color get _accentColor => switch (widget.type) {
-    NotificationType.success => HoodikColors.greeny300,
-    NotificationType.error => HoodikColors.iconCrimson,
-    NotificationType.info => HoodikColors.iconMuted,
+    NotificationType.success => context.colors.textSage,
+    NotificationType.error => context.colors.iconCrimson,
+    NotificationType.info => context.colors.iconMuted,
   };
 
   IconData get _icon => switch (widget.type) {
@@ -181,12 +181,9 @@ class _AppNotificationState extends State<_AppNotificationWidget>
                 onTap: _animateOut,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: HoodikColors.brownish800,
+                    color: context.colors.panel,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: HoodikColors.brownish600,
-                      width: 1,
-                    ),
+                    border: Border.all(color: context.colors.seam, width: 1),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.4),
@@ -209,8 +206,8 @@ class _AppNotificationState extends State<_AppNotificationWidget>
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             child: Text(
                               widget.message,
-                              style: const TextStyle(
-                                color: HoodikColors.dirtyWhite,
+                              style: TextStyle(
+                                color: context.colors.text,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -222,7 +219,7 @@ class _AppNotificationState extends State<_AppNotificationWidget>
                         const SizedBox(width: 8),
                         Icon(
                           AppIcons.close,
-                          color: HoodikColors.iconMuted,
+                          color: context.colors.iconMuted,
                           size: 16,
                         ),
                         const SizedBox(width: 12),
