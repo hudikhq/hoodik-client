@@ -1344,9 +1344,6 @@ class AppLocalizationsHr extends AppLocalizations {
   String get commonSave => 'Spremi';
 
   @override
-  String get commonSearch => 'Pretraži';
-
-  @override
   String get commonSend => 'Pošalji';
 
   @override

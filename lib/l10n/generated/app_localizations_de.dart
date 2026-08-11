@@ -1354,9 +1354,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonSave => 'Speichern';
 
   @override
-  String get commonSearch => 'Suchen';
-
-  @override
   String get commonSend => 'Senden';
 
   @override
