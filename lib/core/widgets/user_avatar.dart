@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/hoodik_colors.dart';
+import '../../core/theme/hoodik_scheme.dart';
 
 /// Reusable avatar that displays the first letter of the user's email
 /// inside a [CircleAvatar]. Keeps the pattern consistent across all
@@ -38,7 +38,7 @@ class UserAvatar extends StatelessWidget {
       child: Text(
         (email.isNotEmpty ? email[0] : '?').toUpperCase(),
         style: TextStyle(
-          color: textColor ?? HoodikColors.textCrimson,
+          color: textColor ?? context.colors.textCrimson,
           fontSize: radius * 0.75,
           fontWeight: FontWeight.w600,
         ),

@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/services/transfer_manager.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'failed_uploads_panel.dart';
 import 'transfer_row.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// An inline transfer-progress widget placed between content and bottom nav.
 ///
@@ -91,9 +91,9 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
       alignment: Alignment.bottomCenter,
       child: Container(
         decoration: BoxDecoration(
-          color: HoodikColors.brownish800,
+          color: context.colors.panel,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: HoodikColors.brownish600, width: 1),
+          border: Border.all(color: context.colors.seam, width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.4),
@@ -145,9 +145,9 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: HoodikColors.brownish800,
+          color: context.colors.panel,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: HoodikColors.brownish600, width: 1),
+          border: Border.all(color: context.colors.seam, width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.4),
@@ -164,17 +164,15 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
               height: 16,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: const AlwaysStoppedAnimation(
-                  HoodikColors.orangy500,
-                ),
-                backgroundColor: HoodikColors.brownish600,
+                valueColor: AlwaysStoppedAnimation(context.colors.iconEmber),
+                backgroundColor: context.colors.seam,
               ),
             ),
             const SizedBox(width: 8),
             Text(
               AppLocalizations.of(context).filesTransfersCount(activeCount),
-              style: const TextStyle(
-                color: HoodikColors.dirtyWhite,
+              style: TextStyle(
+                color: context.colors.text,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -193,8 +191,8 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
 
     final isUpload = display.type.isUpload;
     final accentColor = isUpload
-        ? HoodikColors.orangy500
-        : HoodikColors.blueish400;
+        ? context.colors.iconEmber
+        : context.colors.iconSlate;
     final icon = transferTypeIcon(display.type);
     final statusText = _collapsedStatusText(display, transfers);
     final percentage = (display.progress * 100).toStringAsFixed(0);
@@ -215,8 +213,8 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                 Expanded(
                   child: Text(
                     statusText,
-                    style: const TextStyle(
-                      color: HoodikColors.dirtyWhite,
+                    style: TextStyle(
+                      color: context.colors.text,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -237,8 +235,8 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                     const SizedBox(width: 8),
                     Text(
                       display.speedString,
-                      style: const TextStyle(
-                        color: HoodikColors.textMuted,
+                      style: TextStyle(
+                        color: context.colors.textMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -247,25 +245,25 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                 if (display.status == TransferStatus.completed)
                   Icon(
                     AppIcons.success,
-                    color: HoodikColors.greeny300,
+                    color: context.colors.textSage,
                     size: 18,
                   ),
                 if (display.status == TransferStatus.failed)
-                  const Icon(
+                  Icon(
                     Icons.error,
-                    color: HoodikColors.iconCrimson,
+                    color: context.colors.iconCrimson,
                     size: 18,
                   ),
                 if (display.status == TransferStatus.cancelled)
-                  const Icon(
+                  Icon(
                     Icons.cancel_outlined,
-                    color: HoodikColors.iconMuted,
+                    color: context.colors.iconMuted,
                     size: 18,
                   ),
                 const SizedBox(width: 4),
                 Icon(
                   Icons.keyboard_arrow_up,
-                  color: HoodikColors.iconMuted,
+                  color: context.colors.iconMuted,
                   size: 18,
                 ),
               ],
@@ -277,7 +275,7 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                 child: LinearProgressIndicator(
                   value: display.progress,
                   minHeight: 4,
-                  backgroundColor: HoodikColors.brownish600,
+                  backgroundColor: context.colors.seam,
                   valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                 ),
               ),
@@ -342,8 +340,8 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                 Expanded(
                   child: Text(
                     AppLocalizations.of(context).filesTransfersTitle,
-                    style: const TextStyle(
-                      color: HoodikColors.dirtyWhite,
+                    style: TextStyle(
+                      color: context.colors.text,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -359,8 +357,8 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                     ),
                     child: Text(
                       AppLocalizations.of(context).filesClear,
-                      style: const TextStyle(
-                        color: HoodikColors.textMuted,
+                      style: TextStyle(
+                        color: context.colors.textMuted,
                         fontSize: 13,
                       ),
                     ),
@@ -370,9 +368,9 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                   tooltip: AppLocalizations.of(
                     context,
                   ).filesTransfersMinimizeTooltip,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.keyboard_arrow_down,
-                    color: HoodikColors.iconMuted,
+                    color: context.colors.iconMuted,
                   ),
                   onPressed: () => setState(() => _expanded = false),
                   padding: EdgeInsets.zero,
@@ -385,7 +383,7 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
                 IconButton(
                   icon: Icon(
                     AppIcons.close,
-                    color: HoodikColors.iconMuted,
+                    color: context.colors.iconMuted,
                     size: 18,
                   ),
                   onPressed: () => setState(() => _dismissed = true),
@@ -401,18 +399,18 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
               ],
             ),
           ),
-          const Divider(height: 1, color: HoodikColors.brownish600),
+          Divider(height: 1, color: context.colors.seam),
           const FailedUploadsPanel(),
           Flexible(
             child: ListView.separated(
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(vertical: 4),
               itemCount: transfers.length,
-              separatorBuilder: (_, _) => const Divider(
+              separatorBuilder: (_, _) => Divider(
                 height: 1,
                 indent: 14,
                 endIndent: 14,
-                color: HoodikColors.brownish600,
+                color: context.colors.seam,
               ),
               itemBuilder: (context, index) =>
                   TransferRow(item: transfers[index], manager: manager),

@@ -67,6 +67,23 @@ class HoodikColors {
   static const Color iconMuted = brownish100; // 3.56:1
   static const Color iconCrimson = redish200; // 4.09:1
 
+  // Light surfaces — the paper ramp.
+  //
+  // DESIGN.md defines the first three. The app renders six structural steps
+  // in dark (canvas, panel, recess, seam, seam-strong, track), so the last
+  // four below are interpolated within the paper ramp to give light the same
+  // depth vocabulary. They are candidates for the standard to absorb.
+  static const Color paper = Color(0xFFFAFAF9);
+  static const Color paperRaised = Color(0xFFF1F1EF);
+  static const Color paperEdge = Color(0xFFD2D2CE);
+  static const Color paperSunken = Color(0xFFE3E3E0); // derived
+  static const Color paperEdgeStrong = Color(0xFFB2B2AD); // derived
+  static const Color paperTrack = Color(0xFFC5C5C1); // derived
+  static const Color paperCrimsonWash = Color(0xFFF2E6E7); // derived
+
+  /// Light-theme text steps from DESIGN.md's Text Steps table.
+  static const Color greeny500 = Color(0xFF4E7228);
+
   // Convenience
   static const Color white = Color(0xFFFFFFFF);
   static const Color dirtyWhite = Color(0xFFEEEEEE);

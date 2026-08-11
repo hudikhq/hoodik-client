@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// A single action in the file context menu.
 class FileMenuAction {
@@ -39,7 +39,7 @@ Future<void> showFileContextMenu({
     ),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(8),
-      side: const BorderSide(color: HoodikColors.brownish600, width: 0.5),
+      side: BorderSide(color: context.colors.seam, width: 0.5),
     ),
     items: actions.map((action) {
       return PopupMenuItem<void>(
@@ -48,10 +48,7 @@ Future<void> showFileContextMenu({
           children: [
             Icon(action.icon, color: action.iconColor, size: 20),
             const SizedBox(width: 12),
-            Text(
-              action.label,
-              style: const TextStyle(color: HoodikColors.dirtyWhite),
-            ),
+            Text(action.label, style: TextStyle(color: context.colors.text)),
           ],
         ),
       );

@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Read-only markdown viewer that hosts the same `editor.html` (Milkdown)
 /// the live editor uses, but locks editing off. Gives version-history
@@ -60,7 +60,7 @@ class _MarkdownPreviewWebViewState extends State<MarkdownPreviewWebView> {
       );
 
     if (!Platform.isMacOS) {
-      _controller.setBackgroundColor(HoodikColors.brownish900);
+      _controller.setBackgroundColor(context.colors.canvas);
     }
 
     _loadEditor();

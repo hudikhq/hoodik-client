@@ -12,7 +12,6 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/preview_providers.dart';
@@ -22,6 +21,7 @@ import '../widgets/preview_image.dart';
 import '../widgets/preview_video.dart';
 import '../widgets/preview_pdf.dart';
 import '../widgets/preview_text.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Full-screen file preview with gallery navigation.
 class PreviewScreen extends ConsumerStatefulWidget {
@@ -212,7 +212,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
           ),
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: HoodikColors.textCrimson,
+              foregroundColor: context.colors.textCrimson,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(l10n.commonDelete),
@@ -287,7 +287,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
         body: Center(
           child: Text(
             AppLocalizations.of(context).previewNoPreviewableFiles,
-            style: const TextStyle(color: HoodikColors.textMuted),
+            style: TextStyle(color: context.colors.textMuted),
           ),
         ),
       );

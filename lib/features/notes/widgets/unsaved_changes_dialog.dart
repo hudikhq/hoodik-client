@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 enum UnsavedChangesChoice { cancel, discard, save }
 
@@ -23,7 +23,7 @@ Future<UnsavedChangesChoice> showUnsavedChangesDialog(
         ),
         TextButton(
           style: TextButton.styleFrom(
-            foregroundColor: HoodikColors.textCrimson,
+            foregroundColor: context.colors.textCrimson,
           ),
           onPressed: () => Navigator.pop(ctx, UnsavedChangesChoice.discard),
           child: Text(l10n.notesDiscard),

@@ -6,7 +6,7 @@ import '../../../core/utils/format.dart' as fmt;
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../../core/theme/hoodik_colors.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Server settings: registration toggle, email verification, the sharing
 /// kill-switch (when the server reports it), and default quota.
@@ -267,7 +267,7 @@ class _AdminSettingsTabState extends ConsumerState<AdminSettingsTab>
                 onPressed: _testEmail,
                 child: Text(
                   l10n.adminSendTest,
-                  style: TextStyle(color: HoodikColors.textCrimson),
+                  style: TextStyle(color: context.colors.textCrimson),
                 ),
               ),
             ),

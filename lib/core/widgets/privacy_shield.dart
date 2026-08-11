@@ -3,8 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 
-import '../theme/hoodik_colors.dart';
 import 'app_icons.dart';
+import '../../core/theme/hoodik_scheme.dart';
 
 /// Covers the app content with a blurred overlay whenever the app goes
 /// out of focus on phones/tablets. Keeps sensitive data (file names,
@@ -77,12 +77,12 @@ class _ShieldOverlay extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
           child: ColoredBox(
-            color: HoodikColors.brownish900.withValues(alpha: 0.72),
+            color: context.colors.canvas.withValues(alpha: 0.72),
             child: Center(
               child: Icon(
                 Platform.isIOS ? CupertinoIcons.lock_fill : AppIcons.locked,
                 size: 48,
-                color: HoodikColors.orangy500.withValues(alpha: 0.9),
+                color: context.colors.iconEmber.withValues(alpha: 0.9),
               ),
             ),
           ),

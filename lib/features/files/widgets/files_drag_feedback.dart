@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Pill shown under the cursor/finger while a file or selection is
 /// being dragged. Small so it doesn't cover the drop target, labelled
@@ -21,10 +21,10 @@ class FilesDragFeedback extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: HoodikColors.brownish700,
+          color: context.colors.recess,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: HoodikColors.orangy500.withValues(alpha: 0.6),
+            color: context.colors.iconEmber.withValues(alpha: 0.6),
           ),
           boxShadow: [
             BoxShadow(
@@ -37,14 +37,14 @@ class FilesDragFeedback extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(AppIcons.move, size: 16, color: HoodikColors.orangy500),
+            Icon(AppIcons.move, size: 16, color: context.colors.iconEmber),
             const SizedBox(width: 8),
             Text(
               count > 1
                   ? AppLocalizations.of(context).filesMoveItems(count)
                   : (label ?? AppLocalizations.of(context).filesMoveItems(1)),
-              style: const TextStyle(
-                color: HoodikColors.dirtyWhite,
+              style: TextStyle(
+                color: context.colors.text,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),

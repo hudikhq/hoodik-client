@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/shares_models.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/connectivity_error.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
@@ -17,6 +16,7 @@ import '../widgets/folder_member_add_sheet.dart';
 import '../widgets/folder_member_tile.dart';
 import '../widgets/share_to_group_sheet.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Dedicated roster view for a shared folder, reached at
 /// `/shares/folder/:folderId/members`. Lists every member with a per-row
@@ -97,7 +97,7 @@ class _ErrorBody extends StatelessWidget {
           child: Text(
             l10n.sharesNoLongerHaveAccess,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: HoodikColors.textMuted),
+            style: TextStyle(color: context.colors.textMuted),
           ),
         ),
       );
@@ -113,7 +113,7 @@ class _ErrorBody extends StatelessWidget {
             Icon(
               offline ? Icons.cloud_off_outlined : AppIcons.error,
               size: 32,
-              color: HoodikColors.iconMuted,
+              color: context.colors.iconMuted,
             ),
             const SizedBox(height: 12),
             Text(
@@ -121,17 +121,14 @@ class _ErrorBody extends StatelessWidget {
                   ? l10n.sharesMembersLoadFailedOffline
                   : l10n.sharesMembersLoadFailed,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: HoodikColors.textMuted),
+              style: TextStyle(color: context.colors.textMuted),
             ),
             if (!offline) ...[
               const SizedBox(height: 6),
               Text(
                 error.toString(),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: HoodikColors.textMuted,
-                ),
+                style: TextStyle(fontSize: 12, color: context.colors.textMuted),
               ),
             ],
             const SizedBox(height: 16),
@@ -166,10 +163,10 @@ class _MembersBody extends ConsumerWidget {
             Expanded(
               child: Text(
                 l10n.sharesMembersCount(loaded.members.length),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   letterSpacing: 0.5,
-                  color: HoodikColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
               ),
             ),
@@ -205,7 +202,7 @@ class _MembersBody extends ConsumerWidget {
             ],
           ],
         ),
-        const Divider(height: 16, color: HoodikColors.brownish600),
+        Divider(height: 16, color: context.colors.seam),
         for (final member in loaded.members)
           FolderMemberTile(
             member: member,

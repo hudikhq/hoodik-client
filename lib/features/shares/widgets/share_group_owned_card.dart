@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/api/share_group_models.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'folder_member_tile.dart' show FolderMemberTile;
 import 'group_role_selector.dart' show GroupRoleChip, groupRoleLabel;
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// One owned-group card on the share-groups screen: the group name + member
 /// count, add/delete/rename actions, and the member roster with a per-member
@@ -37,24 +37,24 @@ class ShareGroupOwnedCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: HoodikColors.brownish800,
+        color: context.colors.panel,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: HoodikColors.brownish600, width: 0.5),
+        border: Border.all(color: context.colors.seam, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(AppIcons.members, size: 18, color: HoodikColors.iconMuted),
+              Icon(AppIcons.members, size: 18, color: context.colors.iconMuted),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   group.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: HoodikColors.dirtyWhite,
+                    color: context.colors.text,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -62,26 +62,23 @@ class ShareGroupOwnedCard extends StatelessWidget {
               ),
               Text(
                 l10n.sharesMemberCount(count),
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: HoodikColors.textMuted,
-                ),
+                style: TextStyle(fontSize: 11, color: context.colors.textMuted),
               ),
               IconButton(
                 tooltip: l10n.sharesAddMember,
-                icon: const Icon(
+                icon: Icon(
                   Icons.person_add_alt,
                   size: 18,
-                  color: HoodikColors.iconMuted,
+                  color: context.colors.iconMuted,
                 ),
                 onPressed: onAddMember,
               ),
               IconButton(
                 tooltip: l10n.sharesRenameGroup,
-                icon: const Icon(
+                icon: Icon(
                   Icons.edit_outlined,
                   size: 18,
-                  color: HoodikColors.iconMuted,
+                  color: context.colors.iconMuted,
                 ),
                 onPressed: onRename,
               ),
@@ -90,7 +87,7 @@ class ShareGroupOwnedCard extends StatelessWidget {
                 icon: Icon(
                   AppIcons.delete,
                   size: 18,
-                  color: HoodikColors.iconCrimson,
+                  color: context.colors.iconCrimson,
                 ),
                 onPressed: onDelete,
               ),
@@ -101,10 +98,7 @@ class ShareGroupOwnedCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4, left: 26),
               child: Text(
                 l10n.sharesNoMembersYet,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: HoodikColors.textMuted,
-                ),
+                style: TextStyle(fontSize: 12, color: context.colors.textMuted),
               ),
             )
           else
@@ -143,19 +137,16 @@ class _MemberRow extends StatelessWidget {
               children: [
                 Text(
                   member.email,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: HoodikColors.dirtyWhite,
-                  ),
+                  style: TextStyle(fontSize: 13, color: context.colors.text),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   _shortFingerprint(member.fingerprint),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: HoodikColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                 ),
               ],
@@ -167,7 +158,7 @@ class _MemberRow extends StatelessWidget {
             icon: Icon(
               AppIcons.expand,
               size: 18,
-              color: HoodikColors.iconMuted,
+              color: context.colors.iconMuted,
             ),
             onSelected: onSetRole,
             itemBuilder: (context) => [
@@ -189,7 +180,7 @@ class _MemberRow extends StatelessWidget {
             icon: Icon(
               AppIcons.memberRemove,
               size: 18,
-              color: HoodikColors.iconCrimson,
+              color: context.colors.iconCrimson,
             ),
             onPressed: onRemove,
           ),

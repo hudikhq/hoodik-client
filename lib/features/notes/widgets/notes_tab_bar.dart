@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../models/editor_tab.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Horizontally scrollable tab bar for open notes.
 ///
@@ -34,10 +34,10 @@ class NotesTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 36,
-      decoration: const BoxDecoration(
-        color: HoodikColors.brownish900,
+      decoration: BoxDecoration(
+        color: context.colors.canvas,
         border: Border(
-          bottom: BorderSide(color: HoodikColors.brownish600, width: 0.5),
+          bottom: BorderSide(color: context.colors.seam, width: 0.5),
         ),
       ),
       child: Row(
@@ -81,16 +81,12 @@ class _ExpandSidebarButton extends StatelessWidget {
           width: 36,
           height: 36,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
-              right: BorderSide(color: HoodikColors.brownish600, width: 0.5),
+              right: BorderSide(color: context.colors.seam, width: 0.5),
             ),
           ),
-          child: const Icon(
-            Icons.menu,
-            size: 18,
-            color: HoodikColors.iconMuted,
-          ),
+          child: Icon(Icons.menu, size: 18, color: context.colors.iconMuted),
         ),
       ),
     );
@@ -113,7 +109,7 @@ class _TabItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: isActive ? HoodikColors.brownish800 : Colors.transparent,
+      color: isActive ? context.colors.panel : Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Container(
@@ -121,12 +117,11 @@ class _TabItem extends StatelessWidget {
           padding: const EdgeInsets.only(left: 12, right: 4),
           decoration: BoxDecoration(
             border: Border(
-              right: const BorderSide(
-                color: HoodikColors.brownish600,
-                width: 0.5,
-              ),
+              right: BorderSide(color: context.colors.seam, width: 0.5),
               bottom: BorderSide(
-                color: isActive ? HoodikColors.redish400 : Colors.transparent,
+                color: isActive
+                    ? context.colors.crimsonFill
+                    : Colors.transparent,
                 width: 2,
               ),
             ),
@@ -138,7 +133,7 @@ class _TabItem extends StatelessWidget {
                 child: Text(
                   tab.fileName,
                   style: TextStyle(
-                    color: isActive ? Colors.white : HoodikColors.textMuted,
+                    color: isActive ? Colors.white : context.colors.textMuted,
                     fontSize: 12,
                     fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
                   ),
@@ -148,23 +143,23 @@ class _TabItem extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               if (tab.isDirty && !tab.isSaving)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(right: 4),
                   child: Icon(
                     CupertinoIcons.circle_fill,
                     size: 6,
-                    color: HoodikColors.orangy500,
+                    color: context.colors.iconEmber,
                   ),
                 ),
               if (tab.isSaving)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(right: 4),
                   child: SizedBox(
                     width: 10,
                     height: 10,
                     child: CircularProgressIndicator(
                       strokeWidth: 1.5,
-                      color: HoodikColors.orangy500,
+                      color: context.colors.iconEmber,
                     ),
                   ),
                 ),
@@ -176,7 +171,7 @@ class _TabItem extends StatelessWidget {
                   child: Icon(
                     isApplePlatform ? CupertinoIcons.xmark : AppIcons.close,
                     size: 12,
-                    color: HoodikColors.iconMuted,
+                    color: context.colors.iconMuted,
                   ),
                 ),
               ),

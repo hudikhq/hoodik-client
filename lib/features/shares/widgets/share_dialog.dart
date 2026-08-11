@@ -5,7 +5,6 @@ import '../../../core/api/api_client.dart';
 import '../../../core/api/shares_models.dart';
 import '../../../core/crypto/share_crypto.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -17,6 +16,7 @@ import 'share_fingerprint_tile.dart';
 import 'share_recipients_list.dart';
 import 'share_role_selector.dart';
 import 'share_to_group_sheet.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Open the share dialog for an owned [file]. [dirId] is the directory the
 /// browser is currently in, so the controller reads the already-decrypted file
@@ -235,7 +235,7 @@ class _ShareDialogState extends ConsumerState<_ShareDialog> {
                 ),
               ],
               const SizedBox(height: 20),
-              const Divider(height: 1, color: HoodikColors.brownish600),
+              Divider(height: 1, color: context.colors.seam),
               const SizedBox(height: 16),
               ShareRecipientsList(
                 key: _recipientsKey,

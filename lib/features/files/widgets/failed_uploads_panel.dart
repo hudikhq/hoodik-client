@@ -5,10 +5,10 @@ import 'package:path/path.dart' as p;
 import '../../../core/providers.dart';
 import '../../../core/services/sync_service.dart';
 import '../../../core/storage/database.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Panel listing uploads that exhausted their retry budget so the user
 /// can either retry or discard them.
@@ -65,9 +65,9 @@ class _FailedUploadsPanelState extends ConsumerState<FailedUploadsPanel> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: HoodikColors.brownish600, width: 1),
+          bottom: BorderSide(color: context.colors.seam, width: 1),
         ),
       ),
       child: Column(
@@ -76,14 +76,14 @@ class _FailedUploadsPanelState extends ConsumerState<FailedUploadsPanel> {
         children: [
           Row(
             children: [
-              Icon(AppIcons.error, color: HoodikColors.iconCrimson, size: 16),
+              Icon(AppIcons.error, color: context.colors.iconCrimson, size: 16),
               const SizedBox(width: 6),
               Text(
                 AppLocalizations.of(
                   context,
                 ).filesFailedUploadsHeader(_failed.length),
-                style: const TextStyle(
-                  color: HoodikColors.textCrimson,
+                style: TextStyle(
+                  color: context.colors.textCrimson,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -124,10 +124,7 @@ class _FailedUploadRow extends StatelessWidget {
           Expanded(
             child: Text(
               p.basename(upload.localPath),
-              style: const TextStyle(
-                color: HoodikColors.dirtyWhite,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: context.colors.text, fontSize: 12),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -142,14 +139,15 @@ class _FailedUploadRow extends StatelessWidget {
             ),
             child: Text(
               l10n.commonRetry,
-              style: const TextStyle(
-                color: HoodikColors.orangy500,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: context.colors.iconEmber, fontSize: 12),
             ),
           ),
           IconButton(
-            icon: Icon(AppIcons.close, size: 16, color: HoodikColors.iconMuted),
+            icon: Icon(
+              AppIcons.close,
+              size: 16,
+              color: context.colors.iconMuted,
+            ),
             onPressed: onDiscard,
             padding: EdgeInsets.zero,
             constraints: BoxConstraints(

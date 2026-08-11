@@ -8,10 +8,10 @@ import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
 import '../../../core/services/transfer_manager.dart';
 import '../../../core/utils/format.dart' as fmt;
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/preview_loader.dart';
 import 'preview_loading.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Max bytes to decode for text preview (1 MB).
 const int _kMaxTextBytes = 1024 * 1024;
@@ -137,16 +137,13 @@ class _PreviewTextState extends ConsumerState<PreviewText> {
           if (_truncated)
             Container(
               width: double.infinity,
-              color: HoodikColors.brownish700,
+              color: context.colors.recess,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
                 AppLocalizations.of(
                   context,
                 ).previewShowingFirstMb(fmt.formatBytes(widget.file.size ?? 0)),
-                style: const TextStyle(
-                  color: HoodikColors.textMuted,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: context.colors.textMuted, fontSize: 12),
               ),
             ),
           Expanded(
@@ -154,8 +151,8 @@ class _PreviewTextState extends ConsumerState<PreviewText> {
               padding: const EdgeInsets.all(16),
               child: SelectableText(
                 _text ?? '',
-                style: const TextStyle(
-                  color: HoodikColors.dirtyWhite,
+                style: TextStyle(
+                  color: context.colors.text,
                   fontSize: 13,
                   fontFamily: 'monospace',
                   height: 1.5,

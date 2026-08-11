@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Rendered when a directory returns zero items, with a direct route into
 /// the create sheet so the first action doesn't depend on spotting the FAB.
@@ -63,7 +63,7 @@ class FilesErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(AppIcons.error, size: 48, color: HoodikColors.iconCrimson),
+            Icon(AppIcons.error, size: 48, color: context.colors.iconCrimson),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

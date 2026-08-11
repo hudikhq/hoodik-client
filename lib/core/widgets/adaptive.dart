@@ -3,7 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../theme/hoodik_colors.dart';
+import '../../core/theme/hoodik_scheme.dart';
 
 /// Whether the current platform uses iOS-style (Cupertino) widgets.
 bool get isApplePlatform => Platform.isIOS || Platform.isMacOS;
@@ -383,7 +383,7 @@ Future<T?> showAdaptiveAlert<T>({
             onPressed: () => Navigator.pop(ctx, a.value),
             style: a.isDestructive
                 ? TextButton.styleFrom(
-                    foregroundColor: HoodikColors.textCrimson,
+                    foregroundColor: context.colors.textCrimson,
                   )
                 : null,
             child: Text(a.label),
@@ -540,7 +540,7 @@ class ErrorBanner extends StatelessWidget {
       // The message reads on the crimson text step, not on `colorScheme.error`
       // — that role is the fill this banner is tinted with, and it measures
       // 2.4:1 when borrowed as a foreground.
-      errorColor = HoodikColors.textCrimson;
+      errorColor = context.colors.textCrimson;
       errorBg = Theme.of(context).colorScheme.error.withValues(alpha: 0.1);
     }
 

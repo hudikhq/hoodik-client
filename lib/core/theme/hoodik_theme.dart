@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../widgets/adaptive.dart';
 import 'hoodik_colors.dart';
+import 'hoodik_scheme.dart';
 
 /// Hoodik's global theme.
 ///
@@ -213,6 +214,11 @@ class HoodikTheme {
       ),
 
       cupertinoOverrideTheme: cupertinoDark(),
+
+      // Widgets read semantic roles through `context.colors`; registering the
+      // scheme here is what makes that resolve per appearance rather than
+      // falling back to the dark constant.
+      extensions: const [HoodikScheme.dark],
     );
   }
 

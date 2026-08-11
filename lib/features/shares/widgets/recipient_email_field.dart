@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../services/trusted_fingerprint_dao.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Emails of every peer the active account has previously shared with,
 /// sorted, for recipient autocomplete. Rows recorded before the email
@@ -86,7 +86,7 @@ class _RecipientEmailFieldState extends ConsumerState<RecipientEmailField> {
         optionsViewBuilder: (context, select, options) => Align(
           alignment: Alignment.topLeft,
           child: Material(
-            color: HoodikColors.brownish800,
+            color: context.colors.panel,
             elevation: 4,
             borderRadius: BorderRadius.circular(10),
             clipBehavior: Clip.antiAlias,

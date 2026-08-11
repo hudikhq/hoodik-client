@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/hoodik_colors.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../core/widgets/app_notification.dart';
@@ -15,6 +14,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../files/helpers/file_helpers.dart' show formatErrorMessage;
 import '../widgets/markdown_preview_webview.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/theme/hoodik_scheme.dart';
 
 /// Push as `/notes/:fileId/history`. The screen owns its own data load
 /// and surfaces back to the editor via the `restored` value passed to
@@ -298,7 +298,7 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
           TextButton(
             style: destructive
                 ? TextButton.styleFrom(
-                    foregroundColor: HoodikColors.textCrimson,
+                    foregroundColor: context.colors.textCrimson,
                   )
                 : null,
             onPressed: () => Navigator.pop(ctx, true),
@@ -367,7 +367,7 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
           child: Text(
             _l10n.notesNoHistory,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: HoodikColors.textMuted),
+            style: TextStyle(color: context.colors.textMuted),
           ),
         ),
       );
@@ -434,8 +434,8 @@ class _VersionRow extends StatelessWidget {
         children: [
           Text(
             'v${version.version}',
-            style: const TextStyle(
-              color: HoodikColors.orangy500,
+            style: TextStyle(
+              color: context.colors.iconEmber,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -443,17 +443,14 @@ class _VersionRow extends StatelessWidget {
           Expanded(
             child: Text(
               dateLabel,
-              style: const TextStyle(
-                color: HoodikColors.textMuted,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: context.colors.textMuted, fontSize: 13),
             ),
           ),
         ],
       ),
       subtitle: Text(
         '${_author(version, l10n)} · ${l10n.notesChunkCount(version.chunks)}',
-        style: const TextStyle(color: HoodikColors.textMuted, fontSize: 12),
+        style: TextStyle(color: context.colors.textMuted, fontSize: 12),
       ),
       trailing: PopupMenuButton<VoidCallback>(
         enabled: !busy,
@@ -467,7 +464,7 @@ class _VersionRow extends StatelessWidget {
             value: onDelete,
             child: Text(
               l10n.notesDeleteThisVersion,
-              style: const TextStyle(color: HoodikColors.textCrimson),
+              style: TextStyle(color: context.colors.textCrimson),
             ),
           ),
         ],
