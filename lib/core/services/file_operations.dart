@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'dart:typed_data';
 
 import '../api/api_client.dart';
@@ -27,6 +28,12 @@ export 'transfer_errors.dart' show TransferCancelledException;
 /// real implementation. New code can also resolve each service directly
 /// through its own provider.
 class FileOperations {
+  /// Ticks whenever the set of files changes shape — created, renamed, moved
+  /// or deleted. Surfaces that hold their own copy of a listing watch this
+  /// instead of each mutation site remembering to tell them, which is how the
+  /// recent-notes panel ended up showing notes that had been deleted.
+  final ValueNotifier<int> revision = ValueNotifier(0);
+
   final FileMutator _mutator;
   final FileUploader _uploader;
   final FileDownloader _downloader;
@@ -123,20 +130,24 @@ class FileOperations {
   }
 
   Future<void> createFolder(String name, {String? parentDirId}) =>
-      _mutator.createFolder(name, parentDirId: parentDirId);
+      _mutator.createFolder(name, parentDirId: parentDirId).then(_bump);
 
   Future<void> rename(
     FileItem file,
     String newName, {
     required Uint8List fileKey,
-  }) => _mutator.rename(file, newName, fileKey: fileKey);
+  }) => _mutator.rename(file, newName, fileKey: fileKey).then(_bump);
 
-  Future<void> delete(String fileId) => _mutator.delete(fileId);
+  Future<void> delete(String fileId) => _mutator.delete(fileId).then(_bump);
 
-  Future<void> deleteMany(List<String> fileIds) => _mutator.deleteMany(fileIds);
+  Future<void> deleteMany(List<String> fileIds) =>
+      _mutator.deleteMany(fileIds).then(_bump);
 
   Future<void> moveMany(List<String> fileIds, {String? targetDirId}) =>
-      _mutator.moveMany(fileIds, targetDirId: targetDirId);
+      _mutator.moveMany(fileIds, targetDirId: targetDirId).then(_bump);
+
+  /// Only fires on success — a failed mutation changed nothing to reload.
+  void _bump([void _]) => revision.value++;
 
   Future<void> uploadFile(
     String localPath, {
@@ -152,7 +163,11 @@ class FileOperations {
     String name,
     String content, {
     String? parentDirId,
-  }) => _uploader.createNote(name, content, parentDirId: parentDirId);
+  }) =>
+      _uploader.createNote(name, content, parentDirId: parentDirId).then((id) {
+        _bump();
+        return id;
+      });
 
   Future<void> updateNoteContent(
     String fileId,
