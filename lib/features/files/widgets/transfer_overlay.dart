@@ -30,7 +30,7 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
   @override
   Widget build(BuildContext context) {
     final manager = ref.watch(transferManagerProvider);
-    final transfers = manager.transfers;
+    final transfers = manager.visibleTransfers;
     final failedCount = ref.watch(permanentlyFailedCountProvider).value ?? 0;
 
     // External open-request (e.g. the failed-uploads badge). Consume and

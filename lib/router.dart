@@ -343,7 +343,7 @@ class MainShell extends ConsumerWidget {
     });
 
     final manager = ref.watch(transferManagerProvider);
-    final hasTransfers = manager.hasTransfers;
+    final hasTransfers = manager.hasVisibleTransfers;
     final failedCount = ref.watch(permanentlyFailedCountProvider).value ?? 0;
     final showOverlay = hasTransfers || failedCount > 0;
     final currentIndex = navigationShell.currentIndex;

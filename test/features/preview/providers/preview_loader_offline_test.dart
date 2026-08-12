@@ -14,6 +14,7 @@ import 'package:hoodik_app/features/preview/providers/preview_loader.dart';
 class _CountingFileOperations extends Fake implements FileOperations {
   int downloadCallCount = 0;
   final List<bool> pinnedArgs = [];
+  final List<bool> silentArgs = [];
   bool shouldComplete = true;
 
   @override
@@ -21,11 +22,13 @@ class _CountingFileOperations extends Fake implements FileOperations {
     FileItem file, {
     String? displayName,
     bool pinned = true,
+    bool silent = false,
     void Function()? onComplete,
     void Function(String error)? onError,
   }) {
     downloadCallCount++;
     pinnedArgs.add(pinned);
+    silentArgs.add(silent);
     if (shouldComplete) {
       onComplete?.call();
     } else {
@@ -105,6 +108,27 @@ void main() {
           reason:
               'Preview must not kick off a download when the file is already '
               'pinned offline — that completely defeats the cache.',
+        );
+      },
+    );
+
+    test(
+      'the download is silent — the preview draws its own progress',
+      () async {
+        await ensureFileDownloaded(
+          offlineManager: offlineManager,
+          transferManager: transferManager,
+          ops: ops,
+          accountId: accountId,
+          file: _file('file-1'),
+        );
+
+        expect(
+          ops.silentArgs,
+          [true],
+          reason:
+              'Nobody asked for this download. The ambient transfer strip is a '
+              'second progress bar on top of the one the preview already draws.',
         );
       },
     );
