@@ -45,13 +45,14 @@ class FileListItem extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final ownedByLabel = _ownedByLabel(l10n);
+    final selectable = canSelectFile(file);
     final sharedWithLabel = _sharedWithLabel(l10n);
 
     return GestureDetector(
       onSecondaryTapUp: (details) => onContextMenu(details.globalPosition),
       onLongPressStart: (details) {
         if (selectionMode) {
-          onToggleSelection();
+          if (selectable) onToggleSelection();
         } else {
           onContextMenu(details.globalPosition);
         }
@@ -60,7 +61,10 @@ class FileListItem extends StatelessWidget {
         leading: selectionMode
             ? Checkbox(
                 value: isSelected,
-                onChanged: (_) => onToggleSelection(),
+                // A null handler is what makes Flutter render the disabled
+                // box. The control still occupies the slot so the column
+                // doesn't jump around one missing checkbox.
+                onChanged: selectable ? (_) => onToggleSelection() : null,
                 activeColor: context.colors.dangerFill,
               )
             : _buildLeading(context),

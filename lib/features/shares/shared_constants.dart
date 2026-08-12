@@ -60,6 +60,13 @@ bool canLeaveFile(FileItem file, {required bool sharingEnabled}) {
   return sharingEnabled && !file.isOwner && file.id != sharedWithMeDirId;
 }
 
+/// Whether [file] can be picked in selection mode. The synthetic "Shared
+/// with me" root is a client-only navigation aid the server has never heard
+/// of, so nothing the selection bar offers — move, delete — can act on it.
+/// Its checkbox still renders, disabled, so the rows stay aligned and the
+/// column doesn't jump around one absent control.
+bool canSelectFile(FileItem file) => file.id != sharedWithMeDirId;
+
 /// Whether the "Save to my drive" (fork) action should appear for [file].
 /// Mirrors the server's `can_fork` gate (`SharePermission::CoOwner`, files
 /// only): the server must advertise sharing, the row must be shared *to* the

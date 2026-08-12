@@ -367,8 +367,18 @@ class FilesNotifier extends FamilyNotifier<FilesState, String?> {
   void enterSelectionMode(String fileId) {
     state = state.copyWith(
       selectionMode: true,
-      selectedIds: {...state.selectedIds, fileId},
+      selectedIds: _selectable(fileId)
+          ? {...state.selectedIds, fileId}
+          : state.selectedIds,
     );
+  }
+
+  /// Rows the selection bar's actions can't touch never enter the set. The
+  /// guard lives here rather than only in the checkbox so a second entry
+  /// point — select-all, a keyboard shortcut — can't put one back in.
+  bool _selectable(String fileId) {
+    final file = state.files?.where((f) => f.id == fileId).firstOrNull;
+    return file == null || canSelectFile(file);
   }
 
   void exitSelectionMode() {
@@ -376,6 +386,7 @@ class FilesNotifier extends FamilyNotifier<FilesState, String?> {
   }
 
   void toggleSelection(String fileId) {
+    if (!_selectable(fileId)) return;
     final next = {...state.selectedIds};
     if (next.contains(fileId)) {
       next.remove(fileId);
