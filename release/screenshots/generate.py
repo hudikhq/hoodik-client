@@ -29,6 +29,7 @@ Prerequisites:
 """
 
 import os
+import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
@@ -40,6 +41,32 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 SOURCES_DIR = SCRIPT_DIR / "sources"
 OUTPUT_DIR = SCRIPT_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
+
+# The app ships both appearances, so the sources do too. Captures live in
+# sources/<device>/<theme>/ and the theme lands in the output name, which is
+# what lets a store listing pick per slot instead of committing the whole set
+# to one appearance. Without --theme the flat sources/<device>/ layout is read
+# and the output keeps its original name, so an un-themed capture set still
+# works exactly as it did.
+THEMES = ("light", "dark")
+THEME = None
+for _arg in sys.argv[1:]:
+    if _arg.startswith("--theme="):
+        THEME = _arg.split("=", 1)[1]
+    elif _arg in THEMES:
+        THEME = _arg
+if THEME is not None and THEME not in THEMES:
+    sys.exit(f"unknown theme {THEME!r} — expected one of {', '.join(THEMES)}")
+
+
+def src_dir(base: Path) -> Path:
+    """Where a device's captures live for the theme being generated."""
+    return base / THEME if THEME else base
+
+
+def out_name_for(device: str, filename: str) -> str:
+    """Output filename, carrying the theme when one was asked for."""
+    return f"{device}_{THEME}_{filename}" if THEME else f"{device}_{filename}"
 
 IPHONE_RAW_DIR = SOURCES_DIR / "iphone"
 IPHONE_FRAMED_DIR = SOURCES_DIR / "iphone-framed"
@@ -500,8 +527,8 @@ def generate_iphone(config: dict):
 
     Output: 1284x2778 (App Store 6.5" display requirement).
     """
-    src_path = IPHONE_RAW_DIR / config["file"]
-    out_name = f"iphone_{config['file']}"
+    src_path = src_dir(IPHONE_RAW_DIR) / config["file"]
+    out_name = out_name_for("iphone", config["file"])
 
     print(f"  {out_name} ...")
 
@@ -543,8 +570,8 @@ def generate_ipad(config: dict):
 
     Output: 2048x2732 (App Store 13" display requirement).
     """
-    src_path = IPAD_RAW_DIR / config["file"]
-    out_name = f"ipad_{config['file']}"
+    src_path = src_dir(IPAD_RAW_DIR) / config["file"]
+    out_name = out_name_for("ipad", config["file"])
 
     print(f"  {out_name} ...")
 
@@ -583,8 +610,8 @@ def generate_ipad(config: dict):
 
 def generate_android(config: dict):
     """Generate Android screenshot with programmatic Pixel device frame."""
-    src_path = ANDROID_RAW_DIR / config["file"]
-    out_name = f"android_{config['file']}"
+    src_path = src_dir(ANDROID_RAW_DIR) / config["file"]
+    out_name = out_name_for("android", config["file"])
 
     # Detect canvas size from source image aspect ratio
     with Image.open(src_path) as probe:
@@ -628,8 +655,8 @@ def generate_android_tablet(config: dict, target_w: int, target_h: int,
     dimensions. The raw screenshot is framed, then composited onto a canvas
     of the target size with marketing text.
     """
-    src_path = ANDROID_TABLET_DIR / config["file"]
-    out_name = f"{prefix}_{config['file']}"
+    src_path = src_dir(ANDROID_TABLET_DIR) / config["file"]
+    out_name = out_name_for(prefix, config["file"])
     canvas_w, canvas_h = target_w, target_h
 
     print(f"  {out_name} ...")
@@ -670,8 +697,8 @@ def generate_macos(config: dict):
     Output: 2880x1800 (App Store Mac requirement).
     The app window is centered on the canvas with marketing text above.
     """
-    src_path = MACOS_RAW_DIR / config["file"]
-    out_name = f"macos_{config['file']}"
+    src_path = src_dir(MACOS_RAW_DIR) / config["file"]
+    out_name = out_name_for("macos", config["file"])
 
     print(f"  {out_name} ...")
 
@@ -715,7 +742,7 @@ ICON_PATH = SCRIPT_DIR.parent.parent / "assets" / "icon.png"
 def generate_feature_graphic():
     """Generate a 1024x500 feature graphic for Google Play Store."""
     canvas_w, canvas_h = 1024, 500
-    out_name = "feature_graphic.png"
+    out_name = "feature_graphic.png" if not THEME else f"feature_graphic_{THEME}.png"
 
     print(f"  {out_name} ...")
 
@@ -786,7 +813,7 @@ def main():
 
     print("--- iPhone (sources/iphone/) ---")
     for config in IPHONE_SCREENSHOTS:
-        src = IPHONE_RAW_DIR / config["file"]
+        src = src_dir(IPHONE_RAW_DIR) / config["file"]
         if not src.exists():
             print(f"  SKIP: sources/iphone/{config['file']} not found")
             continue
@@ -795,7 +822,7 @@ def main():
 
     print("\n--- iPad (sources/ipad/) ---")
     for config in IPAD_SCREENSHOTS:
-        src = IPAD_RAW_DIR / config["file"]
+        src = src_dir(IPAD_RAW_DIR) / config["file"]
         if not src.exists():
             print(f"  SKIP: sources/ipad/{config['file']} not found")
             continue
@@ -804,17 +831,17 @@ def main():
 
     print("\n--- Android Phone (1080x1920) ---")
     for config in ANDROID_SCREENSHOTS:
-        src = ANDROID_RAW_DIR / config["file"]
+        src = src_dir(ANDROID_RAW_DIR) / config["file"]
         if not src.exists():
             print(f"  SKIP: sources/android/{config['file']} not found")
             continue
         generate_android(config)
         count += 1
 
-    if ANDROID_TABLET_DIR.exists():
+    if src_dir(ANDROID_TABLET_DIR).exists():
         print("\n--- Android 7-inch Tablet (1200x1920) ---")
         for config in ANDROID_TABLET_SCREENSHOTS:
-            src = ANDROID_TABLET_DIR / config["file"]
+            src = src_dir(ANDROID_TABLET_DIR) / config["file"]
             if not src.exists():
                 print(f"  SKIP: sources/android-tablet/{config['file']} not found")
                 continue
@@ -823,7 +850,7 @@ def main():
 
         print("\n--- Android 10-inch Tablet (1600x2560) ---")
         for config in ANDROID_TABLET_SCREENSHOTS:
-            src = ANDROID_TABLET_DIR / config["file"]
+            src = src_dir(ANDROID_TABLET_DIR) / config["file"]
             if not src.exists():
                 print(f"  SKIP: sources/android-tablet/{config['file']} not found")
                 continue
@@ -839,7 +866,7 @@ def main():
     if MACOS_RAW_DIR.exists():
         print("\n--- macOS App Store ---")
         for config in MACOS_SCREENSHOTS:
-            src = MACOS_RAW_DIR / config["file"]
+            src = src_dir(MACOS_RAW_DIR) / config["file"]
             if not src.exists():
                 print(f"  SKIP: sources/macos/{config['file']} not found")
                 continue

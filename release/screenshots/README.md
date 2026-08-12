@@ -13,11 +13,31 @@ release/screenshots/
     iphone-framed/         # iPhone screenshots with device mockup frame (1419x2796)
     ipad/                  # Raw iPad simulator screenshots (1640x2360)
     android/               # Raw Android emulator screenshots (1080x2400)
+      light/  dark/        # Optional per-appearance captures — see below
   output/                  # Generated store-ready images
     iphone_*.png           # 1290x2796 — iPhone 6.7" App Store
     ipad_*.png             # 2048x2732 — iPad 12.9" App Store
     android_*.png          # 1080x1920 — Android Phone Google Play
 ```
+
+## Appearances
+
+The app ships light and dark, so the sources can too. Put captures in
+`sources/<device>/light/` and `sources/<device>/dark/` using the same
+filenames, then generate each pass separately:
+
+```bash
+python3 release/screenshots/generate.py --theme=light
+python3 release/screenshots/generate.py --theme=dark
+```
+
+The theme lands in the output name (`iphone_dark_01_files.png`), which is what
+lets a store listing pick per slot rather than committing all eight to one
+appearance. A listing has far fewer slots than this produces — generate both
+and choose.
+
+Without `--theme` the flat `sources/<device>/` layout is read and output keeps
+its original name, so an un-themed capture set still works exactly as before.
 
 ## Usage
 
