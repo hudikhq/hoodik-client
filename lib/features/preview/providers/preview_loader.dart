@@ -103,6 +103,9 @@ Future<void> ensureFileDownloaded({
     file,
     displayName: displayName,
     pinned: wasPinned,
+    // Nobody asked for this download. They asked to read a note or look at a
+    // photo, and the screen they are looking at draws its own progress.
+    silent: true,
     onComplete: () => completer.complete(),
     onError: (error) => completer.completeError(Exception(error)),
   );

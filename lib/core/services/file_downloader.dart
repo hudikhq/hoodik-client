@@ -248,6 +248,7 @@ class FileDownloader {
     FileItem file, {
     String? displayName,
     bool pinned = true,
+    bool silent = false,
     void Function()? onComplete,
     void Function(String error)? onError,
   }) {
@@ -268,6 +269,7 @@ class FileDownloader {
       totalChunks: totalChunks,
       fileId: file.id,
       onWorker: useBg,
+      silent: silent,
     );
 
     () async {

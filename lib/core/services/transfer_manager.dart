@@ -47,6 +47,13 @@ class TransferItem {
   final String fileName;
   final TransferType type;
   final bool onWorker;
+
+  /// The user did not ask for this transfer and is not waiting on its bar.
+  /// Opening a note or previewing a photo fetches bytes to do the job the
+  /// user actually asked for, and the destination draws its own progress —
+  /// an ambient strip on top of that is noise. Silent transfers are still
+  /// tracked, cancellable and resumable; they just don't surface.
+  final bool silent;
   TransferStatus status;
   int totalBytes;
   int transferredBytes;
@@ -65,6 +72,7 @@ class TransferItem {
     required this.fileName,
     required this.type,
     this.onWorker = false,
+    this.silent = false,
     this.status = TransferStatus.queued,
     this.totalBytes = 0,
     this.transferredBytes = 0,
@@ -186,6 +194,18 @@ class TransferManager extends ChangeNotifier {
   /// Whether there are any transfers at all (active, completed, or failed).
   bool get hasTransfers => _transfers.isNotEmpty;
 
+  /// The transfers worth putting in front of the user. Excludes the fetches
+  /// that back opening a note or a preview: the screen the user is looking at
+  /// draws its own progress, so the ambient strip would be a second bar for
+  /// something they never asked to watch. Per-file lookups still see
+  /// everything — a preview needs its own transfer to read progress from.
+  List<TransferItem> get visibleTransfers =>
+      _transfers.where((t) => !t.silent).toList(growable: false);
+
+  /// Whether anything worth showing is in flight. The shell gates the strip
+  /// on this so a silent fetch doesn't mount an overlay that renders nothing.
+  bool get hasVisibleTransfers => _transfers.any((t) => !t.silent);
+
   /// Callback invoked when a transfer cancel is requested.
   /// Receives the server-side fileId so the caller can propagate to workers/Rust.
   void Function(String fileId)? onCancelRequested;
@@ -198,6 +218,7 @@ class TransferManager extends ChangeNotifier {
     required int totalChunks,
     String? fileId,
     bool onWorker = false,
+    bool silent = false,
   }) {
     final item = TransferItem(
       id: 'transfer_${_nextId++}_${DateTime.now().millisecondsSinceEpoch}',
@@ -205,6 +226,7 @@ class TransferManager extends ChangeNotifier {
       fileName: fileName,
       type: type,
       onWorker: onWorker,
+      silent: silent,
       status: TransferStatus.active,
       totalBytes: totalBytes,
       totalChunks: totalChunks,

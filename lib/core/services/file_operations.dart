@@ -204,16 +204,20 @@ class FileOperations {
     onComplete: onComplete,
   );
 
+  /// [silent] marks a fetch the user did not ask for — opening a note or a
+  /// preview — so the ambient transfer strip leaves it alone.
   void downloadAndPinOffline(
     FileItem file, {
     String? displayName,
     bool pinned = true,
+    bool silent = false,
     void Function()? onComplete,
     void Function(String error)? onError,
   }) => _downloader.downloadAndPinOffline(
     file,
     displayName: displayName,
     pinned: pinned,
+    silent: silent,
     onComplete: onComplete,
     onError: onError,
   );
