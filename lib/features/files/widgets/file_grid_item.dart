@@ -46,13 +46,14 @@ class FileGridItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = fileIconColor(context, file, displayName: displayName);
+    final selectable = canSelectFile(file);
     final shareIcon = shareIndicatorIcon(file, sharingEnabled: sharingEnabled);
 
     return GestureDetector(
       onSecondaryTapUp: (details) => onContextMenu(details.globalPosition),
       onLongPressStart: (details) {
         if (selectionMode) {
-          onToggleSelection();
+          if (selectable) onToggleSelection();
         } else {
           onContextMenu(details.globalPosition);
         }
@@ -64,7 +65,9 @@ class FileGridItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: selectionMode ? onToggleSelection : onTap,
+          onTap: selectionMode
+              ? (selectable ? onToggleSelection : null)
+              : onTap,
           child: Padding(
             padding: const EdgeInsets.all(6),
             child: Column(
@@ -146,7 +149,12 @@ class FileGridItem extends StatelessWidget {
                                   ? AppIcons.success
                                   : Icons.radio_button_unchecked,
                               size: 18,
-                              color: isSelected
+                              // The mark stays in place on a row that can't be
+                              // picked, dimmed, so the grid doesn't gain a
+                              // hole where one tile's control should be.
+                              color: !selectable
+                                  ? context.colors.seamStrong
+                                  : isSelected
                                   ? context.colors.iconCrimson
                                   : context.colors.iconMuted,
                             ),
