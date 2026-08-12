@@ -5,6 +5,7 @@ import '../../../../core/mcp/mcp_connection_tester.dart';
 import '../../../../core/widgets/adaptive.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import 'wizard_step_scaffold.dart';
+import '../../../../core/theme/hoodik_scheme.dart';
 
 /// The three possible states of step 4 of the wizard.
 enum WizardTestState { idle, running, success, failure }
@@ -60,6 +61,7 @@ class _TestResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final (icon, color, title, body) = _renderFor(
+      context,
       state,
       result,
       AppLocalizations.of(context),
@@ -99,6 +101,7 @@ class _TestResultCard extends StatelessWidget {
   }
 
   (IconData, Color, String, Widget) _renderFor(
+    BuildContext context,
     WizardTestState state,
     McpTestResult? result,
     AppLocalizations l10n,
@@ -107,7 +110,7 @@ class _TestResultCard extends StatelessWidget {
       case WizardTestState.idle:
         return (
           CupertinoIcons.play_circle,
-          CupertinoColors.systemGrey,
+          context.colors.iconMuted,
           l10n.accountWizardReadyTitle,
           Text(
             l10n.accountWizardReadyBody,
@@ -117,7 +120,7 @@ class _TestResultCard extends StatelessWidget {
       case WizardTestState.running:
         return (
           CupertinoIcons.hourglass,
-          CupertinoColors.activeBlue,
+          context.colors.iconSlate,
           l10n.accountWizardTesting,
           Row(
             children: [
@@ -133,7 +136,7 @@ class _TestResultCard extends StatelessWidget {
       case WizardTestState.success:
         return (
           CupertinoIcons.check_mark_circled_solid,
-          CupertinoColors.activeGreen,
+          context.colors.iconSage,
           l10n.accountWizardConnected,
           _SuccessBody(result: result),
         );
@@ -141,7 +144,7 @@ class _TestResultCard extends StatelessWidget {
         final message = result?.error ?? l10n.accountWizardConnectionFailed;
         return (
           CupertinoIcons.exclamationmark_triangle_fill,
-          CupertinoColors.destructiveRed,
+          context.colors.iconCrimson,
           l10n.accountWizardFailed,
           Text(message, style: const TextStyle(fontSize: 13)),
         );

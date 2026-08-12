@@ -283,7 +283,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                             ? CupertinoIcons.bolt_fill
                             : CupertinoIcons.bolt_slash,
                         size: 22,
-                        color: isRunning ? CupertinoColors.activeGreen : null,
+                        color: isRunning ? context.colors.iconSage : null,
                       ),
                       title: Text(l10n.accountMcpEnable),
                       subtitle: Text(

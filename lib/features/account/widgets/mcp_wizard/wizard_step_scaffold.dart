@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/adaptive.dart';
+import '../../../../core/theme/hoodik_scheme.dart';
 
 /// Shared chrome for every step in the connect wizard: a title, optional
 /// subtitle, the step body, and a right-aligned primary action row with
@@ -98,22 +99,22 @@ class WizardDoneBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: CupertinoColors.activeGreen.withValues(alpha: 0.12),
+        color: context.colors.sageWash,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             CupertinoIcons.check_mark_circled_solid,
-            color: CupertinoColors.activeGreen,
+            color: context.colors.textSage,
             size: 16,
           ),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
-              color: CupertinoColors.activeGreen,
+            style: TextStyle(
+              color: context.colors.textSage,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),

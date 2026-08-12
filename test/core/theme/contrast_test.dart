@@ -116,6 +116,37 @@ void main() {
       test('textSage reads on the sage wash', () {
         expect(contrast(s.textSage, s.sageWash), greaterThanOrEqualTo(4.5));
       });
+      test('textEmber reads on the ember wash', () {
+        expect(contrast(s.textEmber, s.emberWash), greaterThanOrEqualTo(4.5));
+      });
+      test('textMuted reads on the recess a neutral chip sits on', () {
+        expect(contrast(s.textMuted, s.recess), greaterThanOrEqualTo(4.5));
+      });
+    });
+
+    test('${theme.name}: every status chip clears the floor', () {
+      // The MCP surface encodes five states. Each is a ground and a
+      // foreground that were measured together, not a system hue at low
+      // alpha — alpha would make the ratio depend on the surface below.
+      final chips = {
+        'ok': (s.sageWash, s.textSage),
+        'error': (s.crimsonWash, s.onCrimsonWash),
+        'denied': (s.emberWash, s.textEmber),
+        'idle': (s.recess, s.textMuted),
+      };
+      chips.forEach((name, pair) {
+        expect(
+          contrast(pair.$2, pair.$1),
+          greaterThanOrEqualTo(4.5),
+          reason: 'the $name chip label must read on its own ground.',
+        );
+      });
+    });
+
+    test('${theme.name}: the washes are distinct grounds', () {
+      // Four chips that look the same are worse than no colour at all.
+      final washes = {s.sageWash, s.crimsonWash, s.emberWash, s.recess};
+      expect(washes, hasLength(4));
     });
 
     test('${theme.name}: surfaces are distinguishable from each other', () {
