@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/utils/format.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../core/theme/hoodik_scheme.dart';
 
 /// Top-of-screen banner for the MCP settings screen: colored status dot,
 /// running-state label, and the last time an agent made a call.
@@ -30,7 +31,7 @@ class McpStatusHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final status = _resolveStatus(AppLocalizations.of(context));
+    final status = _resolveStatus(context, AppLocalizations.of(context));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -85,14 +86,17 @@ class McpStatusHeader extends StatelessWidget {
     );
   }
 
-  _StatusDescriptor _resolveStatus(AppLocalizations l10n) {
+  _StatusDescriptor _resolveStatus(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
     if (isRunning) {
       final seen = lastSeenAt == null
           ? l10n.accountMcpNoAgentActivity
           : l10n.accountMcpLastAgentCall(formatRelativeTime(lastSeenAt!));
       return _StatusDescriptor(
         title: l10n.accountMcpStatusRunning,
-        color: CupertinoColors.activeGreen,
+        color: context.colors.iconSage,
         icon: CupertinoIcons.bolt_fill,
         subtitle: 'localhost:$port • $seen',
       );
@@ -100,14 +104,14 @@ class McpStatusHeader extends StatelessWidget {
     if (isPaused) {
       return _StatusDescriptor(
         title: l10n.accountMcpStatusPaused,
-        color: CupertinoColors.systemOrange,
+        color: context.colors.iconEmber,
         icon: CupertinoIcons.pause_circle,
         subtitle: l10n.accountMcpPausedSubtitle(port),
       );
     }
     return _StatusDescriptor(
       title: l10n.accountMcpStatusOff,
-      color: CupertinoColors.systemGrey,
+      color: context.colors.iconMuted,
       icon: CupertinoIcons.bolt_slash,
       subtitle: l10n.accountMcpOffSubtitle,
     );

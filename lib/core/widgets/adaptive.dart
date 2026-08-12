@@ -114,7 +114,7 @@ class AdaptiveButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           padding: const EdgeInsets.symmetric(vertical: 14),
           color: isDestructive
-              ? CupertinoColors.destructiveRed
+              ? context.colors.dangerFill
               : CupertinoTheme.of(context).primaryColor,
           child: DefaultTextStyle.merge(
             style: TextStyle(
@@ -164,7 +164,7 @@ class AdaptiveTextButton extends StatelessWidget {
         padding: EdgeInsets.zero,
         child: DefaultTextStyle.merge(
           style: TextStyle(
-            color: isDestructive ? CupertinoColors.destructiveRed : null,
+            color: isDestructive ? context.colors.textCrimson : null,
           ),
           child: child,
         ),
@@ -535,21 +535,11 @@ class ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color errorColor;
-    final Color errorBg;
-
-    if (isApplePlatform) {
-      errorColor = CupertinoColors.systemRed.resolveFrom(context);
-      errorBg = CupertinoColors.systemRed
-          .resolveFrom(context)
-          .withValues(alpha: 0.12);
-    } else {
-      // The message reads on the crimson text step, not on `colorScheme.error`
-      // — that role is the fill this banner is tinted with, and it measures
-      // 2.4:1 when borrowed as a foreground.
-      errorColor = context.colors.textCrimson;
-      errorBg = Theme.of(context).colorScheme.error.withValues(alpha: 0.1);
-    }
+    // One red on every platform. The message reads on the crimson text step,
+    // never on the fill this banner is tinted with — that role measures 2.4:1
+    // when borrowed as a foreground.
+    final errorColor = context.colors.textCrimson;
+    final errorBg = context.colors.crimsonWash;
 
     return Container(
       width: double.infinity,

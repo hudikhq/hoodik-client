@@ -172,22 +172,16 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color background;
-    final Color foreground;
-    switch (status) {
-      case 'ok':
-        background = CupertinoColors.activeGreen.withValues(alpha: 0.15);
-        foreground = CupertinoColors.activeGreen;
-      case 'error':
-        background = CupertinoColors.systemRed.withValues(alpha: 0.15);
-        foreground = CupertinoColors.systemRed;
-      case 'denied':
-        background = CupertinoColors.systemOrange.withValues(alpha: 0.15);
-        foreground = CupertinoColors.systemOrange;
-      default:
-        background = CupertinoColors.systemGrey.withValues(alpha: 0.15);
-        foreground = CupertinoColors.systemGrey;
-    }
+    final c = context.colors;
+    // Each pair is a tested ground and foreground rather than a system hue at
+    // low alpha: the chip has to clear 4.5:1 wherever it lands, and alpha
+    // makes that depend on the surface underneath it.
+    final (Color background, Color foreground) = switch (status) {
+      'ok' => (c.sageWash, c.textSage),
+      'error' => (c.crimsonWash, c.onCrimsonWash),
+      'denied' => (c.emberWash, c.textEmber),
+      _ => (c.recess, c.textMuted),
+    };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

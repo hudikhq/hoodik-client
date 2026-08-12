@@ -32,6 +32,7 @@ class HoodikColors {
   static const Color orangy500 = Color(0xFFEE9B5C);
   static const Color orangy600 = Color(0xFFEE8434);
   static const Color orangy800 = Color(0xFF9F5822);
+  static const Color orangy950 = Color(0xFF3A2008);
 
   // Accent — Greeny
   static const Color greeny50 = Color(0xFFD8F1BE);
@@ -81,6 +82,7 @@ class HoodikColors {
   static const Color paperTrack = Color(0xFFC5C5C1); // derived
   static const Color paperCrimsonWash = Color(0xFFF2E6E7); // derived
   static const Color paperSageWash = Color(0xFFE9EFE2); // derived
+  static const Color paperEmberWash = Color(0xFFF8EFE6); // derived
 
   /// Light-theme text steps from DESIGN.md's Text Steps table.
   static const Color greeny500 = Color(0xFF4E7228);

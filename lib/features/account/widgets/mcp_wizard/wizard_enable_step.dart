@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../l10n/generated/app_localizations.dart';
 import 'wizard_step_scaffold.dart';
+import '../../../../core/theme/hoodik_scheme.dart';
 
 /// Step 1 of the connect wizard. Confirms the MCP server is running and
 /// offers a single button to start it if it isn't. The wizard delegates
@@ -48,7 +49,7 @@ class WizardEnableStep extends StatelessWidget {
               isRunning ? CupertinoIcons.bolt_fill : CupertinoIcons.bolt_slash,
               size: 32,
               color: isRunning
-                  ? CupertinoColors.activeGreen
+                  ? context.colors.iconSage
                   : theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             const SizedBox(width: 14),
