@@ -31,7 +31,7 @@ class PreviewToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedOpacity(
       opacity: visible ? 1.0 : 0.0,
-      duration: const Duration(milliseconds: 200),
+      duration: motionDuration(context, const Duration(milliseconds: 200)),
       child: IgnorePointer(
         ignoring: !visible,
         child: Container(

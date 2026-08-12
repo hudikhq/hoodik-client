@@ -86,7 +86,7 @@ class _TransferOverlayState extends ConsumerState<TransferOverlay> {
 
   Widget _buildShell({required Widget child, bool dismissible = false}) {
     final card = AnimatedSize(
-      duration: const Duration(milliseconds: 250),
+      duration: motionDuration(context, const Duration(milliseconds: 250)),
       curve: Curves.easeInOut,
       alignment: Alignment.bottomCenter,
       child: Container(

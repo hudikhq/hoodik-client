@@ -15,6 +15,16 @@ bool get isApplePlatform => Platform.isIOS || Platform.isMacOS;
 /// meaningful gesture on its own or just how you put the caret somewhere.
 bool get isTouchPlatform => Platform.isAndroid || Platform.isIOS;
 
+/// The duration to animate for, honouring the reader's Reduce Motion
+/// setting.
+///
+/// Returns [Duration.zero] when the OS says motion is unwelcome, which makes
+/// an implicit animation jump straight to its end state rather than sliding
+/// there. Every animated widget in the app takes its duration from here so
+/// the setting can't be honoured on some surfaces and ignored on the rest.
+Duration motionDuration(BuildContext context, Duration full) =>
+    MediaQuery.disableAnimationsOf(context) ? Duration.zero : full;
+
 /// Width at which the shell stops being a phone. Below it the five sections
 /// live in a bottom tab bar; at or above it they move to a side rail and the
 /// bottom edge goes back to the content.

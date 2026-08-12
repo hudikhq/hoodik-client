@@ -820,7 +820,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     return Row(
       children: [
         AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: motionDuration(context, const Duration(milliseconds: 180)),
           curve: Curves.easeOutCubic,
           width: collapsed ? 0 : _kSidebarWidth,
           child: ClipRect(
