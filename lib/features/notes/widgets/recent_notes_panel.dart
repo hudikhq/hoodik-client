@@ -43,14 +43,39 @@ class RecentNotesPanelState extends ConsumerState<RecentNotesPanel> {
   final Map<String, String> _decryptedNames = {};
   final Map<String, Uint8List> _decryptedKeys = {};
 
+  ValueNotifier<int>? _revision;
+
   @override
   void initState() {
     super.initState();
     _loadNotes();
   }
 
-  /// Expose the refresh path so the host can re-sync after creating a
-  /// new note from outside (e.g. the sidebar's `+` menu).
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // The workspace lives in the shell's IndexedStack, so this panel is built
+    // once and never remounted — a note deleted from the sidebar or the Files
+    // tab would sit in this list for the rest of the session. Watching the
+    // one seam every mutation goes through catches all of them, including the
+    // ones that don't exist yet.
+    final revision = ref.read(fileOperationsProvider)?.revision;
+    if (identical(revision, _revision)) return;
+    _revision?.removeListener(_onFilesChanged);
+    _revision = revision?..addListener(_onFilesChanged);
+  }
+
+  @override
+  void dispose() {
+    _revision?.removeListener(_onFilesChanged);
+    super.dispose();
+  }
+
+  void _onFilesChanged() {
+    if (mounted) _loadNotes();
+  }
+
+  /// Expose the refresh path so a host can re-sync explicitly.
   Future<void> refresh() => _loadNotes();
 
   Future<void> _loadNotes() async {
