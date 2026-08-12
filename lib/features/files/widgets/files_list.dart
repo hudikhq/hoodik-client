@@ -14,6 +14,7 @@ import 'files_drag_feedback.dart';
 import 'files_tree_view.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/widgets/adaptive.dart';
 
 /// Renders the file listing for the active directory in whichever view
 /// mode (list / icons / tree) the user picked. Owns the drag-and-drop
@@ -242,7 +243,7 @@ class FilesList extends ConsumerWidget {
       builder: (ctx, candidateData, _) {
         final hovering = candidateData.isNotEmpty;
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
+          duration: motionDuration(context, const Duration(milliseconds: 120)),
           decoration: BoxDecoration(
             color: hovering
                 ? context.colors.iconEmber.withValues(alpha: 0.12)

@@ -16,6 +16,7 @@ import '../providers/files_state.dart';
 import 'files_tree_rows.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
+import '../../../core/widgets/adaptive.dart';
 
 /// Recursive, lazy-loaded tree rooted at [rootDirId] (`null` = account
 /// root). Folders expand in-place; every row — folder or file — routes
@@ -226,7 +227,7 @@ class _FilesTreeViewState extends ConsumerState<FilesTreeView> {
       builder: (_, candidateData, _) {
         final hovering = candidateData.isNotEmpty;
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
+          duration: motionDuration(context, const Duration(milliseconds: 120)),
           decoration: BoxDecoration(
             color: hovering
                 ? context.colors.iconEmber.withValues(alpha: 0.12)
