@@ -10,6 +10,7 @@ import '../../../core/widgets/adaptive.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/auth/auth_state.dart';
 import '../../../core/providers.dart';
+import '../../../core/services/connect_link.dart';
 import '../../../core/storage/database.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../widgets/cloud_nudge.dart';
@@ -36,6 +37,26 @@ class _AddServerScreenState extends ConsumerState<AddServerScreen> {
   void initState() {
     super.initState();
     _loadServers();
+
+    _applyConnectLink(ref.read(pendingConnectProvider));
+  }
+
+  /// Fill in a scanned QR code and connect. The user already chose this server
+  /// by pointing a camera at it, so asking them to tap a button under a URL
+  /// they didn't type adds nothing. The link is marked used before connecting,
+  /// so a failure leaves them here with the address and the error to retry
+  /// instead of reconnecting on every rebuild.
+  void _applyConnectLink(ConnectLink? pending) {
+    if (pending == null) return;
+
+    _urlController.text = pending.serverUrl;
+    if (!pending.autoConnect) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(pendingConnectProvider.notifier).state = pending.connected;
+      _connect();
+    });
   }
 
   @override
@@ -125,6 +146,11 @@ class _AddServerScreenState extends ConsumerState<AddServerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Someone with no server yet is sitting on this very screen when they
+    // scan, and routing to a screen that's already showing creates nothing —
+    // so the link arrives as a provider change, not a fresh [initState].
+    ref.listen(pendingConnectProvider, (_, next) => _applyConnectLink(next));
+
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 

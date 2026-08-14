@@ -1,7 +1,7 @@
 name: hoodik_app
 description: "Hoodik - End-to-End Encrypted Cloud Storage"
 publish_to: "none"
-version: 2.4.0+58
+version: 2.4.1+59
 
 environment:
     sdk: ^3.11.4
@@ -92,6 +92,7 @@ dependencies:
         path: rust_builder
     background_downloader: ^9.5.4
     tray_manager: ^0.5.2
+    app_links: ^7.0.0
 
 dev_dependencies:
     flutter_test:

@@ -1,7 +1,7 @@
 # Store Release Status
 
 Which platforms are published, and where. `just release-check` reads the table
-below to decide whose store screenshots under `release/screenshots/output/`
+below to decide whose store screenshots under `shotkit/screenshots/store/`
 need to be refreshed before the next tag.
 
 | Platform | Store | Status | Date |

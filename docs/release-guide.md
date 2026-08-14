@@ -146,7 +146,7 @@ Icon locations:
 | **Android Feature Graphic** | 1024 x 500 px | Displayed at top of listing |
 | **macOS** | 1280 x 800 or 1440 x 900 px | Up to 10 screenshots |
 
-See `release/screenshots/` for automated screenshot generation tooling.
+Screenshots and the tooling that frames them live in `shotkit/` at the workspace root.
 
 **Tip:** Run the app on a simulator, take screenshots, and add marketing text overlay with Figma or https://screenshots.pro/
 

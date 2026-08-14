@@ -1,4 +1,6 @@
 PODS:
+  - app_links (7.0.0):
+    - Flutter
   - background_downloader (0.0.1):
     - Flutter
   - CocoaAsyncSocket (7.6.5)
@@ -126,6 +128,7 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
+  - app_links (from `.symlinks/plugins/app_links/ios`)
   - background_downloader (from `.symlinks/plugins/background_downloader/ios`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
@@ -162,6 +165,8 @@ SPEC REPOS:
     - SwiftyGif
 
 EXTERNAL SOURCES:
+  app_links:
+    :path: ".symlinks/plugins/app_links/ios"
   background_downloader:
     :path: ".symlinks/plugins/background_downloader/ios"
   connectivity_plus:
@@ -212,6 +217,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/webview_flutter_wkwebview/darwin"
 
 SPEC CHECKSUMS:
+  app_links: a754cbec3c255bd4bbb4d236ecc06f28cd9a7ce8
   background_downloader: 50e91d979067b82081aba359d7d916b3ba5fadad
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
@@ -244,6 +250,6 @@ SPEC CHECKSUMS:
   wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
   webview_flutter_wkwebview: 8ebf4fded22593026f7dbff1fbff31ea98573c8d
 
-PODFILE CHECKSUM: bedaf2b201e329886b81a4ca704634ef4de4d2ab
+PODFILE CHECKSUM: 498b88efc39878807a040d75b95cc239c17016c3
 
 COCOAPODS: 1.16.2

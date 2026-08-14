@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'core/platform/tray_integration.dart';
+import 'core/services/connect_link.dart';
 import 'core/services/file_downloader_config.dart';
 import 'core/services/preferences.dart';
 import 'core/services/share_handler.dart';
@@ -94,6 +95,7 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
     with WidgetsBindingObserver {
   bool _initialized = false;
   final ShareHandler _shareHandler = ShareHandler();
+  final ConnectLinkHandler _connectLinks = ConnectLinkHandler();
 
   /// File paths received via share intent while the app was locked.
   /// Processed once the user unlocks and [isLoggedInProvider] becomes true.
@@ -151,12 +153,16 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
       _shareHandler.onFilesReceived = _handleSharedFiles;
       _shareHandler.init();
     }
+
+    _connectLinks.onLink = _handleConnectLink;
+    _connectLinks.init();
     _tray = attachMcpTray(ref: ref, router: appRouter);
   }
 
   @override
   void dispose() {
     _shareHandler.dispose();
+    _connectLinks.dispose();
     _tray?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     appRouter.dispose();
@@ -288,7 +294,7 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
       if (mounted) {
         setState(() => _initialized = true);
       }
-      appRouter.go('/auth/unlock');
+      _goUnlessConnectPending('/auth/unlock');
       return;
     }
 
@@ -305,11 +311,31 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
       );
       _log.info('session restored', fields: {'has_private_key': pk != null});
 
-      appRouter.go('/');
+      _goUnlessConnectPending('/');
     } else {
       _log.info('no session to restore');
-      appRouter.go('/setup/server');
+      _goUnlessConnectPending('/setup/server');
     }
+  }
+
+  /// A scanned connect QR lands here: stash the details for the add-server
+  /// and login screens, then open the start of that flow.
+  void _handleConnectLink(ConnectLink link) {
+    ref.read(pendingConnectProvider.notifier).state = link;
+    appRouter.go('/setup/server');
+  }
+
+  /// Startup navigation yields to a connect link that arrived while the auth
+  /// flow was still running — the user asked for that screen explicitly, and
+  /// the link can land either side of these awaits.
+  ///
+  /// This holds even when the route matches where the link already went:
+  /// routing to the same path replaces it, disposing the screen mid-connect,
+  /// and the navigation that follows a successful connect is then dropped for
+  /// being unmounted.
+  void _goUnlessConnectPending(String route) {
+    if (ref.read(pendingConnectProvider) != null) return;
+    appRouter.go(route);
   }
 
   void _handleSharedFiles(List<String> paths) {

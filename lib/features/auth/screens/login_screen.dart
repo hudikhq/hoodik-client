@@ -12,6 +12,7 @@ import '../../../core/widgets/user_avatar.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/auth/auth_state.dart';
 import '../../../core/providers.dart';
+import '../../../core/services/connect_link.dart';
 import '../../../core/storage/database.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../../core/utils/logger.dart';
@@ -41,6 +42,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     _loadAccounts();
+    _prefillFromConnectLink();
+  }
+
+  /// Second half of the QR-code flow: the add-server screen has taken the
+  /// user here, so fill in the email the code carried. Matched on host so a
+  /// stale link can't prefill someone else's address on a different server.
+  void _prefillFromConnectLink() {
+    final pending = ref.read(pendingConnectProvider);
+    final email = pending?.email;
+    final server = ref.read(selectedServerProvider);
+    if (pending == null || email == null || server == null) return;
+    if (Uri.parse(server.url).host != Uri.parse(pending.serverUrl).host) return;
+
+    _emailController.text = email;
   }
 
   @override
