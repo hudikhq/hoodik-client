@@ -13,6 +13,11 @@ void main() {
   // Asserting against the surface height keeps the test resolution-agnostic.
   const double surfaceHeight = 600;
 
+  /// Every inset the layout reported, in order, since the test started.
+  final reportedInsets = <double>[];
+
+  setUp(reportedInsets.clear);
+
   Future<void> pump(
     WidgetTester tester, {
     required double viewInsetsBottom,
@@ -32,6 +37,7 @@ void main() {
               tabBar: tabBar,
               toolbar: toolbar,
               editor: Container(key: const Key('editor')),
+              onBottomInsetChanged: reportedInsets.add,
             ),
           ),
         ),
@@ -92,5 +98,45 @@ void main() {
     // With no toolbar, the editor fills the full Scaffold body. The
     // test harness has no AppBar, so body == surface height.
     expect(editorSize(tester).height, surfaceHeight);
+  });
+
+  // The steady frame above is what makes this necessary: the part of the
+  // WebView the keyboard and toolbar cover is still a live, "visible" frame
+  // as far as WKWebView is concerned, so the page has to be told to shrink
+  // its own scroll container by that much. Otherwise the caret lands under
+  // the keyboard with no way to scroll it back into view.
+  group('reports the obscured editor height', () {
+    final toolbar = Container(height: kIosToolbarHeight, color: Colors.red);
+
+    testWidgets('keyboard, minus the slot already reserved for the toolbar', (
+      tester,
+    ) async {
+      await pump(tester, viewInsetsBottom: 0, toolbar: toolbar);
+      expect(reportedInsets, [0]);
+
+      await pump(tester, viewInsetsBottom: 300, toolbar: toolbar);
+      // Toolbar floats at 300..352; the editor frame already stops 34 + 52
+      // above the screen bottom, so 266 of it is covered.
+      expect(reportedInsets, [0, 266]);
+    });
+
+    testWidgets('the whole keyboard when no toolbar reserves a slot', (
+      tester,
+    ) async {
+      await pump(tester, viewInsetsBottom: 300);
+      expect(reportedInsets.last, 300);
+    });
+
+    testWidgets('nothing again once the keyboard drops', (tester) async {
+      await pump(tester, viewInsetsBottom: 300, toolbar: toolbar);
+      await pump(tester, viewInsetsBottom: 0, toolbar: toolbar);
+      expect(reportedInsets.last, 0);
+    });
+
+    testWidgets('only when the value changes', (tester) async {
+      await pump(tester, viewInsetsBottom: 300, toolbar: toolbar);
+      await pump(tester, viewInsetsBottom: 300, toolbar: toolbar);
+      expect(reportedInsets, [266]);
+    });
   });
 }

@@ -25,7 +25,7 @@ import '../helpers/draft_capture.dart';
 import '../models/editor_tab.dart';
 import '../providers/open_note_request.dart';
 import '../services/note_pdf_exporter.dart';
-import 'ios_editor_layout.dart' show injectIosCaretInset;
+import 'ios_editor_layout.dart' show applyIosEditorInset;
 import 'notes_landing_app_bar.dart';
 import 'notes_main_area.dart';
 import 'notes_sidebar.dart';
@@ -74,6 +74,11 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
   bool _editorReady = false;
   Brightness? _editorBrightness;
+
+  /// iOS: height of the editor frame currently hidden behind the keyboard
+  /// and floating toolbar. Held here because the layout can report it
+  /// before the page is ready to receive it.
+  double _iosBottomInset = 0;
 
   /// Set when the workspace was seeded from the Files branch; closing the
   /// last tab then switches the shell back there instead of falling
@@ -510,7 +515,9 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     _pushEditorTheme(_editorBrightness ?? Theme.of(context).brightness);
     final zoom = ref.read(editorZoomProvider);
     if (zoom != 1.0) _sendToEditor('setZoom', {'scale': zoom});
-    if (Platform.isIOS) injectIosCaretInset(_webViewController);
+    if (Platform.isIOS) {
+      applyIosEditorInset(_webViewController, _iosBottomInset);
+    }
     if (_hasTabs && _activeTab.loaded) {
       _pushActiveTabToEditor();
     }
@@ -915,7 +922,13 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       onHistory: _openHistory,
       onExportPdf: _exportActiveAsPdf,
       onHideKeyboard: _hideKeyboard,
+      onBottomInsetChanged: _applyBottomInset,
     );
+  }
+
+  void _applyBottomInset(double inset) {
+    _iosBottomInset = inset;
+    if (_editorReady) applyIosEditorInset(_webViewController, inset);
   }
 
   /// The WebView holds native focus while typing, so the keyboard drops by
