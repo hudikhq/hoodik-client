@@ -6,7 +6,6 @@ import '../storage/database.dart';
 import '../crypto/crypto_service.dart';
 import '../crypto/file_crypto.dart';
 import '../workers/worker_manager.dart';
-import 'background_download_service.dart';
 import 'background_upload_service.dart';
 import 'binary_upload_transport.dart';
 import 'chunk_download_transport.dart';
@@ -62,7 +61,6 @@ class FileOperations {
     TransferManager? transferManager,
     WorkerManager? workerManager,
     OfflineManager? offlineManager,
-    BackgroundDownloadService? backgroundDownloadService,
     BackgroundUploadService? backgroundUploadService,
     DirectChunkUploadService? directUpload,
     TarCapabilityCache? tarCapabilityCache,
@@ -113,7 +111,6 @@ class FileOperations {
         fileCrypto: fileCrypto,
         transferManager: transferManager,
         offlineManager: offlineManager,
-        backgroundDownloadService: backgroundDownloadService,
         tarCapabilityCache: tarCapabilityCache,
         chunkDownloadTransport: chunkDownloadTransport,
         database: database,

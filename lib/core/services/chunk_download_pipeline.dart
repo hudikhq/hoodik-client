@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 
 import '../../src/rust/api.dart' as rust;
 import '../api/api_client.dart';
@@ -78,6 +79,7 @@ class ChunkDownloadPipeline {
     required int totalBytes,
     String? outputPath,
     bool pinned = false,
+    bool silent = false,
   }) async {
     final chunksPath = await _offlineManager.chunksDir(_accountId, file.id);
 
@@ -105,6 +107,7 @@ class ChunkDownloadPipeline {
       totalChunks: totalChunks,
       fileId: file.id,
       onWorker: true,
+      silent: silent,
     );
 
     final startedAt = DateTime.now();
@@ -191,6 +194,60 @@ class ChunkDownloadPipeline {
         );
       }
     }();
+  }
+
+  /// Acquire the chunks, then decrypt them into memory.
+  ///
+  /// The in-memory tail: previews, forks, re-indexing and the MCP tools want
+  /// the plaintext itself rather than a file on disk. Everything up to the
+  /// decrypt is the same as every other tail, so this gets direct transfer,
+  /// background survival, resume and the cache for free — and a second read of
+  /// the same file costs nothing but the decrypt.
+  Future<Uint8List> fetchAndDecrypt(
+    FileItem file, {
+    required Uint8List fileKey,
+    required String displayName,
+    required int totalChunks,
+    required int totalBytes,
+    bool silent = false,
+    void Function(double progress)? onProgress,
+  }) async {
+    final chunksPath = await fetchChunks(
+      file,
+      displayName: displayName,
+      totalChunks: totalChunks,
+      totalBytes: totalBytes,
+      silent: silent,
+    );
+    onProgress?.call(1.0);
+
+    // Straight to a temporary file and back rather than a decrypt-to-memory
+    // FFI: the Rust side already streams chunk by chunk into a file, so this
+    // holds one plaintext copy instead of one per chunk plus the joined
+    // result.
+    final scratch = File(
+      p.join(Directory.systemTemp.path, 'hoodik-decrypt-${file.id}'),
+    );
+    try {
+      await rust.decryptChunksToFile(
+        chunksDir: chunksPath,
+        chunkCount: BigInt.from(totalChunks),
+        decryptionKey: fileKey,
+        cipher: file.cipher,
+        outputPath: scratch.path,
+        fileId: file.id,
+      );
+      return await scratch.readAsBytes();
+    } finally {
+      if (await scratch.exists()) {
+        try {
+          await scratch.delete();
+        } catch (_) {
+          // A leftover in the system temp dir is the OS's problem, not a
+          // reason to fail a read that already succeeded.
+        }
+      }
+    }
   }
 
   /// Finish the downloads a previous session started that the OS is no longer

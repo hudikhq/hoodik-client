@@ -39,9 +39,8 @@ void unregisterTaskUpdateHandler(String prefix) {
 
 /// Shared one-time configuration for the [FileDownloader] singleton.
 ///
-/// Both [BackgroundDownloadService] and [BackgroundUploadService] call this
-/// before enqueuing tasks. Returns the same future on repeated calls so
-/// the setup runs exactly once.
+/// Every service that enqueues an OS-native task calls this first. Returns
+/// the same future on repeated calls so the setup runs exactly once.
 Future<void> ensureFileDownloaderConfigured() {
   return _configuring ??= _doConfigure();
 }

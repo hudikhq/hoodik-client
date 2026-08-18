@@ -125,18 +125,6 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
       }
     });
 
-    // Configure BackgroundDownloadService when it becomes available (login).
-    ref.listenManual(backgroundDownloadServiceProvider, (prev, next) {
-      if (next != null && next != prev) {
-        next.configure().catchError((e) {
-          _log.warn(
-            'background download service configure failed',
-            fields: {'error': redactException(e)},
-          );
-        });
-      }
-    });
-
     // Process any pending shared files once the user logs in or unlocks.
     // Delayed so the route transition (unlock → home) finishes before we
     // show the folder picker dialog — otherwise go('/') dismisses it.
@@ -194,7 +182,6 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
       ref.read(workerManagerProvider)?.notifyResumed();
 
       // Replay buffered OS download events so the UI catches up on progress.
-      ref.read(backgroundDownloadServiceProvider)?.resumeFromBackground();
       ref.read(backgroundTarTransferProvider)?.resumeFromBackground();
 
       // Prune MCP audit entries past the user's retention window. Debounced

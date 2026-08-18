@@ -21,7 +21,6 @@ import '../features/shares/services/trusted_fingerprint_dao.dart';
 import 'mcp/mcp_audit_retention.dart';
 import 'mcp/mcp_server.dart';
 import 'storage/mcp_audit_dao.dart';
-import 'services/background_download_service.dart';
 import 'services/background_tar_transfer.dart';
 import 'services/background_upload_service.dart';
 import 'services/binary_upload_transport.dart';
@@ -299,29 +298,6 @@ final workerManagerProvider = Provider<WorkerManager?>((ref) {
   ref.onDispose(() => wm.dispose());
   return wm;
 });
-
-/// OS-native background download service. Uses URLSession (iOS) and
-/// WorkManager (Android) so downloads survive app suspension.
-///
-/// Null until there is both an API client and an account — the account
-/// stamps every task id, which is what lets a later sign-in tell this
-/// account's transfers from another's.
-final backgroundDownloadServiceProvider = Provider<BackgroundDownloadService?>((
-  ref,
-) {
-  final client = ref.watch(apiClientProvider);
-  final account = ref.watch(activeAccountProvider);
-  if (client == null || account == null) return null;
-
-  final bds = BackgroundDownloadService(
-    baseUrl: client.baseUrl,
-    accountId: account.id,
-  );
-  bds.setTransferManager(ref.read(transferManagerProvider));
-  ref.onDispose(() => bds.dispose());
-  return bds;
-});
-
 /// OS-native background upload service. Dispatches encrypted chunks as
 /// individual [UploadTask]s so uploads survive app suspension on mobile.
 ///
@@ -686,7 +662,6 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
   final tm = ref.read(transferManagerProvider);
   final wm = ref.read(workerManagerProvider);
 
-  final bds = ref.read(backgroundDownloadServiceProvider);
   final bus = ref.read(backgroundUploadServiceProvider);
   final tarTransfer = ref.read(backgroundTarTransferProvider);
   final chunkTransport = ref.read(chunkDownloadTransportProvider);
@@ -717,7 +692,6 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
     transferManager: tm,
     workerManager: wm,
     offlineManager: ref.read(offlineManagerProvider),
-    backgroundDownloadService: bds,
     backgroundUploadService: bus,
     directUpload: ref.read(directChunkUploadProvider),
     tarCapabilityCache: ref.read(tarCapabilityCacheProvider),
@@ -729,13 +703,12 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
     sharedUpload: sharedUpload,
   );
 
-  // Wire cancel: UI → TransferManager → WorkerManager + BackgroundUploadService + BackgroundDownloadService + BackgroundTarTransfer + the two direct-chunk services + FileOperations
+  // Wire cancel: UI → TransferManager → WorkerManager + BackgroundUploadService + BackgroundTarTransfer + the two direct-chunk services + FileOperations
   final directChunks = ref.read(directChunkDownloadProvider);
   final directUploads = ref.read(directChunkUploadProvider);
   tm.onCancelRequested = (fileId) {
     wm?.cancelEncryption(fileId);
     bus?.cancelUpload(fileId);
-    bds?.cancelDownload(fileId);
     tarTransfer?.cancel(fileId);
     directChunks.cancel(fileId);
     directUploads.cancel(fileId);
