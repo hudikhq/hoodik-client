@@ -1,11 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 
 import '../../src/rust/api.dart' as rust;
 import '../api/api_client.dart';
+import '../storage/database.dart';
 import '../utils/log_redact.dart';
 import '../utils/logger.dart';
 import 'chunk_download_runner.dart';
 import 'chunk_download_transport.dart';
+import 'direct_chunk_download.dart';
 import 'offline_manager.dart';
 import 'tar_fallback.dart';
 import 'transfer_manager.dart';
@@ -29,6 +33,7 @@ class ChunkDownloadPipeline {
   final OfflineManager _offlineManager;
   final TransferManager? _transferManager;
   final ChunkDownloadRunner _runner;
+  final AppDatabase? _database;
   final String _accountId;
 
   ChunkDownloadPipeline({
@@ -37,8 +42,10 @@ class ChunkDownloadPipeline {
     required TarCapabilityCache tarCapabilityCache,
     required String accountId,
     required ChunkDownloadTransport transport,
+    AppDatabase? database,
     TransferManager? transferManager,
   }) : _client = client,
+       _database = database,
        _offlineManager = offlineManager,
        _accountId = accountId,
        _transferManager = transferManager,
@@ -152,6 +159,96 @@ class ChunkDownloadPipeline {
         );
       }
     }();
+  }
+
+  /// Finish the downloads a previous session started that the OS is no longer
+  /// carrying.
+  ///
+  /// Only the chunks are fetched. Where the user originally asked the finished
+  /// file to be written is not recorded, so a resumed transfer fills the
+  /// offline cache instead and opening that file afterwards is immediate
+  /// rather than another download. Each one shows in the transfer list while
+  /// it runs, so it can be cancelled like anything else.
+  ///
+  /// One failure does not stop the rest: a file whose manifest is gone says
+  /// nothing about the next file's.
+  Future<void> resumeInterrupted(List<PendingDownload> rows) async {
+    for (final row in rows) {
+      try {
+        await _resumeOne(row);
+      } catch (e) {
+        _log.warn(
+          'could not resume an interrupted download',
+          fields: {'file_id': row.fileId, 'error': describeError(e)},
+        );
+      }
+    }
+  }
+
+  Future<void> _resumeOne(PendingDownload row) async {
+    final present = await chunksOnDisk(
+      Directory(row.outputDir),
+      row.chunkCount,
+    );
+
+    // The OS finished it while the app was gone. Nothing left to fetch; it
+    // just was never written down as done.
+    if (present.length >= row.chunkCount) {
+      await _finishResumed(row);
+      return;
+    }
+
+    final cached = await _database?.getCachedFileById(_accountId, row.fileId);
+    final item = _transferManager?.startTransfer(
+      fileName: cached?.decryptedName ?? row.fileId.substring(0, 8),
+      type: TransferType.downloadHttp,
+      totalBytes: cached?.size ?? 0,
+      totalChunks: row.chunkCount,
+      fileId: row.fileId,
+      onWorker: true,
+    );
+
+    try {
+      await _downloadChunks(
+        fileId: row.fileId,
+        fileSize: cached?.size ?? 0,
+        chunkCount: row.chunkCount,
+        chunksPath: row.outputDir,
+        onProgress: item == null
+            ? null
+            : (completedChunks, transferredBytes) =>
+                  _transferManager?.updateProgress(
+                    item.id,
+                    completedChunks: completedChunks,
+                    transferredBytes: transferredBytes,
+                  ),
+      );
+    } catch (e) {
+      if (item != null) {
+        _transferManager?.failTransfer(
+          item.id,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+      rethrow;
+    }
+
+    if (item != null) _transferManager?.completeTransfer(item.id);
+    await _finishResumed(row);
+  }
+
+  Future<void> _finishResumed(PendingDownload row) async {
+    await _offlineManager.registerChunks(
+      accountId: _accountId,
+      fileId: row.fileId,
+      chunksDir: row.outputDir,
+      chunkCount: row.chunkCount,
+    );
+    await _offlineManager.clearPendingDownload(
+      accountId: _accountId,
+      fileId: row.fileId,
+    );
+    _log.info('resumed download finished', fields: {'file_id': row.fileId});
   }
 
   Future<void> _downloadChunks({

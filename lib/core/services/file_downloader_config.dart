@@ -132,14 +132,15 @@ Future<Set<String>> adoptTransfersForAccount(String accountId) async {
   return mine;
 }
 
-/// Settle the OS transfer queue against the account that just signed in.
+/// Settle the OS transfer queue against the account that just signed in, and
+/// return the downloads that need picking back up.
 ///
 /// The queue outlives the process, so at sign-in it may be carrying work for
 /// whoever was signed in last. This account's transfers keep running,
 /// everyone else's are cancelled, and the bookkeeping rows are pruned in the
 /// same pass so the two cannot disagree about what is still expected to
 /// finish.
-Future<void> reconcileTransfersForAccount({
+Future<List<PendingDownload>> reconcileTransfersForAccount({
   required AppDatabase db,
   required String accountId,
 }) async {
@@ -148,11 +149,9 @@ Future<void> reconcileTransfersForAccount({
 
   // Rows this account still has, minus whatever the OS is already carrying,
   // are the transfers that died with the previous process and that
-  // [FileDownloader.rescheduleKilledTasks] could not revive either — their
-  // records went with them. They stay recorded so the drive can offer to
-  // resume them; nothing is re-fetched behind the user's back on a metered
-  // connection, and the chunks already on disk mean a resume only pays for
-  // what is missing.
+  // [FileDownloader.rescheduleKilledTasks] could not revive either, their
+  // records having gone with them. The caller picks these back up; the chunks
+  // already on disk mean that only pays for what is missing.
   final stranded = (await db.getPendingDownloads(
     accountId,
   )).where((row) => !adopted.contains(row.fileId)).toList();
@@ -162,6 +161,7 @@ Future<void> reconcileTransfersForAccount({
       fields: {'count': stranded.length},
     );
   }
+  return stranded;
 }
 
 /// Task id encoding: `{prefix}|{accountId}|{fileId}[|{chunk}]`.

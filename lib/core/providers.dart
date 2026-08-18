@@ -369,8 +369,21 @@ final backgroundTarTransferProvider = Provider<BackgroundTarTransfer?>((ref) {
 final transferReconcilerProvider =
     Provider<Future<void> Function(String accountId)?>((ref) {
       final db = ref.watch(databaseProvider);
-      return (accountId) =>
-          reconcileTransfersForAccount(db: db, accountId: accountId);
+      return (accountId) async {
+        final stranded = await reconcileTransfersForAccount(
+          db: db,
+          accountId: accountId,
+        );
+        if (stranded.isEmpty) return;
+
+        // Read rather than watch, and inside the closure: this runs after
+        // sign-in has returned, and evaluating the downloader during the
+        // sign-in writes would drag the whole file-operations graph into a
+        // half-published session.
+        await ref
+            .read(fileDownloaderProvider)
+            ?.resumeInterruptedDownloads(stranded);
+      };
     });
 
 /// Direct-transfer leg: one OS-native task per encrypted chunk, straight at
@@ -699,6 +712,7 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
     tarCapabilityCache: ref.read(tarCapabilityCacheProvider),
     chunkDownloadTransport: chunkTransport,
     uploadTarTransport: uploadTarTransport,
+    database: ref.read(databaseProvider),
     accountId: account.id,
     sharedTarget: sharedTarget,
     sharedUpload: sharedUpload,

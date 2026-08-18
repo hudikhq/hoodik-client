@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'dart:typed_data';
 
 import '../api/api_client.dart';
+import '../storage/database.dart';
 import '../crypto/crypto_service.dart';
 import '../crypto/file_crypto.dart';
 import '../workers/worker_manager.dart';
@@ -65,6 +66,7 @@ class FileOperations {
     TarCapabilityCache? tarCapabilityCache,
     ChunkDownloadTransport? chunkDownloadTransport,
     UploadTarTransport? uploadTarTransport,
+    AppDatabase? database,
     String? accountId,
     SharedFolderTargetResolver? sharedTarget,
     SharedFolderUpload? sharedUpload,
@@ -111,6 +113,7 @@ class FileOperations {
         backgroundDownloadService: backgroundDownloadService,
         tarCapabilityCache: tarCapabilityCache,
         chunkDownloadTransport: chunkDownloadTransport,
+        database: database,
         accountId: accountId,
       ),
     );

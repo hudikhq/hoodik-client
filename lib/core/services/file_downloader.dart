@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import '../api/api_client.dart';
 import '../crypto/file_crypto.dart';
+import '../storage/database.dart';
 import '../utils/l10n_lookup.dart';
 import '../utils/logger.dart';
 import '../workers/worker_messages.dart';
@@ -35,6 +36,7 @@ class FileDownloader {
   final BackgroundDownloadService? _backgroundDownloadService;
   final TarCapabilityCache? _tarCapabilityCache;
   final ChunkDownloadTransport? _chunkDownloadTransport;
+  final AppDatabase? _database;
   final String? _accountId;
 
   /// File IDs with pending cancellation (for main-thread fallback loops).
@@ -48,8 +50,10 @@ class FileDownloader {
     BackgroundDownloadService? backgroundDownloadService,
     TarCapabilityCache? tarCapabilityCache,
     ChunkDownloadTransport? chunkDownloadTransport,
+    AppDatabase? database,
     String? accountId,
   }) : _client = client,
+       _database = database,
        _fileCrypto = fileCrypto,
        _transferManager = transferManager,
        _offlineManager = offlineManager,
@@ -80,6 +84,26 @@ class FileDownloader {
       _accountId != null &&
       _tarCapabilityCache != null &&
       _chunkDownloadTransport != null;
+
+  /// Pick up the chunk downloads a previous session left unfinished.
+  ///
+  /// Called at sign-in with the rows the OS transfer queue is no longer
+  /// carrying. A no-op on a build that cannot run the chunk pipeline, which is
+  /// also the only place those rows are ever written.
+  Future<void> resumeInterruptedDownloads(List<PendingDownload> rows) async {
+    if (rows.isEmpty || !_useChunkPipeline) return;
+    await _pipeline().resumeInterrupted(rows);
+  }
+
+  ChunkDownloadPipeline _pipeline() => ChunkDownloadPipeline(
+    client: _client,
+    offlineManager: _offlineManager!,
+    tarCapabilityCache: _tarCapabilityCache!,
+    accountId: _accountId!,
+    transport: _chunkDownloadTransport!,
+    database: _database,
+    transferManager: _transferManager,
+  );
 
   /// Request cancellation of the main-thread transfer loop for [fileId].
   /// The loop checks between chunks and throws [TransferCancelledException]
@@ -200,14 +224,7 @@ class FileDownloader {
           'size_kb': totalBytes ~/ 1024,
         },
       );
-      ChunkDownloadPipeline(
-        client: _client,
-        offlineManager: _offlineManager!,
-        tarCapabilityCache: _tarCapabilityCache!,
-        accountId: _accountId!,
-        transport: _chunkDownloadTransport!,
-        transferManager: _transferManager,
-      ).run(
+      _pipeline().run(
         file,
         fileKey: fileKey,
         outputPath: outputPath,
