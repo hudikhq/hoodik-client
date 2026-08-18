@@ -58,9 +58,104 @@ class ChunkDownloadPipeline {
          tarCapabilityCache: tarCapabilityCache,
        );
 
-  /// Fire-and-forget: runs the download + decrypt chain off the caller's
-  /// frame. Progress flows through [TransferManager] so the UI can render
-  /// the overlay regardless of where the call originated.
+  /// Put every encrypted chunk of [file] in the offline cache and return the
+  /// directory holding them.
+  ///
+  /// This is the one way anything in the app acquires a file's bytes. Export,
+  /// offline pinning and preview differ only in what they do with the chunks
+  /// afterwards — decrypt to a path, leave them, or decrypt into memory — and
+  /// none of them gets to choose a different transport. Anything that fetched
+  /// chunks its own way would quietly miss direct transfer, background
+  /// survival, resume, and the cache, which is exactly how the pin path ended
+  /// up relaying every byte through the server long after export had stopped.
+  ///
+  /// Chunks already cached are not refetched, so this is cheap to call on a
+  /// file that is already offline.
+  Future<String> fetchChunks(
+    FileItem file, {
+    required String displayName,
+    required int totalChunks,
+    required int totalBytes,
+    String? outputPath,
+    bool pinned = false,
+  }) async {
+    final chunksPath = await _offlineManager.chunksDir(_accountId, file.id);
+
+    if (await _offlineManager.hasCachedFile(_accountId, file.id)) {
+      _log.debug(
+        'all chunks cached — skipping download',
+        fields: {'file_id': file.id},
+      );
+      if (pinned) {
+        await _offlineManager.registerChunks(
+          accountId: _accountId,
+          fileId: file.id,
+          chunksDir: chunksPath,
+          chunkCount: totalChunks,
+          pinned: true,
+        );
+      }
+      return chunksPath;
+    }
+
+    final downloadItem = _transferManager?.startTransfer(
+      fileName: displayName,
+      type: TransferType.downloadHttp,
+      totalBytes: totalBytes,
+      totalChunks: totalChunks,
+      fileId: file.id,
+      onWorker: true,
+    );
+
+    final startedAt = DateTime.now();
+
+    try {
+      await _downloadChunks(
+        fileId: file.id,
+        fileSize: totalBytes,
+        chunkCount: totalChunks,
+        chunksPath: chunksPath,
+        outputPath: outputPath,
+        onProgress: downloadItem == null
+            ? null
+            : (completedChunks, transferredBytes) =>
+                  _transferManager?.updateProgress(
+                    downloadItem.id,
+                    completedChunks: completedChunks,
+                    transferredBytes: transferredBytes,
+                  ),
+      );
+    } catch (e) {
+      if (downloadItem != null) {
+        _transferManager?.failTransfer(
+          downloadItem.id,
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+      rethrow;
+    }
+
+    _logDownloadTiming(
+      fileId: file.id,
+      totalBytes: totalBytes,
+      started: startedAt,
+    );
+    if (downloadItem != null) {
+      _transferManager?.completeTransfer(downloadItem.id);
+    }
+    await _offlineManager.registerChunks(
+      accountId: _accountId,
+      fileId: file.id,
+      chunksDir: chunksPath,
+      chunkCount: totalChunks,
+      pinned: pinned,
+    );
+    return chunksPath;
+  }
+
+  /// Fire-and-forget: acquire the chunks, then decrypt them to [outputPath].
+  /// Progress flows through [TransferManager] so the UI can render the overlay
+  /// regardless of where the call originated.
   void run(
     FileItem file, {
     required Uint8List fileKey,
@@ -72,80 +167,12 @@ class ChunkDownloadPipeline {
   }) {
     () async {
       try {
-        final chunksPath = await _offlineManager.chunksDir(_accountId, file.id);
-        final allChunksCached = await _offlineManager.hasCachedFile(
-          _accountId,
-          file.id,
-        );
-
-        if (allChunksCached) {
-          _log.debug(
-            'all chunks cached — skipping download',
-            fields: {'file_id': file.id},
-          );
-          await _decryptChunksToOutput(
-            file,
-            fileKey: fileKey,
-            outputPath: outputPath,
-            chunksPath: chunksPath,
-            displayName: displayName,
-            totalChunks: totalChunks,
-            totalBytes: totalBytes,
-            onComplete: onComplete,
-          );
-          return;
-        }
-
-        final downloadItem = _transferManager?.startTransfer(
-          fileName: displayName,
-          type: TransferType.downloadHttp,
-          totalBytes: totalBytes,
+        final chunksPath = await fetchChunks(
+          file,
+          displayName: displayName,
           totalChunks: totalChunks,
-          fileId: file.id,
-          onWorker: true,
-        );
-
-        final downloadStartTime = DateTime.now();
-
-        try {
-          await _downloadChunks(
-            fileId: file.id,
-            fileSize: totalBytes,
-            chunkCount: totalChunks,
-            chunksPath: chunksPath,
-            outputPath: outputPath,
-            onProgress: downloadItem == null
-                ? null
-                : (completedChunks, transferredBytes) =>
-                      _transferManager?.updateProgress(
-                        downloadItem.id,
-                        completedChunks: completedChunks,
-                        transferredBytes: transferredBytes,
-                      ),
-          );
-        } catch (e) {
-          if (downloadItem != null) {
-            _transferManager?.failTransfer(
-              downloadItem.id,
-              e.toString().replaceFirst('Exception: ', ''),
-            );
-          }
-          rethrow;
-        }
-
-        _logDownloadTiming(
-          fileId: file.id,
           totalBytes: totalBytes,
-          started: downloadStartTime,
-        );
-        if (downloadItem != null) {
-          _transferManager?.completeTransfer(downloadItem.id);
-        }
-        await _offlineManager.registerChunks(
-          accountId: _accountId,
-          fileId: file.id,
-          chunksDir: chunksPath,
-          chunkCount: totalChunks,
+          outputPath: outputPath,
         );
         await _decryptChunksToOutput(
           file,
