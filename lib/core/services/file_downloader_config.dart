@@ -112,11 +112,12 @@ Future<Set<String>> adoptTransfersForAccount(String accountId) async {
     }
   }
 
-  // Tasks the OS never took, or dropped when the process died — anything
-  // recorded as still running but absent from the native queue. Chunks held
-  // back by [kMaxConcurrentTransfersPerGroup] land here after a kill, which is
-  // most of a large file. Re-enqueued from the record, so the presigned URL
-  // rides along and no manifest has to be fetched to resume.
+  // Tasks the OS dropped: anything recorded as still running but absent from
+  // the native queue. A user force-quitting from the iOS App Switcher takes
+  // every background transfer with it, and desktop loses them all on quit,
+  // since the plugin runs those in-process. Re-enqueued from the record, so
+  // the presigned URL rides along and no manifest has to be fetched to
+  // resume.
   //
   // Runs after the sweep above so a foreign account's work is cancelled rather
   // than rescheduled.
@@ -241,32 +242,32 @@ void _dispatch(TaskUpdate update) {
   }
 }
 
-/// Concurrent transfers permitted per group.
-///
-/// Direct downloads hand the OS one task per chunk, so this decides how much
-/// of a file is in flight at once. It is a knob rather than a constant because
-/// how a real device copes with a few thousand queued background tasks is not
-/// something the simulator can answer — that comes back from TestFlight and
-/// Play internal testing, and a bad answer should be a value change here
-/// rather than a redesign.
-///
-/// Raising it does not make transfers unbounded: URLSession and WorkManager
-/// impose their own ceilings underneath.
-const int kMaxConcurrentTransfersPerGroup = 6;
-
 Future<void> _doConfigure() async {
   final configs = <(String, dynamic)>[
-    // (maxConcurrent, maxConcurrentByHost, maxConcurrentByGroup)
+    // Hand every task straight to the OS on mobile, with nothing held back.
     //
-    // Anything held back here lives in the plugin's own queue, which keeps
-    // running while the app is suspended but dies with the process if the app
-    // is killed — unlike tasks already handed to URLSession or WorkManager on
-    // iOS and Android, which survive it. So on mobile this cap is the line
-    // between "resumes by itself" and "needs re-queuing on next launch"; on
-    // desktop, where the plugin runs every task in its own isolates, nothing
-    // survives a quit and everything comes back through
-    // [FileDownloader.rescheduleKilledTasks].
-    (Config.holdingQueue, (null, null, kMaxConcurrentTransfersPerGroup)),
+    // The plugin's holding queue keeps running while the app is suspended but
+    // dies with the process if the app is killed, while tasks already given to
+    // URLSession or WorkManager survive it: background session state lives in
+    // nsurlsessiond, outside the app, and WorkManager persists to Room. Capping
+    // the holding queue therefore decided how much of a transfer was durable.
+    // At six per group a 2560-chunk download had six chunks in the durable tier
+    // and 2554 in the volatile one. Both platforms meter concurrency
+    // themselves, so the cap bought nothing and cost almost all of the file's
+    // resumability.
+    //
+    // Whether a device stays happy with a few thousand queued background tasks
+    // is only answerable on TestFlight and Play internal testing. If one is
+    // not, put a bound back by replacing Config.never with
+    // `(null, null, <n>)`. A value change, not a redesign.
+    if (Platform.isIOS || Platform.isAndroid)
+      (Config.holdingQueue, Config.never),
+    // Desktop is deliberately absent. There the plugin runs every task in its
+    // own isolates with no OS queue underneath, and Config.never means
+    // unlimited rather than durable: it would put every chunk of a large file
+    // on the wire at once. The plugin's own bound applies instead, and nothing
+    // survives a quit on desktop regardless, so a relaunch resumes through
+    // rescheduleKilledTasks.
   ];
 
   if (Platform.isAndroid) {
