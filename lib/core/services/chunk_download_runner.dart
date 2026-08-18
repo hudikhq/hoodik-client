@@ -31,7 +31,25 @@ class ChunkDownloadRunner {
     required int chunkCount,
     required String outputDir,
     required List<int> alreadyDownloaded,
+    List<String> directUrls = const [],
   }) async {
+    // Direct transfer wins over tar when the server offers it. The tar exists
+    // to spare the server N requests; when the chunks aren't coming from the
+    // server at all, bundling them through it is the one thing worth avoiding.
+    if (directUrls.isNotEmpty) {
+      await _transport.downloadPerChunk(
+        baseUrl: baseUrl,
+        cookie: cookie,
+        fileId: fileId,
+        fileSize: fileSize,
+        chunkCount: chunkCount,
+        outputDir: outputDir,
+        alreadyDownloaded: alreadyDownloaded,
+        directUrls: directUrls,
+      );
+      return;
+    }
+
     if (_tarCapabilityCache.lookup(baseUrl) == false) {
       await _transport.downloadPerChunk(
         baseUrl: baseUrl,

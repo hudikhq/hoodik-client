@@ -159,9 +159,18 @@
   "accountStorageTitle": "Pohrana",
   "accountStorageUnlimited": "Neograničeno",
   "accountStorageUsed": "Iskorišteno {used}",
-  "@accountStorageUsed": {"placeholders": {"used": {}}},
+  "@accountStorageUsed": {
+    "placeholders": {
+      "used": {}
+    }
+  },
   "accountStorageUsedOfTotal": "Iskorišteno {used} od {total}",
-  "@accountStorageUsedOfTotal": {"placeholders": {"used": {}, "total": {}}},
+  "@accountStorageUsedOfTotal": {
+    "placeholders": {
+      "used": {},
+      "total": {}
+    }
+  },
   "accountTermsOfService": "Uvjeti korištenja",
   "accountTitle": "Račun",
   "accountWizardCallingInitialize": "Pozivanje initialize…",
@@ -393,7 +402,11 @@
   "errorNoConnection": "Nema veze sa serverom. Provjeri mrežu i pokušaj ponovno.",
   "errorNotAuthorized": "Nemaš ovlasti za ovu radnju. Prijavi se ponovno.",
   "errorRequestFailed": "Zahtjev nije uspio ({status}).",
-  "@errorRequestFailed": {"placeholders": {"status": {}}},
+  "@errorRequestFailed": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "errorServerUnavailable": "Server trenutno ima poteškoća. Pokušaj ponovno za koji trenutak.",
   "filesAccountNotInitialized": "Račun nije potpuno inicijaliziran",
   "filesAvailableOffline": "{name} je dostupno offline",
@@ -893,5 +906,12 @@
   "widgetUpdate": "Ažuriraj",
   "widgetUpdateAvailable": "Dostupna je nova verzija Hoodika (v{version}).",
   "widgetUpdateDownloaded": "Nova verzija Hoodika je preuzeta.",
-  "widgetUpdateRestart": "Ponovno pokreni"
+  "widgetUpdateRestart": "Ponovno pokreni",
+  "searchRequiresUpdate": "Pretraga traži ažuriranje aplikacije. Datoteke su sigurne — ažuriraj Hoodik da ih ponovno pretražuješ.",
+  "reindexTitle": "Pretraga je dodatno osigurana",
+  "reindexExplanation": "Poboljšali smo zaštitu tvog search indeksa pa se više ne može pročitati iz baze. Zato tvoje datoteke treba ponovno indeksirati na ovom uređaju. Bilješke se ovdje preuzimaju i dekriptiraju da bi se ponovno indeksirale, pa to može potrajati. Datoteke koje još nisu obrađene neće se pojaviti u pretrazi.",
+  "reindexProgress": "{done} od {total} datoteka",
+  "reindexFailed": "{count} datoteka nije uspjelo ponovno indeksirati, pokušat ćemo ponovno sljedeći put.",
+  "reindexBackground": "Nastavi u pozadini",
+  "reindexCancel": "Odustani"
 }

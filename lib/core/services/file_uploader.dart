@@ -157,6 +157,7 @@ class FileUploader {
       cipher: cipher,
     );
     final searchTokens = _fileCrypto.tokenizeForSearch(name);
+    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(fileKey, name);
 
     var fileId = await multiKeyCreateOrNull(
       resolver: _sharedTarget,
@@ -171,7 +172,8 @@ class FileUploader {
       chunks: totalChunks,
       size: fileSize,
       editable: true,
-      searchTokensHashed: searchTokens,
+      searchTokensRoot: searchTokens,
+      searchTokensFile: searchTokensFile,
     );
     if (fileId == null) {
       final encryptedKey = _fileCrypto.encryptFileKey(
@@ -187,7 +189,8 @@ class FileUploader {
         chunks: totalChunks,
         parentDirId: parentDirId,
         cipher: cipher,
-        searchTokensHashed: searchTokens,
+        searchTokensRoot: searchTokens,
+        searchTokensFile: searchTokensFile,
         editable: true,
       );
       fileId = entry['id'] as String;
@@ -229,6 +232,7 @@ class FileUploader {
 
     String? encryptedName;
     List<String>? searchTokens;
+    List<String>? searchTokensFile;
     if (name != null) {
       encryptedName = _fileCrypto.encryptFileName(
         name: name,
@@ -236,6 +240,7 @@ class FileUploader {
         cipher: cipher,
       );
       searchTokens = _fileCrypto.tokenizeForSearch(name);
+      searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(fileKey, name);
     }
 
     try {
@@ -244,7 +249,8 @@ class FileUploader {
         size: fileSize,
         chunks: totalChunks,
         encryptedName: encryptedName,
-        searchTokensHashed: searchTokens,
+        searchTokensRoot: searchTokens,
+        searchTokensFile: searchTokensFile,
         force: force,
       );
     } on DioException catch (e) {

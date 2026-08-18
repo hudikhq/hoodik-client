@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +20,13 @@ const _crypto = CryptoService();
 /// The fork crypto contract: the body it posts, the re-key, and the audit
 /// signature. The chunk re-upload tail and the failure paths live in
 /// `files_fork_chunks_test.dart` (split to stay under the new-file ceiling).
+/// `name_hash` is an HMAC under the account's search key, not a bare digest of
+/// the name. A plain SHA-256 of a file name is reversible with a dictionary of
+/// common names, which is the half of the old scheme that lived outside the
+/// token index.
+String _expectedNameHash(String privateKeyPem, String name) =>
+    FileCrypto(privateKeyPem: privateKeyPem).hashFileName(name);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async => await RustLib.init());
@@ -131,11 +137,12 @@ void main() {
       expect(body['encrypted_key'], isA<String>());
       expect(body['event_signature'], isA<String>());
       expect(body['timestamp'], isA<int>());
-      expect(body['name_hash'], _crypto.sha256(data: utf8.encode(sourceName)));
-      expect(body['search_tokens_hashed'], isA<List<dynamic>>());
+      expect(body['name_hash'], _expectedNameHash(caller.privateKeyPem, sourceName));
+      expect(body['search_tokens_root'], isA<List<dynamic>>());
+      expect(body['search_tokens_file'], isA<List<dynamic>>());
     });
 
-    test('name_hash matches the SHA-256 of the plaintext name, not the '
+    test('name_hash is the keyed tag of the plaintext name, not the '
         'placeholder', () async {
       final container = makeContainer();
       addTearDown(container.dispose);
@@ -144,13 +151,13 @@ void main() {
 
       expect(
         sharesClient.forkBody!['name_hash'],
-        _crypto.sha256(data: utf8.encode(sourceName)),
+        _expectedNameHash(caller.privateKeyPem, sourceName),
       );
     });
 
     test(
       'with a cold cache, derives the name from the source ciphertext so '
-      'name_hash is still the true plaintext hash, not the placeholder',
+      'name_hash is still the true keyed tag of the name, not the placeholder',
       () async {
         // Neither the name nor the key is in the listing cache — the controller
         // must RSA-unwrap the key from the row and decrypt the name from the
@@ -186,7 +193,7 @@ void main() {
         expect(outcome, isA<ForkSuccess>());
         expect(
           sharesClient.forkBody!['name_hash'],
-          _crypto.sha256(data: utf8.encode(sourceName)),
+          _expectedNameHash(caller.privateKeyPem, sourceName),
         );
         final name = fc.decryptFileName(
           encryptedNameHex:

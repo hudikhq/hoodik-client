@@ -162,6 +162,40 @@ class PendingUploads extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+/// Downloads handed to the OS transfer queue and not yet finished.
+///
+/// The OS keeps running these while the app is suspended, and keeps the ones
+/// it already started even if the app is killed — but anything still waiting
+/// its turn is lost with the process. This table is what lets the next launch
+/// tell a transfer the user still wants from one that died with an old
+/// session, and re-queue only the chunks that never landed.
+///
+/// Deliberately no URLs. A direct transfer runs on presigned links that stay
+/// valid for days, and parking a pile of those on disk would leave working
+/// credentials for the file's ciphertext lying around long after the transfer
+/// they belonged to. The manifest is cheap to ask for again at resume, when
+/// the app is awake and logged in anyway.
+class PendingDownloads extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get accountId => text()();
+  TextColumn get fileId => text()();
+
+  /// How many chunks the finished file has, so resume can tell "all present"
+  /// from "stopped partway" without asking the server.
+  IntColumn get chunkCount => integer()();
+
+  /// Where the chunks are being collected, so a resumed transfer writes into
+  /// the same place rather than starting a second one alongside it.
+  TextColumn get outputDir => text()();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {accountId, fileId},
+  ];
+}
+
 /// MCP server settings, one row per account (macOS only).
 class McpSettings extends Table {
   TextColumn get accountId => text()();
@@ -263,6 +297,7 @@ class TrustedFingerprints extends Table {
     CachedFiles,
     OfflineFiles,
     PendingUploads,
+    PendingDownloads,
     McpSettings,
     McpAuditLog,
     TrustedFingerprints,
@@ -275,7 +310,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -344,6 +379,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 19 && to >= 19) {
         await m.addColumn(trustedFingerprints, trustedFingerprints.email);
+      }
+      if (from < 20 && to >= 20) {
+        await m.createTable(pendingDownloads);
       }
     },
   );
@@ -461,6 +499,7 @@ class AppDatabase extends _$AppDatabase {
     await (delete(cachedFiles)..where((f) => f.accountId.equals(id))).go();
     await (delete(offlineFiles)..where((f) => f.accountId.equals(id))).go();
     await (delete(pendingUploads)..where((u) => u.accountId.equals(id))).go();
+    await (delete(pendingDownloads)..where((d) => d.accountId.equals(id))).go();
     // The TOFU store is keyed by the server user UUID, not the local account
     // id, so purge it by the account's userId. A blank userId (account never
     // finished login) owns no trust rows, so skip the delete entirely.

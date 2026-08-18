@@ -159,9 +159,18 @@
   "accountStorageTitle": "Speicher",
   "accountStorageUnlimited": "Unbegrenzt",
   "accountStorageUsed": "{used} belegt",
-  "@accountStorageUsed": {"placeholders": {"used": {}}},
+  "@accountStorageUsed": {
+    "placeholders": {
+      "used": {}
+    }
+  },
   "accountStorageUsedOfTotal": "{used} von {total} belegt",
-  "@accountStorageUsedOfTotal": {"placeholders": {"used": {}, "total": {}}},
+  "@accountStorageUsedOfTotal": {
+    "placeholders": {
+      "used": {},
+      "total": {}
+    }
+  },
   "accountTermsOfService": "Nutzungsbedingungen",
   "accountTitle": "Konto",
   "accountWizardCallingInitialize": "initialize wird aufgerufen…",
@@ -393,7 +402,11 @@
   "errorNoConnection": "Keine Verbindung. Prüfen Sie Ihr Netzwerk und versuchen Sie es erneut.",
   "errorNotAuthorized": "Sie sind für diese Aktion nicht autorisiert. Melden Sie sich erneut an.",
   "errorRequestFailed": "Anfrage fehlgeschlagen ({status}).",
-  "@errorRequestFailed": {"placeholders": {"status": {}}},
+  "@errorRequestFailed": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "errorServerUnavailable": "Der Server hat gerade Probleme. Versuchen Sie es gleich noch einmal.",
   "filesAccountNotInitialized": "Konto ist nicht vollständig initialisiert",
   "filesAvailableOffline": "{name} ist offline verfügbar",
@@ -893,5 +906,12 @@
   "widgetUpdate": "Aktualisieren",
   "widgetUpdateAvailable": "Eine neue Version von Hoodik (v{version}) ist verfügbar.",
   "widgetUpdateDownloaded": "Eine neue Version von Hoodik wurde heruntergeladen.",
-  "widgetUpdateRestart": "Neu starten"
+  "widgetUpdateRestart": "Neu starten",
+  "searchRequiresUpdate": "Die Suche benötigt ein App-Update. Deine Dateien sind sicher — aktualisiere Hoodik, um sie wieder zu durchsuchen.",
+  "reindexTitle": "Die Suche wurde abgesichert",
+  "reindexExplanation": "Wir haben den Schutz deines Suchindex verbessert, sodass er nicht mehr aus der Datenbank gelesen werden kann. Deine Dateien müssen dafür auf diesem Gerät neu indexiert werden. Notizen werden hier heruntergeladen und entschlüsselt, um neu indexiert zu werden, deshalb kann das einen Moment dauern. Noch nicht verarbeitete Dateien erscheinen nicht in der Suche.",
+  "reindexProgress": "{done} von {total} Dateien",
+  "reindexFailed": "{count} Dateien konnten nicht neu indexiert werden und werden beim nächsten Mal erneut versucht.",
+  "reindexBackground": "Im Hintergrund fortsetzen",
+  "reindexCancel": "Abbrechen"
 }

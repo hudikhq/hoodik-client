@@ -39,6 +39,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
   List<int> dco_decode_list_prim_u_32_loose(dynamic raw);
 
   @protected
@@ -117,6 +120,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
   List<int> sse_decode_list_prim_u_32_loose(SseDeserializer deserializer);
@@ -224,6 +230,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   JSAny cst_encode_i_64(PlatformInt64 raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return castNativeBigInt(raw);
+  }
+
+  @protected
+  JSAny cst_encode_list_String(List<String> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.map(cst_encode_String).toList().jsify()!;
   }
 
   @protected
@@ -392,6 +404,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_32_loose(
@@ -649,6 +664,7 @@ class RustLibWire implements BaseWire {
     JSAny chunk_count,
     String output_dir,
     JSAny already_downloaded,
+    JSAny direct_urls,
   ) => wasmModule.wire__crate__api__download_encrypted_chunks(
     port_,
     base_url,
@@ -658,6 +674,7 @@ class RustLibWire implements BaseWire {
     chunk_count,
     output_dir,
     already_downloaded,
+    direct_urls,
   );
 
   void wire__crate__api__download_file(
@@ -669,6 +686,7 @@ class RustLibWire implements BaseWire {
     JSAny chunk_count,
     JSAny decryption_key,
     String cipher,
+    JSAny direct_urls,
   ) => wasmModule.wire__crate__api__download_file(
     port_,
     base_url,
@@ -678,6 +696,7 @@ class RustLibWire implements BaseWire {
     chunk_count,
     decryption_key,
     cipher,
+    direct_urls,
   );
 
   void wire__crate__api__download_file_as_tar(
@@ -710,6 +729,7 @@ class RustLibWire implements BaseWire {
     JSAny decryption_key,
     String cipher,
     String output_path,
+    JSAny direct_urls,
   ) => wasmModule.wire__crate__api__download_file_to_path(
     port_,
     base_url,
@@ -720,6 +740,7 @@ class RustLibWire implements BaseWire {
     decryption_key,
     cipher,
     output_path,
+    direct_urls,
   );
 
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
@@ -939,6 +960,22 @@ class RustLibWire implements BaseWire {
   );
 
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__search_file_key(JSAny file_key) =>
+      wasmModule.wire__crate__api__search_file_key(file_key);
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__search_root_key(String private_key_pem) =>
+      wasmModule.wire__crate__api__search_root_key(private_key_pem);
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__search_tag(String key_hex, String value) =>
+      wasmModule.wire__crate__api__search_tag(key_hex, value);
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__search_tag_tokens(String key_hex, String text) =>
+      wasmModule.wire__crate__api__search_tag_tokens(key_hex, text);
+
+  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__sha256_digest(JSAny data) =>
       wasmModule.wire__crate__api__sha256_digest(data);
 
@@ -981,10 +1018,6 @@ class RustLibWire implements BaseWire {
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__spki_fingerprint(String public_pem) =>
       wasmModule.wire__crate__api__spki_fingerprint(public_pem);
-
-  JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__tokenize_and_hash(String text) =>
-      wasmModule.wire__crate__api__tokenize_and_hash(text);
 
   JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__transition_sign(
@@ -1193,6 +1226,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     JSAny chunk_count,
     String output_dir,
     JSAny already_downloaded,
+    JSAny direct_urls,
   );
 
   external void wire__crate__api__download_file(
@@ -1204,6 +1238,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     JSAny chunk_count,
     JSAny decryption_key,
     String cipher,
+    JSAny direct_urls,
   );
 
   external void wire__crate__api__download_file_as_tar(
@@ -1227,6 +1262,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     JSAny decryption_key,
     String cipher,
     String output_path,
+    JSAny direct_urls,
   );
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
@@ -1374,6 +1410,18 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
   );
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__search_file_key(JSAny file_key);
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__search_root_key(String private_key_pem);
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__search_tag(String key_hex, String value);
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
+  wire__crate__api__search_tag_tokens(String key_hex, String text);
+
+  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__sha256_digest(JSAny data);
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
@@ -1399,9 +1447,6 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__spki_fingerprint(String public_pem);
-
-  external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
-  wire__crate__api__tokenize_and_hash(String text);
 
   external JSAny? /* flutter_rust_bridge::for_generated::WireSyncRust2DartDco */
   wire__crate__api__transition_sign(

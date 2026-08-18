@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1782523017;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -340853346;
 
 // Section: executor
 
@@ -436,6 +436,7 @@ fn wire__crate__api__download_encrypted_chunks_impl(
     chunk_count: impl CstDecode<u64>,
     output_dir: impl CstDecode<String>,
     already_downloaded: impl CstDecode<Vec<u64>>,
+    direct_urls: impl CstDecode<Vec<String>>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -451,6 +452,7 @@ fn wire__crate__api__download_encrypted_chunks_impl(
             let api_chunk_count = chunk_count.cst_decode();
             let api_output_dir = output_dir.cst_decode();
             let api_already_downloaded = already_downloaded.cst_decode();
+            let api_direct_urls = direct_urls.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, String>(
                     (move || async move {
@@ -462,6 +464,7 @@ fn wire__crate__api__download_encrypted_chunks_impl(
                             api_chunk_count,
                             api_output_dir,
                             api_already_downloaded,
+                            api_direct_urls,
                         )
                         .await?;
                         Ok(output_ok)
@@ -481,6 +484,7 @@ fn wire__crate__api__download_file_impl(
     chunk_count: impl CstDecode<u64>,
     decryption_key: impl CstDecode<Vec<u8>>,
     cipher: impl CstDecode<String>,
+    direct_urls: impl CstDecode<Vec<String>>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -496,6 +500,7 @@ fn wire__crate__api__download_file_impl(
             let api_chunk_count = chunk_count.cst_decode();
             let api_decryption_key = decryption_key.cst_decode();
             let api_cipher = cipher.cst_decode();
+            let api_direct_urls = direct_urls.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, String>(
                     (move || async move {
@@ -507,6 +512,7 @@ fn wire__crate__api__download_file_impl(
                             api_chunk_count,
                             api_decryption_key,
                             api_cipher,
+                            api_direct_urls,
                         )
                         .await?;
                         Ok(output_ok)
@@ -572,6 +578,7 @@ fn wire__crate__api__download_file_to_path_impl(
     decryption_key: impl CstDecode<Vec<u8>>,
     cipher: impl CstDecode<String>,
     output_path: impl CstDecode<String>,
+    direct_urls: impl CstDecode<Vec<String>>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -588,6 +595,7 @@ fn wire__crate__api__download_file_to_path_impl(
             let api_decryption_key = decryption_key.cst_decode();
             let api_cipher = cipher.cst_decode();
             let api_output_path = output_path.cst_decode();
+            let api_direct_urls = direct_urls.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, String>(
                     (move || async move {
@@ -600,6 +608,7 @@ fn wire__crate__api__download_file_to_path_impl(
                             api_decryption_key,
                             api_cipher,
                             api_output_path,
+                            api_direct_urls,
                         )
                         .await?;
                         Ok(output_ok)
@@ -1263,6 +1272,82 @@ fn wire__crate__api__rsa_verify_bytes_impl(
         },
     )
 }
+fn wire__crate__api__search_file_key_impl(
+    file_key: impl CstDecode<Vec<u8>>,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "search_file_key",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let api_file_key = file_key.cst_decode();
+            transform_result_dco::<_, _, String>((move || {
+                let output_ok = crate::api::search_file_key(api_file_key)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__search_root_key_impl(
+    private_key_pem: impl CstDecode<String>,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "search_root_key",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let api_private_key_pem = private_key_pem.cst_decode();
+            transform_result_dco::<_, _, String>((move || {
+                let output_ok = crate::api::search_root_key(api_private_key_pem)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__search_tag_impl(
+    key_hex: impl CstDecode<String>,
+    value: impl CstDecode<String>,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "search_tag",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let api_key_hex = key_hex.cst_decode();
+            let api_value = value.cst_decode();
+            transform_result_dco::<_, _, String>((move || {
+                let output_ok = crate::api::search_tag(api_key_hex, api_value)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__search_tag_tokens_impl(
+    key_hex: impl CstDecode<String>,
+    text: impl CstDecode<String>,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "search_tag_tokens",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let api_key_hex = key_hex.cst_decode();
+            let api_text = text.cst_decode();
+            transform_result_dco::<_, _, String>((move || {
+                let output_ok = crate::api::search_tag_tokens(api_key_hex, api_text)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__sha256_digest_impl(
     data: impl CstDecode<Vec<u8>>,
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
@@ -1367,24 +1452,6 @@ fn wire__crate__api__spki_fingerprint_impl(
             let api_public_pem = public_pem.cst_decode();
             transform_result_dco::<_, _, String>((move || {
                 let output_ok = crate::api::spki_fingerprint(api_public_pem)?;
-                Ok(output_ok)
-            })())
-        },
-    )
-}
-fn wire__crate__api__tokenize_and_hash_impl(
-    text: impl CstDecode<String>,
-) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "tokenize_and_hash",
-            port: None,
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
-        },
-        move || {
-            let api_text = text.cst_decode();
-            transform_result_dco::<_, _, String>((move || {
-                let output_ok = crate::api::tokenize_and_hash(api_text)?;
                 Ok(output_ok)
             })())
         },
@@ -1692,6 +1759,18 @@ impl SseDecode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i64::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for Vec<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<String>::sse_decode(deserializer));
+        }
+        return ans_;
     }
 }
 
@@ -2119,6 +2198,16 @@ impl SseEncode for i64 {
     }
 }
 
+impl SseEncode for Vec<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <String>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<u32> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2323,6 +2412,16 @@ mod io {
                 private_pem: self.private_pem.cst_decode(),
                 public_pem: self.public_pem.cst_decode(),
             }
+        }
+    }
+    impl CstDecode<Vec<String>> for *mut wire_cst_list_String {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<String> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
     impl CstDecode<Vec<u32>> for *mut wire_cst_list_prim_u_32_loose {
@@ -2754,6 +2853,7 @@ mod io {
         chunk_count: u64,
         output_dir: *mut wire_cst_list_prim_u_8_strict,
         already_downloaded: *mut wire_cst_list_prim_u_64_strict,
+        direct_urls: *mut wire_cst_list_String,
     ) {
         wire__crate__api__download_encrypted_chunks_impl(
             port_,
@@ -2764,6 +2864,7 @@ mod io {
             chunk_count,
             output_dir,
             already_downloaded,
+            direct_urls,
         )
     }
 
@@ -2777,6 +2878,7 @@ mod io {
         chunk_count: u64,
         decryption_key: *mut wire_cst_list_prim_u_8_loose,
         cipher: *mut wire_cst_list_prim_u_8_strict,
+        direct_urls: *mut wire_cst_list_String,
     ) {
         wire__crate__api__download_file_impl(
             port_,
@@ -2787,6 +2889,7 @@ mod io {
             chunk_count,
             decryption_key,
             cipher,
+            direct_urls,
         )
     }
 
@@ -2824,6 +2927,7 @@ mod io {
         decryption_key: *mut wire_cst_list_prim_u_8_loose,
         cipher: *mut wire_cst_list_prim_u_8_strict,
         output_path: *mut wire_cst_list_prim_u_8_strict,
+        direct_urls: *mut wire_cst_list_String,
     ) {
         wire__crate__api__download_file_to_path_impl(
             port_,
@@ -2835,6 +2939,7 @@ mod io {
             decryption_key,
             cipher,
             output_path,
+            direct_urls,
         )
     }
 
@@ -3117,6 +3222,36 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_hoodik_app_wire__crate__api__search_file_key(
+        file_key: *mut wire_cst_list_prim_u_8_loose,
+    ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+        wire__crate__api__search_file_key_impl(file_key)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_hoodik_app_wire__crate__api__search_root_key(
+        private_key_pem: *mut wire_cst_list_prim_u_8_strict,
+    ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+        wire__crate__api__search_root_key_impl(private_key_pem)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_hoodik_app_wire__crate__api__search_tag(
+        key_hex: *mut wire_cst_list_prim_u_8_strict,
+        value: *mut wire_cst_list_prim_u_8_strict,
+    ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+        wire__crate__api__search_tag_impl(key_hex, value)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_hoodik_app_wire__crate__api__search_tag_tokens(
+        key_hex: *mut wire_cst_list_prim_u_8_strict,
+        text: *mut wire_cst_list_prim_u_8_strict,
+    ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+        wire__crate__api__search_tag_tokens_impl(key_hex, text)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_hoodik_app_wire__crate__api__sha256_digest(
         data: *mut wire_cst_list_prim_u_8_loose,
     ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
@@ -3168,13 +3303,6 @@ mod io {
         public_pem: *mut wire_cst_list_prim_u_8_strict,
     ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
         wire__crate__api__spki_fingerprint_impl(public_pem)
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_hoodik_app_wire__crate__api__tokenize_and_hash(
-        text: *mut wire_cst_list_prim_u_8_strict,
-    ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
-        wire__crate__api__tokenize_and_hash_impl(text)
     }
 
     #[unsafe(no_mangle)]
@@ -3311,6 +3439,18 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_hoodik_app_cst_new_list_String(len: i32) -> *mut wire_cst_list_String {
+        let wrap = wire_cst_list_String {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <*mut wire_cst_list_prim_u_8_strict>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_hoodik_app_cst_new_list_prim_u_32_loose(
         len: i32,
     ) -> *mut wire_cst_list_prim_u_32_loose {
@@ -3370,6 +3510,12 @@ mod io {
     pub struct wire_cst_ed_25519_key_pair {
         private_pem: *mut wire_cst_list_prim_u_8_strict,
         public_pem: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_String {
+        ptr: *mut *mut wire_cst_list_prim_u_8_strict,
+        len: i32,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -3508,6 +3654,16 @@ mod web {
                 private_pem: self_.get(0).cst_decode(),
                 public_pem: self_.get(1).cst_decode(),
             }
+        }
+    }
+    impl CstDecode<Vec<String>> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<String> {
+            self.dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>()
+                .unwrap()
+                .iter()
+                .map(CstDecode::cst_decode)
+                .collect()
         }
     }
     impl CstDecode<Vec<u32>> for Box<[u32]> {
@@ -3939,6 +4095,7 @@ mod web {
         chunk_count: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue,
         output_dir: String,
         already_downloaded: Box<[u64]>,
+        direct_urls: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue,
     ) {
         wire__crate__api__download_encrypted_chunks_impl(
             port_,
@@ -3949,6 +4106,7 @@ mod web {
             chunk_count,
             output_dir,
             already_downloaded,
+            direct_urls,
         )
     }
 
@@ -3962,6 +4120,7 @@ mod web {
         chunk_count: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue,
         decryption_key: Box<[u8]>,
         cipher: String,
+        direct_urls: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue,
     ) {
         wire__crate__api__download_file_impl(
             port_,
@@ -3972,6 +4131,7 @@ mod web {
             chunk_count,
             decryption_key,
             cipher,
+            direct_urls,
         )
     }
 
@@ -4009,6 +4169,7 @@ mod web {
         decryption_key: Box<[u8]>,
         cipher: String,
         output_path: String,
+        direct_urls: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue,
     ) {
         wire__crate__api__download_file_to_path_impl(
             port_,
@@ -4020,6 +4181,7 @@ mod web {
             decryption_key,
             cipher,
             output_path,
+            direct_urls,
         )
     }
 
@@ -4302,6 +4464,36 @@ mod web {
     }
 
     #[wasm_bindgen]
+    pub fn wire__crate__api__search_file_key(
+        file_key: Box<[u8]>,
+    ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+        wire__crate__api__search_file_key_impl(file_key)
+    }
+
+    #[wasm_bindgen]
+    pub fn wire__crate__api__search_root_key(
+        private_key_pem: String,
+    ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+        wire__crate__api__search_root_key_impl(private_key_pem)
+    }
+
+    #[wasm_bindgen]
+    pub fn wire__crate__api__search_tag(
+        key_hex: String,
+        value: String,
+    ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+        wire__crate__api__search_tag_impl(key_hex, value)
+    }
+
+    #[wasm_bindgen]
+    pub fn wire__crate__api__search_tag_tokens(
+        key_hex: String,
+        text: String,
+    ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
+        wire__crate__api__search_tag_tokens_impl(key_hex, text)
+    }
+
+    #[wasm_bindgen]
     pub fn wire__crate__api__sha256_digest(
         data: Box<[u8]>,
     ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
@@ -4353,13 +4545,6 @@ mod web {
         public_pem: String,
     ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
         wire__crate__api__spki_fingerprint_impl(public_pem)
-    }
-
-    #[wasm_bindgen]
-    pub fn wire__crate__api__tokenize_and_hash(
-        text: String,
-    ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
-        wire__crate__api__tokenize_and_hash_impl(text)
     }
 
     #[wasm_bindgen]

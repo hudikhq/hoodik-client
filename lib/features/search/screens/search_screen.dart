@@ -88,9 +88,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     });
 
     try {
-      final crypto = ref.read(cryptoServiceProvider);
+      final fileCrypto = ref.read(fileCryptoProvider);
+      if (fileCrypto == null) {
+        throw StateError('Cannot search without an unlocked private key');
+      }
+
+      final rootKey = fileCrypto.searchRootKey;
       final results = await client.search.searchFiles(
-        searchTokensHashed: crypto.tokenizeAndHashForSearch(query),
+        rootTags: fileCrypto.queryTags(rootKey, query),
+        fileTags: await ref.read(incomingSearchKeysProvider.future).then(
+              (keys) => keys
+                  .expand((key) => fileCrypto.queryTags(
+                        fileCrypto.searchFileKeyHex(key),
+                        query,
+                      ))
+                  .toList(),
+            ),
         hash: SearchClient.hashLookup(query),
       );
       if (!mounted) return;
@@ -104,11 +117,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _loading = false;
-        _error = AppLocalizations.of(
-          context,
-        ).searchFailed(formatErrorMessage(e));
+        // A 426 means this build cannot search this server at all, so say that
+        // plainly instead of wrapping a transport error the user cannot act on.
+        _error = isUpgradeRequired(e)
+            ? l10n.searchRequiresUpdate
+            : l10n.searchFailed(formatErrorMessage(e));
         _hasSearched = true;
       });
     }

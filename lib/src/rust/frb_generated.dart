@@ -64,7 +64,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -1782523017;
+  int get rustContentHash => -340853346;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -164,6 +164,7 @@ abstract class RustLibApi extends BaseApi {
     required BigInt chunkCount,
     required String outputDir,
     required Uint64List alreadyDownloaded,
+    required List<String> directUrls,
   });
 
   Future<Uint8List> crateApiDownloadFile({
@@ -174,6 +175,7 @@ abstract class RustLibApi extends BaseApi {
     required BigInt chunkCount,
     required List<int> decryptionKey,
     required String cipher,
+    required List<String> directUrls,
   });
 
   Future<void> crateApiDownloadFileAsTar({
@@ -195,6 +197,7 @@ abstract class RustLibApi extends BaseApi {
     required List<int> decryptionKey,
     required String cipher,
     required String outputPath,
+    required List<String> directUrls,
   });
 
   String crateApiEd25519Sign({
@@ -342,6 +345,17 @@ abstract class RustLibApi extends BaseApi {
     required String publicKeyPem,
   });
 
+  String crateApiSearchFileKey({required List<int> fileKey});
+
+  String crateApiSearchRootKey({required String privateKeyPem});
+
+  String crateApiSearchTag({required String keyHex, required String value});
+
+  String crateApiSearchTagTokens({
+    required String keyHex,
+    required String text,
+  });
+
   String crateApiSha256Digest({required List<int> data});
 
   Uint8List crateApiSharePayloadEncodeV1({
@@ -364,8 +378,6 @@ abstract class RustLibApi extends BaseApi {
   });
 
   String crateApiSpkiFingerprint({required String publicPem});
-
-  String crateApiTokenizeAndHash({required String text});
 
   TransitionSignatures crateApiTransitionSign({
     required List<int> userId,
@@ -959,6 +971,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required BigInt chunkCount,
     required String outputDir,
     required Uint64List alreadyDownloaded,
+    required List<String> directUrls,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -970,6 +983,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           var arg4 = cst_encode_u_64(chunkCount);
           var arg5 = cst_encode_String(outputDir);
           var arg6 = cst_encode_list_prim_u_64_strict(alreadyDownloaded);
+          var arg7 = cst_encode_list_String(directUrls);
           return wire.wire__crate__api__download_encrypted_chunks(
             port_,
             arg0,
@@ -979,6 +993,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             arg4,
             arg5,
             arg6,
+            arg7,
           );
         },
         codec: DcoCodec(
@@ -994,6 +1009,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           chunkCount,
           outputDir,
           alreadyDownloaded,
+          directUrls,
         ],
         apiImpl: this,
       ),
@@ -1011,6 +1027,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           "chunkCount",
           "outputDir",
           "alreadyDownloaded",
+          "directUrls",
         ],
       );
 
@@ -1023,6 +1040,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required BigInt chunkCount,
     required List<int> decryptionKey,
     required String cipher,
+    required List<String> directUrls,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -1034,6 +1052,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           var arg4 = cst_encode_u_64(chunkCount);
           var arg5 = cst_encode_list_prim_u_8_loose(decryptionKey);
           var arg6 = cst_encode_String(cipher);
+          var arg7 = cst_encode_list_String(directUrls);
           return wire.wire__crate__api__download_file(
             port_,
             arg0,
@@ -1043,6 +1062,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             arg4,
             arg5,
             arg6,
+            arg7,
           );
         },
         codec: DcoCodec(
@@ -1058,6 +1078,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           chunkCount,
           decryptionKey,
           cipher,
+          directUrls,
         ],
         apiImpl: this,
       ),
@@ -1074,6 +1095,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       "chunkCount",
       "decryptionKey",
       "cipher",
+      "directUrls",
     ],
   );
 
@@ -1150,6 +1172,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required List<int> decryptionKey,
     required String cipher,
     required String outputPath,
+    required List<String> directUrls,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -1162,6 +1185,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           var arg5 = cst_encode_list_prim_u_8_loose(decryptionKey);
           var arg6 = cst_encode_String(cipher);
           var arg7 = cst_encode_String(outputPath);
+          var arg8 = cst_encode_list_String(directUrls);
           return wire.wire__crate__api__download_file_to_path(
             port_,
             arg0,
@@ -1172,6 +1196,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             arg5,
             arg6,
             arg7,
+            arg8,
           );
         },
         codec: DcoCodec(
@@ -1188,6 +1213,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decryptionKey,
           cipher,
           outputPath,
+          directUrls,
         ],
         apiImpl: this,
       ),
@@ -1205,6 +1231,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       "decryptionKey",
       "cipher",
       "outputPath",
+      "directUrls",
     ],
   );
 
@@ -2112,6 +2139,105 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  String crateApiSearchFileKey({required List<int> fileKey}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          var arg0 = cst_encode_list_prim_u_8_loose(fileKey);
+          return wire.wire__crate__api__search_file_key(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_String,
+        ),
+        constMeta: kCrateApiSearchFileKeyConstMeta,
+        argValues: [fileKey],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSearchFileKeyConstMeta =>
+      const TaskConstMeta(debugName: "search_file_key", argNames: ["fileKey"]);
+
+  @override
+  String crateApiSearchRootKey({required String privateKeyPem}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          var arg0 = cst_encode_String(privateKeyPem);
+          return wire.wire__crate__api__search_root_key(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_String,
+        ),
+        constMeta: kCrateApiSearchRootKeyConstMeta,
+        argValues: [privateKeyPem],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSearchRootKeyConstMeta => const TaskConstMeta(
+    debugName: "search_root_key",
+    argNames: ["privateKeyPem"],
+  );
+
+  @override
+  String crateApiSearchTag({required String keyHex, required String value}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          var arg0 = cst_encode_String(keyHex);
+          var arg1 = cst_encode_String(value);
+          return wire.wire__crate__api__search_tag(arg0, arg1);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_String,
+        ),
+        constMeta: kCrateApiSearchTagConstMeta,
+        argValues: [keyHex, value],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSearchTagConstMeta => const TaskConstMeta(
+    debugName: "search_tag",
+    argNames: ["keyHex", "value"],
+  );
+
+  @override
+  String crateApiSearchTagTokens({
+    required String keyHex,
+    required String text,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          var arg0 = cst_encode_String(keyHex);
+          var arg1 = cst_encode_String(text);
+          return wire.wire__crate__api__search_tag_tokens(arg0, arg1);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_String,
+        ),
+        constMeta: kCrateApiSearchTagTokensConstMeta,
+        argValues: [keyHex, text],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSearchTagTokensConstMeta => const TaskConstMeta(
+    debugName: "search_tag_tokens",
+    argNames: ["keyHex", "text"],
+  );
+
+  @override
   String crateApiSha256Digest({required List<int> data}) {
     return handler.executeSync(
       SyncTask(
@@ -2277,28 +2403,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     debugName: "spki_fingerprint",
     argNames: ["publicPem"],
   );
-
-  @override
-  String crateApiTokenizeAndHash({required String text}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          var arg0 = cst_encode_String(text);
-          return wire.wire__crate__api__tokenize_and_hash(arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_String,
-          decodeErrorData: dco_decode_String,
-        ),
-        constMeta: kCrateApiTokenizeAndHashConstMeta,
-        argValues: [text],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiTokenizeAndHashConstMeta =>
-      const TaskConstMeta(debugName: "tokenize_and_hash", argNames: ["text"]);
 
   @override
   TransitionSignatures crateApiTransitionSign({
@@ -2685,6 +2789,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
   List<int> dco_decode_list_prim_u_32_loose(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as List<int>;
@@ -2897,6 +3007,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -3159,6 +3281,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
   }
 
   @protected

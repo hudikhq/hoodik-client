@@ -56,6 +56,8 @@ class BinaryUploadMetadata {
       cipher: cipher,
     );
     final searchTokens = _fileCrypto.tokenizeForSearch(fileName);
+    final searchTokensFile =
+        _fileCrypto.tokenizeForSearchWithFileKey(fileKey, fileName);
 
     String? encryptedThumbnail;
     if (canGenerateThumbnail(mime)) {
@@ -82,7 +84,8 @@ class BinaryUploadMetadata {
       chunks: totalChunks,
       size: fileSize,
       sha256: sha256,
-      searchTokensHashed: searchTokens,
+      searchTokensRoot: searchTokens,
+      searchTokensFile: searchTokensFile,
       encryptedThumbnail: encryptedThumbnail,
     );
     if (sharedId != null) return {'id': sharedId};
@@ -100,7 +103,8 @@ class BinaryUploadMetadata {
       chunks: totalChunks,
       parentDirId: parentDirId,
       cipher: cipher,
-      searchTokensHashed: searchTokens,
+      searchTokensRoot: searchTokens,
+      searchTokensFile: searchTokensFile,
       encryptedThumbnail: encryptedThumbnail,
       sha256: sha256,
     );

@@ -159,6 +159,12 @@ class ChunkDownloadPipeline {
     await _client.ensureFreshSession();
     final cookie = await _client.getCookieHeader();
 
+    // Asked for per transfer rather than cached: signed URLs outlive the
+    // transfer they belong to, and one fetch covers a whole file's chunks.
+    // Returns null on every server that cannot serve them, which is the
+    // normal case and falls through to downloading via the server.
+    final manifest = await _client.files.fetchChunkUrls(fileId);
+
     await _runner.run(
       baseUrl: _client.baseUrl,
       cookie: cookie,
@@ -167,6 +173,7 @@ class ChunkDownloadPipeline {
       chunkCount: chunkCount,
       outputDir: chunksPath,
       alreadyDownloaded: alreadyDownloaded,
+      directUrls: manifest?.urls ?? const [],
     );
   }
 

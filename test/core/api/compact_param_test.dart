@@ -53,7 +53,7 @@ void main() {
 
   test('searchFiles asks for compact rows', () async {
     final env = build(body: const <dynamic>[]);
-    await env.client.search.searchFiles(searchTokensHashed: ['${'a' * 64}:1']);
+    await env.client.search.searchFiles(rootTags: ['${'a' * 64}:1']);
 
     final data = env.adapter.requests.single.data as Map<String, dynamic>;
     expect(data['compact'], true);

@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import 'file_item.dart';
+
 /// Account-level usage figures from `POST /api/storage/stats`.
 class StorageUsage {
   /// Bytes stored by files the caller owns, counted against [quota].
@@ -31,6 +33,40 @@ class StorageClient {
 
   /// `POST /api/storage/stats` — aggregated storage usage for the current
   /// account (used-space, quota, breakdown by mime).
+  /// `GET /api/storage/reindex` — files that still need re-indexing against
+  /// the keyed search scheme.
+  ///
+  /// Membership is derived, not tracked: a file is pending exactly while it
+  /// has no root-scope tags, so writing its tags removes it from this list and
+  /// an interrupted sweep resumes just by asking again.
+  Future<List<FileItem>> pendingReindex() async {
+    final resp = await _dio.get('/api/storage/reindex');
+    final rows = resp.data is List ? resp.data as List : const [];
+
+    return rows
+        .whereType<Map<String, dynamic>>()
+        .map(FileItem.fromJson)
+        .toList();
+  }
+
+  /// `PUT /api/storage/{id}/reindex` — replace one file's search tags and its
+  /// re-keyed `name_hash`.
+  Future<void> reindexFile({
+    required String fileId,
+    required String nameHash,
+    required List<String> searchTokensRoot,
+    required List<String> searchTokensFile,
+  }) async {
+    await _dio.put(
+      '/api/storage/$fileId/reindex',
+      data: {
+        'name_hash': nameHash,
+        'search_tokens_root': searchTokensRoot,
+        'search_tokens_file': searchTokensFile,
+      },
+    );
+  }
+
   Future<Map<String, dynamic>> getStats() async {
     final resp = await _dio.post('/api/storage/stats');
     return resp.data;
@@ -50,7 +86,8 @@ class StorageClient {
     required int chunks,
     String? encryptedName,
     String? encryptedThumbnail,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
     bool force = false,
   }) async {
     final data = <String, dynamic>{'size': size, 'chunks': chunks};
@@ -58,8 +95,11 @@ class StorageClient {
     if (encryptedThumbnail != null) {
       data['encrypted_thumbnail'] = encryptedThumbnail;
     }
-    if (searchTokensHashed != null) {
-      data['search_tokens_hashed'] = searchTokensHashed;
+    if (searchTokensRoot != null) {
+      data['search_tokens_root'] = searchTokensRoot;
+    }
+    if (searchTokensFile != null) {
+      data['search_tokens_file'] = searchTokensFile;
     }
     if (force) data['force'] = true;
 

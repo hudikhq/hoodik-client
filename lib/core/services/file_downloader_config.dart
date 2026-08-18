@@ -45,12 +45,16 @@ Future<void> ensureFileDownloaderConfigured() {
   return _configuring ??= _doConfigure();
 }
 
-/// Cancel all orphaned tasks and purge stale records from the
-/// [FileDownloader] persistent database.
+/// Cancel every task the app owns and purge the [FileDownloader] database.
 ///
-/// Call on cold start (before any downloads are enqueued) and on account
-/// switch (via [resetFileDownloaderState]) to prevent ghost downloads from
-/// consuming bandwidth.
+/// Correct on account switch and on logout, where nothing in flight belongs to
+/// the session that comes next.
+///
+/// Not on cold start. The OS keeps transfers running across a kill, and
+/// throwing them away at launch means a large download can never survive being
+/// backgrounded out of memory — it starts over every time. Cold start goes
+/// through [adoptTransfersForAccount] instead, which keeps this account's work
+/// and cancels only what belongs elsewhere.
 Future<void> cleanUpFileDownloader() {
   return _startupCleanup ??= _doCleanUp();
 }
@@ -60,6 +64,69 @@ Future<void> _doCleanUp() async {
     await FileDownloader().cancelAll(group: group);
     await FileDownloader().database.deleteAllRecords(group: group);
   }
+}
+
+/// Keep the transfers belonging to [accountId] and cancel the rest.
+///
+/// The OS transfer queue is process-wide and outlives any single session, so a
+/// cold start can be holding work from whichever account was last signed in.
+/// Task ids carry their owner (see [transferTaskId]), which is what makes them
+/// separable without asking the server anything.
+///
+/// Returns the file ids this account still has in flight, so the caller can
+/// avoid re-queuing what the OS is already carrying.
+Future<Set<String>> adoptTransfersForAccount(String accountId) async {
+  await ensureFileDownloaderConfigured();
+
+  final mine = <String>{};
+  final foreign = <String>[];
+
+  for (final group in _managedGroups) {
+    for (final record in await FileDownloader().database.allRecords(
+      group: group,
+    )) {
+      final owner = accountIdFromTaskId(record.task.taskId);
+      if (owner == accountId) {
+        final fileId = fileIdFromTaskId(record.task.taskId);
+        if (fileId != null) mine.add(fileId);
+      } else {
+        foreign.add(record.task.taskId);
+      }
+    }
+  }
+
+  if (foreign.isNotEmpty) {
+    await FileDownloader().cancelTasksWithIds(foreign);
+    for (final id in foreign) {
+      await FileDownloader().database.deleteRecordWithId(id);
+    }
+  }
+
+  return mine;
+}
+
+/// Task id encoding: `{group-prefix}:{accountId}:{fileId}[:{chunk}]`.
+///
+/// The owner has to travel with the task because the OS hands these back after
+/// a restart with no context beyond the id itself.
+String transferTaskId({
+  required String prefix,
+  required String accountId,
+  required String fileId,
+  int? chunk,
+}) {
+  final base = '$prefix:$accountId:$fileId';
+  return chunk == null ? base : '$base:$chunk';
+}
+
+String? accountIdFromTaskId(String taskId) {
+  final parts = taskId.split(':');
+  return parts.length >= 3 ? parts[1] : null;
+}
+
+String? fileIdFromTaskId(String taskId) {
+  final parts = taskId.split(':');
+  return parts.length >= 3 ? parts[2] : null;
 }
 
 /// Groups the app owns. Any new `background_downloader` task must register
@@ -102,13 +169,32 @@ void _dispatch(TaskUpdate update) {
   }
 }
 
+/// Concurrent transfers permitted per group.
+///
+/// Direct downloads hand the OS one task per chunk, so this decides how much
+/// of a file is in flight at once. It is a knob rather than a constant because
+/// how a real device copes with a few thousand queued background tasks is not
+/// something the simulator can answer — that comes back from TestFlight and
+/// Play internal testing, and a bad answer should be a value change here
+/// rather than a redesign.
+///
+/// Raising it does not make transfers unbounded: URLSession and WorkManager
+/// impose their own ceilings underneath.
+const int kMaxConcurrentTransfersPerGroup = 6;
+
 Future<void> _doConfigure() async {
   final configs = <(String, dynamic)>[
     // (maxConcurrent, maxConcurrentByHost, maxConcurrentByGroup)
-    // Unlimited total / per-host, 6 per group.
-    // Downloads (group 'chunk-downloads'): 1 tar task, well under 6.
-    // Uploads  (group 'chunk-uploads'):    6 concurrent chunk uploads.
-    (Config.holdingQueue, (null, null, 6)),
+    //
+    // Anything held back here lives in the plugin's own queue, which the OS
+    // does keep running while the app is suspended but which dies with the
+    // process if the app is killed — unlike tasks already handed to
+    // URLSession or WorkManager, which survive. So this cap is also the line
+    // between "resumes by itself" and "needs re-queuing on next launch".
+    (
+      Config.holdingQueue,
+      (null, null, kMaxConcurrentTransfersPerGroup),
+    ),
   ];
 
   if (Platform.isAndroid) {

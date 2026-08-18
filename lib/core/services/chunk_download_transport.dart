@@ -33,6 +33,7 @@ abstract class ChunkDownloadTransport {
     required int chunkCount,
     required String outputDir,
     required List<int> alreadyDownloaded,
+    List<String> directUrls,
   });
 }
 
@@ -110,6 +111,7 @@ class BackgroundDownloaderChunkTransport implements ChunkDownloadTransport {
     required int chunkCount,
     required String outputDir,
     required List<int> alreadyDownloaded,
+    List<String> directUrls = const [],
   }) {
     return rust.downloadEncryptedChunks(
       baseUrl: baseUrl,
@@ -119,6 +121,7 @@ class BackgroundDownloaderChunkTransport implements ChunkDownloadTransport {
       chunkCount: BigInt.from(chunkCount),
       outputDir: outputDir,
       alreadyDownloaded: Uint64List.fromList(alreadyDownloaded),
+      directUrls: directUrls,
     );
   }
 }

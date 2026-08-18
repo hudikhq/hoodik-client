@@ -171,7 +171,12 @@ class FilesForkController {
         'sha256': sha256,
         'cipher': cipher,
         'encrypted_key': wrappedKey,
-        'search_tokens_hashed': fileCrypto.tokenizeForSearch(displayName),
+        'search_tokens_root': fileCrypto.tokenizeForSearch(displayName),
+        // The fork is a distinct file under `newKey`, so its file scope is
+        // keyed on that — tagging under the source's key would index it for
+        // whoever holds the original instead.
+        'search_tokens_file':
+            fileCrypto.tokenizeForSearchWithFileKey(newKey, displayName),
         'event_signature': eventSignature,
         'timestamp': timestamp,
       };

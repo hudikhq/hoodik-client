@@ -37,6 +37,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
   List<int> dco_decode_list_prim_u_32_loose(dynamic raw);
 
   @protected
@@ -115,6 +118,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
   List<int> sse_decode_list_prim_u_32_loose(SseDeserializer deserializer);
@@ -216,6 +222,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int cst_encode_i_64(PlatformInt64 raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.toInt();
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_String> cst_encode_list_String(List<String> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_String(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      ans.ref.ptr[i] = cst_encode_String(raw[i]);
+    }
+    return ans;
   }
 
   @protected
@@ -429,6 +445,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_32_loose(
@@ -1041,6 +1060,7 @@ class RustLibWire implements BaseWire {
     int chunk_count,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> output_dir,
     ffi.Pointer<wire_cst_list_prim_u_64_strict> already_downloaded,
+    ffi.Pointer<wire_cst_list_String> direct_urls,
   ) {
     return _wire__crate__api__download_encrypted_chunks(
       port_,
@@ -1051,6 +1071,7 @@ class RustLibWire implements BaseWire {
       chunk_count,
       output_dir,
       already_downloaded,
+      direct_urls,
     );
   }
 
@@ -1066,6 +1087,7 @@ class RustLibWire implements BaseWire {
             ffi.Uint64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_64_strict>,
+            ffi.Pointer<wire_cst_list_String>,
           )
         >
       >('frbgen_hoodik_app_wire__crate__api__download_encrypted_chunks');
@@ -1081,6 +1103,7 @@ class RustLibWire implements BaseWire {
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_64_strict>,
+              ffi.Pointer<wire_cst_list_String>,
             )
           >();
 
@@ -1093,6 +1116,7 @@ class RustLibWire implements BaseWire {
     int chunk_count,
     ffi.Pointer<wire_cst_list_prim_u_8_loose> decryption_key,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> cipher,
+    ffi.Pointer<wire_cst_list_String> direct_urls,
   ) {
     return _wire__crate__api__download_file(
       port_,
@@ -1103,6 +1127,7 @@ class RustLibWire implements BaseWire {
       chunk_count,
       decryption_key,
       cipher,
+      direct_urls,
     );
   }
 
@@ -1118,6 +1143,7 @@ class RustLibWire implements BaseWire {
             ffi.Uint64,
             ffi.Pointer<wire_cst_list_prim_u_8_loose>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_String>,
           )
         >
       >('frbgen_hoodik_app_wire__crate__api__download_file');
@@ -1133,6 +1159,7 @@ class RustLibWire implements BaseWire {
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_loose>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_String>,
             )
           >();
 
@@ -1198,6 +1225,7 @@ class RustLibWire implements BaseWire {
     ffi.Pointer<wire_cst_list_prim_u_8_loose> decryption_key,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> cipher,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> output_path,
+    ffi.Pointer<wire_cst_list_String> direct_urls,
   ) {
     return _wire__crate__api__download_file_to_path(
       port_,
@@ -1209,6 +1237,7 @@ class RustLibWire implements BaseWire {
       decryption_key,
       cipher,
       output_path,
+      direct_urls,
     );
   }
 
@@ -1225,6 +1254,7 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_loose>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_String>,
           )
         >
       >('frbgen_hoodik_app_wire__crate__api__download_file_to_path');
@@ -1241,6 +1271,7 @@ class RustLibWire implements BaseWire {
               ffi.Pointer<wire_cst_list_prim_u_8_loose>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_String>,
             )
           >();
 
@@ -2037,6 +2068,99 @@ class RustLibWire implements BaseWire {
             )
           >();
 
+  WireSyncRust2DartDco wire__crate__api__search_file_key(
+    ffi.Pointer<wire_cst_list_prim_u_8_loose> file_key,
+  ) {
+    return _wire__crate__api__search_file_key(file_key);
+  }
+
+  late final _wire__crate__api__search_file_keyPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+          )
+        >
+      >('frbgen_hoodik_app_wire__crate__api__search_file_key');
+  late final _wire__crate__api__search_file_key =
+      _wire__crate__api__search_file_keyPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__search_root_key(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> private_key_pem,
+  ) {
+    return _wire__crate__api__search_root_key(private_key_pem);
+  }
+
+  late final _wire__crate__api__search_root_keyPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_hoodik_app_wire__crate__api__search_root_key');
+  late final _wire__crate__api__search_root_key =
+      _wire__crate__api__search_root_keyPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__search_tag(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> key_hex,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> value,
+  ) {
+    return _wire__crate__api__search_tag(key_hex, value);
+  }
+
+  late final _wire__crate__api__search_tagPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_hoodik_app_wire__crate__api__search_tag');
+  late final _wire__crate__api__search_tag = _wire__crate__api__search_tagPtr
+      .asFunction<
+        WireSyncRust2DartDco Function(
+          ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+        )
+      >();
+
+  WireSyncRust2DartDco wire__crate__api__search_tag_tokens(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> key_hex,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> text,
+  ) {
+    return _wire__crate__api__search_tag_tokens(key_hex, text);
+  }
+
+  late final _wire__crate__api__search_tag_tokensPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_hoodik_app_wire__crate__api__search_tag_tokens');
+  late final _wire__crate__api__search_tag_tokens =
+      _wire__crate__api__search_tag_tokensPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
   WireSyncRust2DartDco wire__crate__api__sha256_digest(
     ffi.Pointer<wire_cst_list_prim_u_8_loose> data,
   ) {
@@ -2167,28 +2291,6 @@ class RustLibWire implements BaseWire {
       >('frbgen_hoodik_app_wire__crate__api__spki_fingerprint');
   late final _wire__crate__api__spki_fingerprint =
       _wire__crate__api__spki_fingerprintPtr
-          .asFunction<
-            WireSyncRust2DartDco Function(
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            )
-          >();
-
-  WireSyncRust2DartDco wire__crate__api__tokenize_and_hash(
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> text,
-  ) {
-    return _wire__crate__api__tokenize_and_hash(text);
-  }
-
-  late final _wire__crate__api__tokenize_and_hashPtr =
-      _lookup<
-        ffi.NativeFunction<
-          WireSyncRust2DartDco Function(
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_hoodik_app_wire__crate__api__tokenize_and_hash');
-  late final _wire__crate__api__tokenize_and_hash =
-      _wire__crate__api__tokenize_and_hashPtr
           .asFunction<
             WireSyncRust2DartDco Function(
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
@@ -2509,6 +2611,19 @@ class RustLibWire implements BaseWire {
       _cst_new_box_autoadd_record_u_64_u_64Ptr
           .asFunction<ffi.Pointer<wire_cst_record_u_64_u_64> Function()>();
 
+  ffi.Pointer<wire_cst_list_String> cst_new_list_String(int len) {
+    return _cst_new_list_String(len);
+  }
+
+  late final _cst_new_list_StringPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_String> Function(ffi.Int32)
+        >
+      >('frbgen_hoodik_app_cst_new_list_String');
+  late final _cst_new_list_String = _cst_new_list_StringPtr
+      .asFunction<ffi.Pointer<wire_cst_list_String> Function(int)>();
+
   ffi.Pointer<wire_cst_list_prim_u_32_loose> cst_new_list_prim_u_32_loose(
     int len,
   ) {
@@ -2621,6 +2736,13 @@ final class wire_cst_list_prim_u_8_strict extends ffi.Struct {
 
 final class wire_cst_list_prim_u_64_strict extends ffi.Struct {
   external ffi.Pointer<ffi.Uint64> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_list_String extends ffi.Struct {
+  external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
 
   @ffi.Int32()
   external int len;

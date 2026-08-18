@@ -20,7 +20,8 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     required String encryptedName,
     String? parentDirId,
     String? cipher,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     dirEncryptedKey = encryptedKey;
     return {'id': 'dir-id'};
@@ -37,7 +38,8 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     String? parentDirId,
     String? cipher,
     String? encryptedThumbnail,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
     String? fileModifiedAt,
     String? sha256,
     bool? editable,

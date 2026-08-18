@@ -5468,6 +5468,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restart'**
   String get widgetUpdateRestart;
+
+  /// No description provided for @searchRequiresUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Search needs an app update. Your files are safe — update Hoodik to search them again.'**
+  String get searchRequiresUpdate;
+
+  /// No description provided for @reindexTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search has been hardened'**
+  String get reindexTitle;
+
+  /// No description provided for @reindexExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'We improved how your search index is protected, so it can no longer be read from the database. Your files need to be re-indexed on this device to work with it. Notes are downloaded and decrypted here to be re-indexed, which is why this can take a moment. Files that haven\'t been processed yet won\'t turn up in search.'**
+  String get reindexExplanation;
+
+  /// No description provided for @reindexProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} files'**
+  String reindexProgress(int done, int total);
+
+  /// No description provided for @reindexFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files couldn\'t be re-indexed and will be retried next time.'**
+  String reindexFailed(int count);
+
+  /// No description provided for @reindexBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue in background'**
+  String get reindexBackground;
+
+  /// No description provided for @reindexCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get reindexCancel;
 }
 
 class _AppLocalizationsDelegate

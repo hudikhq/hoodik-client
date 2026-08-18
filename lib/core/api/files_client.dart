@@ -4,6 +4,7 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 
 import 'api_models.dart';
+import 'chunk_urls_models.dart';
 
 /// Minimum surface the [FilesClient] needs from the owning [ApiClient] to
 /// authenticate raw-bytes requests. Binary chunk uploads bypass the shared
@@ -60,6 +61,24 @@ class FilesClient {
     return StorageResponse.fromJson(resp.data);
   }
 
+  /// `GET /api/storage/{fileId}/chunk-urls` — presigned URLs letting this
+  /// device read the file's chunks straight from the storage bucket.
+  ///
+  /// Returns null whenever the server cannot serve them: local-disk
+  /// deployments have no URLs to give, and an S3 deployment whose bucket
+  /// failed its startup checks withholds them deliberately (400). Callers
+  /// fall back to downloading through the server.
+  Future<ChunkUrlsResponse?> fetchChunkUrls(String fileId) async {
+    try {
+      final resp = await _dio.get('/api/storage/$fileId/chunk-urls');
+      final data = resp.data;
+      if (data is! Map<String, dynamic>) return null;
+      return ChunkUrlsResponse.fromJson(data);
+    } on DioException {
+      return null;
+    }
+  }
+
   /// `GET /api/storage/{fileId}/thumbnail` — the encrypted thumbnail of a
   /// single file. Listings ask for `compact` rows without the blob; this
   /// route serves it on demand. Returns null when the file has no
@@ -85,7 +104,8 @@ class FilesClient {
     required String encryptedName,
     String? parentDirId,
     String? cipher,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     final data = <String, dynamic>{
       'encrypted_key': encryptedKey,
@@ -95,8 +115,11 @@ class FilesClient {
     };
     if (parentDirId != null) data['file_id'] = parentDirId;
     if (cipher != null) data['cipher'] = cipher;
-    if (searchTokensHashed != null) {
-      data['search_tokens_hashed'] = searchTokensHashed;
+    if (searchTokensRoot != null) {
+      data['search_tokens_root'] = searchTokensRoot;
+    }
+    if (searchTokensFile != null) {
+      data['search_tokens_file'] = searchTokensFile;
     }
 
     final resp = await _dio.post('/api/storage', data: data);
@@ -115,7 +138,8 @@ class FilesClient {
     String? parentDirId,
     String? cipher,
     String? encryptedThumbnail,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
     String? fileModifiedAt,
     String? sha256,
     bool? editable,
@@ -134,8 +158,11 @@ class FilesClient {
     if (encryptedThumbnail != null) {
       data['encrypted_thumbnail'] = encryptedThumbnail;
     }
-    if (searchTokensHashed != null) {
-      data['search_tokens_hashed'] = searchTokensHashed;
+    if (searchTokensRoot != null) {
+      data['search_tokens_root'] = searchTokensRoot;
+    }
+    if (searchTokensFile != null) {
+      data['search_tokens_file'] = searchTokensFile;
     }
     if (fileModifiedAt != null) data['file_modified_at'] = fileModifiedAt;
     if (sha256 != null) data['sha256'] = sha256;
@@ -149,14 +176,18 @@ class FilesClient {
     required String fileId,
     required String nameHash,
     required String encryptedName,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     final data = <String, dynamic>{
       'name_hash': nameHash,
       'encrypted_name': encryptedName,
     };
-    if (searchTokensHashed != null) {
-      data['search_tokens_hashed'] = searchTokensHashed;
+    if (searchTokensRoot != null) {
+      data['search_tokens_root'] = searchTokensRoot;
+    }
+    if (searchTokensFile != null) {
+      data['search_tokens_file'] = searchTokensFile;
     }
 
     final resp = await _dio.put('/api/storage/$fileId', data: data);

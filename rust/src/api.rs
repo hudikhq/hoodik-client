@@ -281,15 +281,44 @@ pub fn crc16_digest(data: Vec<u8>) -> String {
 }
 
 // ---------------------------------------------------------------------------
-// Tokenizer (for privacy-preserving search)
+// Search tagging (for privacy-preserving search)
 // ---------------------------------------------------------------------------
+//
+// Tokens are tagged with HMAC under a key the server never sees, rather than
+// hashed. A bare digest of a BERT token is reversible with a table over the
+// public vocabulary, which is what the old scheme stored. Two keys: the
+// account's, from its private key, covering everything it owns; and each
+// file's own, which already travels to every share recipient.
 
-/// Tokenize text and return SHA-256 hashed tokens.
-/// Format: "token:weight;token:weight;..."
+/// Derive the account-wide search key from a private key PEM. Hex-encoded so
+/// it can be held alongside the other client-side key material.
 #[frb(sync)]
-pub fn tokenize_and_hash(text: String) -> Result<String, String> {
-    let tokens =
-        cryptfns::tokenizer::into_hashed_tokens(&text).map_err(|e| e.to_string())?;
+pub fn search_root_key(private_key_pem: String) -> Result<String, String> {
+    cryptfns::search::root_key(&private_key_pem)
+        .map(cryptfns::hex::encode)
+        .map_err(|e| e.to_string())
+}
+
+/// Derive a file's search key from the key its contents are encrypted with.
+#[frb(sync)]
+pub fn search_file_key(file_key: Vec<u8>) -> Result<String, String> {
+    cryptfns::search::file_key(&file_key)
+        .map(cryptfns::hex::encode)
+        .map_err(|e| e.to_string())
+}
+
+/// Tag one value: a file name for `name_hash`, or a single query word.
+#[frb(sync)]
+pub fn search_tag(key_hex: String, value: String) -> Result<String, String> {
+    let key = cryptfns::hex::decode(&key_hex).map_err(|e| e.to_string())?;
+    cryptfns::search::tag(&key, &value).map_err(|e| e.to_string())
+}
+
+/// Tokenize and tag text. Format: "tag:weight;tag:weight;..."
+#[frb(sync)]
+pub fn search_tag_tokens(key_hex: String, text: String) -> Result<String, String> {
+    let key = cryptfns::hex::decode(&key_hex).map_err(|e| e.to_string())?;
+    let tokens = cryptfns::search::tag_tokens(&key, &text).map_err(|e| e.to_string())?;
     Ok(cryptfns::tokenizer::into_string(tokens))
 }
 
@@ -997,6 +1026,7 @@ pub async fn download_file(
     chunk_count: u64,
     decryption_key: Vec<u8>,
     cipher: String,
+    direct_urls: Vec<String>,
 ) -> Result<Vec<u8>, String> {
     let cancel_flag = register_cancel_flag(&file_id);
     let (transferred, total) = register_progress(&file_id);
@@ -1043,6 +1073,10 @@ pub async fn download_file(
                 downloader = downloader.with_cipher(&cipher);
             }
 
+            if !direct_urls.is_empty() {
+                downloader = downloader.with_direct_urls(direct_urls);
+            }
+
             downloader
                 .run(&http, &progress)
                 .await
@@ -1067,9 +1101,17 @@ pub async fn download_file_to_path(
     decryption_key: Vec<u8>,
     cipher: String,
     output_path: String,
+    direct_urls: Vec<String>,
 ) -> Result<(), String> {
     let bytes = download_file(
-        base_url, cookie, file_id, file_size, chunk_count, decryption_key, cipher,
+        base_url,
+        cookie,
+        file_id,
+        file_size,
+        chunk_count,
+        decryption_key,
+        cipher,
+        direct_urls,
     )
     .await?;
 
@@ -1089,6 +1131,11 @@ pub async fn download_file_to_path(
 /// original pipeline but with ~4 MB peak memory instead of the full file.
 ///
 /// `already_downloaded` lists chunk indices to skip (resume support).
+///
+/// `direct_urls`, when non-empty, holds one presigned storage URL per chunk
+/// index. Those chunks are fetched straight from the bucket and carry no
+/// session credentials; any index the list does not cover falls back to the
+/// server, so a short or absent list degrades instead of failing.
 pub async fn download_encrypted_chunks(
     base_url: String,
     cookie: String,
@@ -1097,6 +1144,7 @@ pub async fn download_encrypted_chunks(
     chunk_count: u64,
     output_dir: String,
     already_downloaded: Vec<u64>,
+    direct_urls: Vec<String>,
 ) -> Result<(), String> {
     let cancel_flag = register_cancel_flag(&file_id);
     let (transferred, total) = register_progress(&file_id);
@@ -1149,6 +1197,11 @@ pub async fn download_encrypted_chunks(
                 chunk_count,
                 &output_dir,
                 &already_downloaded,
+                if direct_urls.is_empty() {
+                    None
+                } else {
+                    Some(direct_urls.as_slice())
+                },
             )
             .await
             .map_err(|e| e.to_string())

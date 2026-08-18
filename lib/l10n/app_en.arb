@@ -246,9 +246,18 @@
   "accountStorageTitle": "Storage",
   "accountStorageUnlimited": "Unlimited",
   "accountStorageUsed": "{used} used",
-  "@accountStorageUsed": {"placeholders": {"used": {}}},
+  "@accountStorageUsed": {
+    "placeholders": {
+      "used": {}
+    }
+  },
   "accountStorageUsedOfTotal": "{used} of {total} used",
-  "@accountStorageUsedOfTotal": {"placeholders": {"used": {}, "total": {}}},
+  "@accountStorageUsedOfTotal": {
+    "placeholders": {
+      "used": {},
+      "total": {}
+    }
+  },
   "accountTermsOfService": "Terms of Service",
   "accountTitle": "Account",
   "accountWizardCallingInitialize": "Calling initialize…",
@@ -643,7 +652,11 @@
   "errorNoConnection": "No connection. Check your network and try again.",
   "errorNotAuthorized": "You’re not authorized for this action. Try signing in again.",
   "errorRequestFailed": "Request failed ({status}).",
-  "@errorRequestFailed": {"placeholders": {"status": {}}},
+  "@errorRequestFailed": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "errorServerUnavailable": "The server is having trouble. Try again in a moment.",
   "filesAccountNotInitialized": "Account not fully initialized",
   "filesAvailableOffline": "{name} available offline",
@@ -1974,7 +1987,7 @@
   "sharesGroupRoleReaderDescription": "Reader — sees the group, nothing more.",
   "sharesGroupsExplainer": "Groups let you share with everyone in the group at once.",
   "sharesGroupsLoadFailed": "Could not load your groups.",
-  "sharesInvalidEmail": "That doesn\u2019t look like an email address.",
+  "sharesInvalidEmail": "That doesn’t look like an email address.",
   "sharesItemCount": "{count, plural, =1{1 item} other{{count} items}}",
   "@sharesItemCount": {
     "placeholders": {
@@ -2306,5 +2319,29 @@
     }
   },
   "widgetUpdateDownloaded": "A new version of Hoodik has been downloaded.",
-  "widgetUpdateRestart": "Restart"
+  "widgetUpdateRestart": "Restart",
+  "searchRequiresUpdate": "Search needs an app update. Your files are safe — update Hoodik to search them again.",
+  "reindexTitle": "Search has been hardened",
+  "reindexExplanation": "We improved how your search index is protected, so it can no longer be read from the database. Your files need to be re-indexed on this device to work with it. Notes are downloaded and decrypted here to be re-indexed, which is why this can take a moment. Files that haven't been processed yet won't turn up in search.",
+  "reindexProgress": "{done} of {total} files",
+  "@reindexProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reindexFailed": "{count} files couldn't be re-indexed and will be retried next time.",
+  "@reindexFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reindexBackground": "Continue in background",
+  "reindexCancel": "Cancel"
 }

@@ -3330,4 +3330,31 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get widgetUpdateRestart => 'Ponovno pokreni';
+
+  @override
+  String get searchRequiresUpdate =>
+      'Pretraga traži ažuriranje aplikacije. Datoteke su sigurne — ažuriraj Hoodik da ih ponovno pretražuješ.';
+
+  @override
+  String get reindexTitle => 'Pretraga je dodatno osigurana';
+
+  @override
+  String get reindexExplanation =>
+      'Poboljšali smo zaštitu tvog search indeksa pa se više ne može pročitati iz baze. Zato tvoje datoteke treba ponovno indeksirati na ovom uređaju. Bilješke se ovdje preuzimaju i dekriptiraju da bi se ponovno indeksirale, pa to može potrajati. Datoteke koje još nisu obrađene neće se pojaviti u pretrazi.';
+
+  @override
+  String reindexProgress(int done, int total) {
+    return '$done od $total datoteka';
+  }
+
+  @override
+  String reindexFailed(int count) {
+    return '$count datoteka nije uspjelo ponovno indeksirati, pokušat ćemo ponovno sljedeći put.';
+  }
+
+  @override
+  String get reindexBackground => 'Nastavi u pozadini';
+
+  @override
+  String get reindexCancel => 'Odustani';
 }

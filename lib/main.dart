@@ -9,7 +9,6 @@ import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'core/platform/tray_integration.dart';
 import 'core/services/connect_link.dart';
-import 'core/services/file_downloader_config.dart';
 import 'core/services/preferences.dart';
 import 'core/services/share_handler.dart';
 import 'core/storage/at_rest_cipher.dart';
@@ -70,8 +69,11 @@ Future<void> main() async {
     sinks: sinks,
   );
 
-  // Purges orphaned downloads from a killed-then-restarted session that would compete for bandwidth.
-  await cleanUpFileDownloader();
+  // Transfers the OS is still carrying are deliberately left alone here.
+  // There is no account yet to judge them against, and cancelling on every
+  // launch meant a large download could never survive the app being killed —
+  // it started over each time. Sign-in reconciles them instead: this account's
+  // work is adopted, anything else is cancelled.
 
   // Loaded synchronously so early provider reads (view mode, landing branch) don't need to await.
   final preferences = await Preferences.load();

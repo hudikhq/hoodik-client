@@ -11,6 +11,7 @@ import '../../../core/providers.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../core/widgets/app_update_nudge.dart';
 import '../../../core/widgets/outdated_server_warning.dart';
+import '../../search/widgets/reindex_dialog.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../notes/helpers/create_note_flow.dart';
 import '../../preview/providers/preview_providers.dart';
@@ -61,7 +62,11 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _notifier.load();
+      if (!mounted) return;
+      _notifier.load();
+      // Runs once per session at most: it only shows if the server still
+      // reports files needing re-indexing after the search re-key.
+      maybeShowReindexDialog(context, ref);
     });
   }
 

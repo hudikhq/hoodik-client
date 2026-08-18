@@ -3294,4 +3294,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get widgetUpdateRestart => 'Restart';
+
+  @override
+  String get searchRequiresUpdate =>
+      'Search needs an app update. Your files are safe — update Hoodik to search them again.';
+
+  @override
+  String get reindexTitle => 'Search has been hardened';
+
+  @override
+  String get reindexExplanation =>
+      'We improved how your search index is protected, so it can no longer be read from the database. Your files need to be re-indexed on this device to work with it. Notes are downloaded and decrypted here to be re-indexed, which is why this can take a moment. Files that haven\'t been processed yet won\'t turn up in search.';
+
+  @override
+  String reindexProgress(int done, int total) {
+    return '$done of $total files';
+  }
+
+  @override
+  String reindexFailed(int count) {
+    return '$count files couldn\'t be re-indexed and will be retried next time.';
+  }
+
+  @override
+  String get reindexBackground => 'Continue in background';
+
+  @override
+  String get reindexCancel => 'Cancel';
 }

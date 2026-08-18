@@ -21,7 +21,8 @@ class _MutationsClient extends Fake implements FilesClient {
     required String encryptedName,
     String? parentDirId,
     String? cipher,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     _maybeFail();
     return {'id': 'dir-id'};

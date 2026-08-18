@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/notes/providers/notes_sidebar_notifier.dart';
 import '../../features/shares/providers/audit_log_notifier.dart';
 import '../../features/shares/providers/folder_members_notifier.dart';
 import '../../features/shares/providers/groups_notifier.dart';
 import '../providers.dart';
+import '../services/file_downloader_config.dart';
 import '../storage/database.dart';
 import '../utils/account_context.dart';
 import '../utils/log_redact.dart';
@@ -63,6 +66,23 @@ extension AuthStateExtension on WidgetRef {
     invalidate(auditLogNotifierProvider);
 
     read(activeAccountProvider.notifier).state = account;
+
+    // The OS transfer queue outlives the process, so whatever it is carrying
+    // at this point may belong to whoever was signed in last. Sort it out now
+    // that there is an account to compare against: this one's transfers are
+    // kept running, everyone else's are cancelled.
+    //
+    // Deliberately not awaited. It is a reconcile against work the OS is
+    // already doing, and sign-in should not wait on it.
+    unawaited(
+      adoptTransfersForAccount(account.id).catchError((Object e) {
+        _log.warn(
+          'transfer adoption skipped on sign-in',
+          fields: {'error': redactException(e)},
+        );
+        return <String>{};
+      }),
+    );
 
     // Eagerly evaluate mcpServerProvider so its auto-start listener is
     // registered. Without this, the provider is never created (it's lazy)

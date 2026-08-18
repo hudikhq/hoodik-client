@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'dart:io';
 import 'dart:ui' show Locale;
 
@@ -121,6 +123,40 @@ final fileCryptoProvider = Provider<FileCrypto?>((ref) {
     wrappingPrivateKeyPem: ref.watch(decryptedWrappingPrivateKeyProvider),
     crypto: ref.watch(cryptoServiceProvider),
   );
+});
+
+/// Unwrapped file keys for every file shared with this account.
+///
+/// Search tags a shared file under that file's own key, so a query has to
+/// carry one tag set per such file. Held for the session because it costs an
+/// asymmetric unwrap per file and only changes when a share is granted or
+/// revoked; it rebuilds automatically when the private key does, so logging
+/// out drops it with the key that unwrapped it.
+final incomingSearchKeysProvider = FutureProvider<List<Uint8List>>((ref) async {
+  final client = ref.watch(apiClientProvider);
+  final fileCrypto = ref.watch(fileCryptoProvider);
+  if (client == null || fileCrypto == null) return const [];
+
+  try {
+    final rows = await client.shares.getIncomingKeys();
+
+    return rows
+        .map((row) {
+          try {
+            return fileCrypto.decryptFileKey(row['encrypted_key']!);
+          } catch (_) {
+            // A row wrapped under a superseded key is not worth failing the
+            // whole search over; it simply will not match.
+            return null;
+          }
+        })
+        .whereType<Uint8List>()
+        .toList();
+  } catch (_) {
+    // Search over owned files is the common case and must not break because
+    // the shares list is unavailable.
+    return const [];
+  }
 });
 
 /// [ShareCrypto] instance for the active session, or null if no private key

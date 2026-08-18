@@ -159,9 +159,18 @@
   "accountStorageTitle": "Stockage",
   "accountStorageUnlimited": "Illimité",
   "accountStorageUsed": "{used} utilisés",
-  "@accountStorageUsed": {"placeholders": {"used": {}}},
+  "@accountStorageUsed": {
+    "placeholders": {
+      "used": {}
+    }
+  },
   "accountStorageUsedOfTotal": "{used} sur {total} utilisés",
-  "@accountStorageUsedOfTotal": {"placeholders": {"used": {}, "total": {}}},
+  "@accountStorageUsedOfTotal": {
+    "placeholders": {
+      "used": {},
+      "total": {}
+    }
+  },
   "accountTermsOfService": "Conditions d’utilisation",
   "accountTitle": "Compte",
   "accountWizardCallingInitialize": "Appel d’initialize…",
@@ -393,7 +402,11 @@
   "errorNoConnection": "Pas de connexion. Vérifiez votre réseau et réessayez.",
   "errorNotAuthorized": "Vous n’êtes pas autorisé à effectuer cette action. Reconnectez-vous et réessayez.",
   "errorRequestFailed": "La requête a échoué ({status}).",
-  "@errorRequestFailed": {"placeholders": {"status": {}}},
+  "@errorRequestFailed": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "errorServerUnavailable": "Le serveur rencontre un problème. Réessayez dans un instant.",
   "filesAccountNotInitialized": "Compte pas entièrement initialisé",
   "filesAvailableOffline": "{name} disponible hors ligne",
@@ -792,7 +805,7 @@
   "sharesGroupRoleReaderDescription": "Lecteur — voit le groupe, rien de plus.",
   "sharesGroupsExplainer": "Les groupes vous permettent de partager avec tous leurs membres en une seule fois.",
   "sharesGroupsLoadFailed": "Impossible de charger vos groupes.",
-  "sharesInvalidEmail": "Cela ne ressemble pas \u00e0 une adresse e-mail.",
+  "sharesInvalidEmail": "Cela ne ressemble pas à une adresse e-mail.",
   "sharesItemCount": "{count, plural, one{{count} élément} other{{count} éléments}}",
   "sharesKeyFingerprintMismatch": "La clé et l’empreinte de ce compte ne correspondent pas. Le partage est bloqué — n’allez pas plus loin.",
   "sharesLookupFailed": "Impossible de trouver cet utilisateur.",
@@ -893,5 +906,12 @@
   "widgetUpdate": "Mettre à jour",
   "widgetUpdateAvailable": "Une nouvelle version de Hoodik (v{version}) est disponible.",
   "widgetUpdateDownloaded": "Une nouvelle version de Hoodik a été téléchargée.",
-  "widgetUpdateRestart": "Redémarrer"
+  "widgetUpdateRestart": "Redémarrer",
+  "searchRequiresUpdate": "La recherche nécessite une mise à jour. Vos fichiers sont intacts : mettez Hoodik à jour pour les retrouver.",
+  "reindexTitle": "La recherche a été renforcée",
+  "reindexExplanation": "Nous avons amélioré la protection de votre index de recherche : il ne peut plus être lu depuis la base de données. Vos fichiers doivent être réindexés sur cet appareil pour fonctionner avec. Les notes sont téléchargées et déchiffrées ici pour être réindexées, ce qui peut prendre un moment. Les fichiers pas encore traités n'apparaîtront pas dans la recherche.",
+  "reindexProgress": "{done} sur {total} fichiers",
+  "reindexFailed": "{count} fichiers n'ont pas pu être réindexés et seront retentés la prochaine fois.",
+  "reindexBackground": "Continuer en arrière-plan",
+  "reindexCancel": "Annuler"
 }

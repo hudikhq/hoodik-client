@@ -30,18 +30,22 @@ class _FakeDio extends Fake implements Dio {
 void main() {
   group('SearchClient wire privacy', () {
     test(
-      'sends hashed tokens only — the body has no plaintext field',
+      'sends keyed tags only — the body has no plaintext field',
       () async {
         final dio = _FakeDio();
         final client = SearchClient(dio);
 
-        final tokens = ['${'a' * 64}:1', '${'b' * 64}:2'];
-        await client.searchFiles(searchTokensHashed: tokens);
+        final tags = ['a' * 32, 'b' * 32];
+        await client.searchFiles(rootTags: tags);
 
         expect(dio.lastPostPath, '/api/storage/search');
         final body = dio.lastPostData as Map<String, dynamic>;
-        expect(body['search_tokens_hashed'], tokens);
+        expect(body['root_tags'], tags);
+        expect(body['file_tags'], isEmpty);
+        // The legacy shapes are refused by the server with 426; this build
+        // must not send them at all.
         expect(body.containsKey('search'), isFalse);
+        expect(body.containsKey('search_tokens_hashed'), isFalse);
         expect(body.containsKey('hash'), isFalse);
         expect(body['limit'], 10);
         expect(body['skip'], 0);
@@ -55,7 +59,7 @@ void main() {
 
       final sha256 = 'c' * 64;
       await client.searchFiles(
-        searchTokensHashed: const [],
+        rootTags: const [],
         hash: sha256,
         dirId: 'dir-1',
         editable: true,
@@ -76,7 +80,7 @@ void main() {
       final dio = _FakeDio()..postResponse = {'unexpected': true};
       final client = SearchClient(dio);
 
-      final results = await client.searchFiles(searchTokensHashed: const []);
+      final results = await client.searchFiles(rootTags: const []);
 
       expect(results, isEmpty);
     });

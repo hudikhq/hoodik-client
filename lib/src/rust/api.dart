@@ -222,10 +222,22 @@ String sha256Digest({required List<int> data}) =>
 String crc16Digest({required List<int> data}) =>
     RustLib.instance.api.crateApiCrc16Digest(data: data);
 
-/// Tokenize text and return SHA-256 hashed tokens.
-/// Format: "token:weight;token:weight;..."
-String tokenizeAndHash({required String text}) =>
-    RustLib.instance.api.crateApiTokenizeAndHash(text: text);
+/// Derive the account-wide search key from a private key PEM. Hex-encoded so
+/// it can be held alongside the other client-side key material.
+String searchRootKey({required String privateKeyPem}) =>
+    RustLib.instance.api.crateApiSearchRootKey(privateKeyPem: privateKeyPem);
+
+/// Derive a file's search key from the key its contents are encrypted with.
+String searchFileKey({required List<int> fileKey}) =>
+    RustLib.instance.api.crateApiSearchFileKey(fileKey: fileKey);
+
+/// Tag one value: a file name for `name_hash`, or a single query word.
+String searchTag({required String keyHex, required String value}) =>
+    RustLib.instance.api.crateApiSearchTag(keyHex: keyHex, value: value);
+
+/// Tokenize and tag text. Format: "tag:weight;tag:weight;..."
+String searchTagTokens({required String keyHex, required String text}) =>
+    RustLib.instance.api.crateApiSearchTagTokens(keyHex: keyHex, text: text);
 
 /// Base64 encode bytes.
 String base64Encode({required List<int> data}) =>
@@ -612,6 +624,7 @@ Future<Uint8List> downloadFile({
   required BigInt chunkCount,
   required List<int> decryptionKey,
   required String cipher,
+  required List<String> directUrls,
 }) => RustLib.instance.api.crateApiDownloadFile(
   baseUrl: baseUrl,
   cookie: cookie,
@@ -620,6 +633,7 @@ Future<Uint8List> downloadFile({
   chunkCount: chunkCount,
   decryptionKey: decryptionKey,
   cipher: cipher,
+  directUrls: directUrls,
 );
 
 /// Download a file and save it to a local path instead of returning bytes.
@@ -633,6 +647,7 @@ Future<void> downloadFileToPath({
   required List<int> decryptionKey,
   required String cipher,
   required String outputPath,
+  required List<String> directUrls,
 }) => RustLib.instance.api.crateApiDownloadFileToPath(
   baseUrl: baseUrl,
   cookie: cookie,
@@ -642,6 +657,7 @@ Future<void> downloadFileToPath({
   decryptionKey: decryptionKey,
   cipher: cipher,
   outputPath: outputPath,
+  directUrls: directUrls,
 );
 
 /// Download encrypted chunks to a directory without decrypting.
@@ -651,6 +667,11 @@ Future<void> downloadFileToPath({
 /// original pipeline but with ~4 MB peak memory instead of the full file.
 ///
 /// `already_downloaded` lists chunk indices to skip (resume support).
+///
+/// `direct_urls`, when non-empty, holds one presigned storage URL per chunk
+/// index. Those chunks are fetched straight from the bucket and carry no
+/// session credentials; any index the list does not cover falls back to the
+/// server, so a short or absent list degrades instead of failing.
 Future<void> downloadEncryptedChunks({
   required String baseUrl,
   required String cookie,
@@ -659,6 +680,7 @@ Future<void> downloadEncryptedChunks({
   required BigInt chunkCount,
   required String outputDir,
   required Uint64List alreadyDownloaded,
+  required List<String> directUrls,
 }) => RustLib.instance.api.crateApiDownloadEncryptedChunks(
   baseUrl: baseUrl,
   cookie: cookie,
@@ -667,6 +689,7 @@ Future<void> downloadEncryptedChunks({
   chunkCount: chunkCount,
   outputDir: outputDir,
   alreadyDownloaded: alreadyDownloaded,
+  directUrls: directUrls,
 );
 
 /// Download a file's encrypted chunks as one tar stream and unpack to

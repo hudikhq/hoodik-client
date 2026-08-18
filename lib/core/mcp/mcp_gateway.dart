@@ -112,11 +112,15 @@ class ProductionMcpGateway implements McpGateway {
     String? dirId,
     int? limit,
   }) {
-    // The MCP tool hands over a plaintext query; it stops here. Tokenize +
-    // hash on-device so only hashes reach the wire, same as the search UI.
-    final crypto = _ref.read(cryptoServiceProvider);
+    // The MCP tool hands over a plaintext query; it stops here. Tokenized and
+    // tagged on-device so only tags reach the wire, same as the search UI.
+    final fileCrypto = _ref.read(fileCryptoProvider);
+    if (fileCrypto == null) {
+      throw StateError('Cannot search without an unlocked private key');
+    }
+
     return _client().search.searchFiles(
-      searchTokensHashed: crypto.tokenizeAndHashForSearch(query),
+      rootTags: fileCrypto.queryTags(fileCrypto.searchRootKey, query),
       hash: SearchClient.hashLookup(query),
       dirId: dirId,
       limit: limit ?? 20,

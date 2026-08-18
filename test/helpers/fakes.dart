@@ -80,6 +80,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
     required int chunkCount,
     required String outputDir,
     required List<int> alreadyDownloaded,
+    List<String> directUrls = const [],
   }) async {
     perChunkCalls.add(
       ChunkDownloadInvocation(
@@ -90,6 +91,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
         chunkCount: chunkCount,
         outputDir: outputDir,
         alreadyDownloaded: List.unmodifiable(alreadyDownloaded),
+        directUrls: List.unmodifiable(directUrls),
       ),
     );
     final err = perChunkError;
@@ -107,6 +109,10 @@ class ChunkDownloadInvocation {
   final String outputDir;
   final List<int> alreadyDownloaded;
 
+  /// Presigned bucket URLs handed to this call, empty when the transfer went
+  /// through the server. Lets a test assert which path was taken.
+  final List<String> directUrls;
+
   ChunkDownloadInvocation({
     required this.baseUrl,
     required this.cookie,
@@ -115,6 +121,7 @@ class ChunkDownloadInvocation {
     required this.chunkCount,
     required this.outputDir,
     required this.alreadyDownloaded,
+    this.directUrls = const [],
   });
 }
 

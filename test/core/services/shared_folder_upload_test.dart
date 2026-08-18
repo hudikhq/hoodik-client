@@ -66,7 +66,8 @@ void main() {
 
   Future<String> run(
     SharedFolderUpload uploader, {
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
     String? cipher,
   }) {
     return uploader.uploadIntoSharedFolder(
@@ -80,7 +81,8 @@ void main() {
       size: 4096,
       sha256: 'deadbeef',
       cipher: cipher,
-      searchTokensHashed: searchTokensHashed,
+      searchTokensRoot: searchTokensRoot,
+      searchTokensFile: searchTokensFile,
     );
   }
 
@@ -175,7 +177,7 @@ void main() {
 
     await run(
       build(client),
-      searchTokensHashed: ['t1', 't2'],
+      searchTokensRoot: ['t1', 't2'],
       cipher: 'aegis128l',
     );
     final body = client.postedBodies.single;
@@ -183,7 +185,7 @@ void main() {
     expect(body.containsKey('encrypted_thumbnail'), isFalse);
     expect(body.containsKey('file_modified_at'), isFalse);
     expect(body['cipher'], 'aegis128l');
-    expect(body['search_tokens_hashed'], ['t1', 't2']);
+    expect(body['search_tokens_root'], ['t1', 't2']);
   });
 
   test('409 refreshes the roster and retries once, then succeeds', () async {

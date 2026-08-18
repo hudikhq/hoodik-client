@@ -58,6 +58,7 @@ class FileMutator {
       cipher: cipher,
     );
     final searchTokens = _fileCrypto.tokenizeForSearch(name);
+    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(fileKey, name);
 
     final sharedId = await multiKeyCreateOrNull(
       resolver: _sharedTarget,
@@ -70,7 +71,8 @@ class FileMutator {
       mime: 'dir',
       cipher: cipher,
       chunks: 0,
-      searchTokensHashed: searchTokens,
+      searchTokensRoot: searchTokens,
+      searchTokensFile: searchTokensFile,
     );
     if (sharedId != null) return;
 
@@ -84,7 +86,8 @@ class FileMutator {
       encryptedName: encryptedName,
       parentDirId: parentDirId,
       cipher: cipher,
-      searchTokensHashed: searchTokens,
+      searchTokensRoot: searchTokens,
+      searchTokensFile: searchTokensFile,
     );
   }
 
@@ -104,12 +107,14 @@ class FileMutator {
       cipher: cipher,
     );
     final searchTokens = _fileCrypto.tokenizeForSearch(newName);
+    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(fileKey, newName);
 
     await _client.files.renameFile(
       fileId: file.id,
       nameHash: nameHash,
       encryptedName: encryptedName,
-      searchTokensHashed: searchTokens,
+      searchTokensRoot: searchTokens,
+      searchTokensFile: searchTokensFile,
     );
   }
 
