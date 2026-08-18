@@ -21,6 +21,7 @@ import 'shared_folder_target.dart';
 import 'shared_folder_upload.dart';
 import 'transfer_errors.dart';
 import 'transfer_manager.dart';
+import 'direct_chunk_upload.dart';
 import 'upload_staging.dart';
 
 const _log = Logger('BinaryUploadPipeline');
@@ -57,6 +58,7 @@ class BinaryUploadPipeline {
   final WorkerManager _workerManager;
   final OfflineManager _offlineManager;
   final BackgroundUploadService? _backgroundUploadService;
+  final DirectChunkUploadService? _directUpload;
   final BinaryUploadRunner _runner;
   final String _accountId;
   final String _defaultCipher;
@@ -74,6 +76,7 @@ class BinaryUploadPipeline {
     String defaultCipher = 'aegis128l',
     TransferManager? transferManager,
     BackgroundUploadService? backgroundUploadService,
+    DirectChunkUploadService? directUpload,
     UploadStaging? uploadStaging,
     SharedFolderTargetResolver? sharedTarget,
     SharedFolderUpload? sharedUpload,
@@ -85,6 +88,7 @@ class BinaryUploadPipeline {
        _cancelledFileIds = cancelledFileIds,
        _transferManager = transferManager,
        _backgroundUploadService = backgroundUploadService,
+       _directUpload = directUpload,
        _runner = BinaryUploadRunner(tarTransport: tarTransport),
        _staging = uploadStaging ?? UploadStaging(accountId: accountId),
        _fileCrypto = fileCrypto,
@@ -282,6 +286,20 @@ class BinaryUploadPipeline {
     );
 
     try {
+      // Straight into the bucket when the server can sign for it. Tar exists
+      // to spare the server N requests; when the bytes never touch the server
+      // there is nothing left for it to spare.
+      if (await _uploadDirect(
+        fileId: fileId,
+        fileSize: fileSize,
+        totalChunks: totalChunks,
+        stagingDir: stagingDir,
+        transferToken: transferToken,
+        uploadItem: uploadItem,
+      )) {
+        return;
+      }
+
       await _runner.run(
         baseUrl: _client.baseUrl,
         transferToken: transferToken,
@@ -341,6 +359,72 @@ class BinaryUploadPipeline {
     if (uploadItem != null) {
       _transferManager?.completeTransfer(uploadItem.id);
     }
+  }
+
+  /// Write the staged chunks straight into the bucket.
+  ///
+  /// Returns false when that cannot be done and the caller should fall back:
+  /// no direct-upload service on this build, staging not fully encrypted yet,
+  /// or a server that will not sign the URLs — which is every local-disk
+  /// deployment and any S3 one whose bucket failed its startup checks.
+  Future<bool> _uploadDirect({
+    required String fileId,
+    required int fileSize,
+    required int totalChunks,
+    required String stagingDir,
+    required String transferToken,
+    required TransferItem? uploadItem,
+  }) async {
+    final direct = _directUpload;
+    if (direct == null) return false;
+
+    // Declared per chunk because the server signs each length into its URL, so
+    // these must be the on-disk ciphertext sizes rather than the plaintext
+    // chunk size. A gap means the encrypt phase did not finish, and the
+    // relaying path is the one that knows how to pick that up.
+    final sizes = await stagedChunkSizes(stagingDir, totalChunks);
+    if (sizes.length != totalChunks) return false;
+
+    final manifest = await _client.files.fetchUploadUrls(
+      fileId: fileId,
+      transferToken: transferToken,
+      chunkSizes: sizes,
+    );
+    if (manifest == null ||
+        manifest.urls.length != totalChunks ||
+        manifest.urls.any((url) => url.isEmpty)) {
+      return false;
+    }
+
+    await direct.upload(
+      accountId: _accountId,
+      fileId: fileId,
+      urls: manifest.urls,
+      stagingDir: stagingDir,
+      fileSize: fileSize,
+      onProgress: uploadItem == null
+          ? null
+          : (completedChunks, transferredBytes) =>
+                _transferManager?.updateProgress(
+                  uploadItem.id,
+                  completedChunks: completedChunks,
+                  transferredBytes: transferredBytes,
+                ),
+    );
+
+    // Nothing tells the server that a direct write landed, so the client says
+    // so. It does not take our word for it: the bucket is listed and every
+    // chunk has to be there before the version pointer moves.
+    await _client.files.finalizeDirectUpload(
+      fileId: fileId,
+      transferToken: transferToken,
+    );
+
+    _log.info(
+      'direct upload committed',
+      fields: {'file_id': fileId, 'chunks': totalChunks},
+    );
+    return true;
   }
 
   Future<void> _uploadPerChunk({

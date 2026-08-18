@@ -196,6 +196,33 @@ String? fileIdFromTaskId(String taskId) {
   return parts.length >= 3 ? parts[2] : null;
 }
 
+/// Drop the plugin's records for a file whose transfer is finished, cancelled
+/// or failed.
+///
+/// Those records exist so an interrupted transfer can be re-queued from them,
+/// which is worth nothing once the file is settled — and a stale "enqueued"
+/// record for a cancelled chunk is worse than nothing, because
+/// [FileDownloader.rescheduleKilledTasks] would put it back. They also
+/// accumulate: one 10 GB file is ~2500 of them, and every sign-in walks the
+/// whole table.
+Future<void> forgetTaskRecords({
+  required String group,
+  required String accountId,
+  required String fileId,
+  required int chunkCount,
+}) async {
+  for (var chunk = 0; chunk < chunkCount; chunk++) {
+    await FileDownloader().database.deleteRecordWithId(
+      transferTaskId(
+        prefix: group,
+        accountId: accountId,
+        fileId: fileId,
+        chunk: chunk,
+      ),
+    );
+  }
+}
+
 /// The chunk a task carries, or null for a whole-file task like the tar leg.
 int? chunkFromTaskId(String taskId) {
   final parts = taskId.split('|');
@@ -208,6 +235,7 @@ const List<String> _managedGroups = [
   'chunk-downloads',
   'chunk-uploads',
   'direct-chunks',
+  'direct-chunk-uploads',
   'tar-downloads',
   'tar-uploads',
 ];
@@ -309,7 +337,11 @@ Future<void> _doConfigure() async {
         progressBar: true,
       );
     }
-    for (final group in const ['chunk-uploads', 'tar-uploads']) {
+    for (final group in const [
+      'chunk-uploads',
+      'direct-chunk-uploads',
+      'tar-uploads',
+    ]) {
       FileDownloader().configureNotificationForGroup(
         group,
         running: TaskNotification(

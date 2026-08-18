@@ -9,6 +9,7 @@ import '../utils/l10n_lookup.dart';
 import '../workers/worker_manager.dart';
 import 'background_upload_service.dart';
 import 'binary_upload_pipeline.dart';
+import 'direct_chunk_upload.dart';
 import 'binary_upload_transport.dart';
 import 'offline_manager.dart';
 import 'shared_folder_target.dart';
@@ -44,6 +45,7 @@ class FileUploader {
   final WorkerManager? _workerManager;
   final OfflineManager? _offlineManager;
   final BackgroundUploadService? _backgroundUploadService;
+  final DirectChunkUploadService? _directUpload;
   final UploadTarTransport? _uploadTarTransport;
   final String? _accountId;
   final SharedFolderTargetResolver? _sharedTarget;
@@ -62,6 +64,7 @@ class FileUploader {
     WorkerManager? workerManager,
     OfflineManager? offlineManager,
     BackgroundUploadService? backgroundUploadService,
+    DirectChunkUploadService? directUpload,
     UploadTarTransport? uploadTarTransport,
     String? accountId,
     SharedFolderTargetResolver? sharedTarget,
@@ -74,6 +77,7 @@ class FileUploader {
        _workerManager = workerManager,
        _offlineManager = offlineManager,
        _backgroundUploadService = backgroundUploadService,
+       _directUpload = directUpload,
        _uploadTarTransport = uploadTarTransport,
        _accountId = accountId,
        _sharedTarget = sharedTarget,
@@ -120,6 +124,7 @@ class FileUploader {
       tarTransport: tarTransport,
       transferManager: _transferManager,
       backgroundUploadService: _backgroundUploadService,
+      directUpload: _directUpload,
       sharedTarget: _sharedTarget,
       sharedUpload: _sharedUpload,
     );
@@ -157,7 +162,10 @@ class FileUploader {
       cipher: cipher,
     );
     final searchTokens = _fileCrypto.tokenizeForSearch(name);
-    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(fileKey, name);
+    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
+      fileKey,
+      name,
+    );
 
     var fileId = await multiKeyCreateOrNull(
       resolver: _sharedTarget,
@@ -240,7 +248,10 @@ class FileUploader {
         cipher: cipher,
       );
       searchTokens = _fileCrypto.tokenizeForSearch(name);
-      searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(fileKey, name);
+      searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
+        fileKey,
+        name,
+      );
     }
 
     try {

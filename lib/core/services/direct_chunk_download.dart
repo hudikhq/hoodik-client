@@ -200,7 +200,8 @@ class DirectChunkDownloadService {
         if (state.progress.isDone) {
           _active.remove(fileId);
           unawaited(
-            _forgetRecords(
+            forgetTaskRecords(
+              group: group,
               accountId: state.accountId,
               fileId: fileId,
               chunkCount: state.progress.chunkCount,
@@ -247,7 +248,8 @@ class DirectChunkDownloadService {
         FileDownloader()
             .cancelTasksWithIds(outstanding)
             .then(
-              (_) => _forgetRecords(
+              (_) => forgetTaskRecords(
+                group: group,
                 accountId: state.accountId,
                 fileId: fileId,
                 chunkCount: state.progress.chunkCount,
@@ -257,32 +259,6 @@ class DirectChunkDownloadService {
     }
 
     if (!state.completer.isCompleted) state.completer.completeError(error);
-  }
-
-  /// Drop the plugin's records for a file that is finished, cancelled or
-  /// failed.
-  ///
-  /// Those records exist so an interrupted transfer can be re-queued from
-  /// them, which is worth nothing once the file is settled — and a stale
-  /// "enqueued" record for a cancelled chunk is worse than nothing, because
-  /// [FileDownloader.rescheduleKilledTasks] would put it back. They also
-  /// accumulate: one 10 GB file is ~2500 of them, and every sign-in walks the
-  /// whole table.
-  Future<void> _forgetRecords({
-    required String accountId,
-    required String fileId,
-    required int chunkCount,
-  }) async {
-    for (var chunk = 0; chunk < chunkCount; chunk++) {
-      await FileDownloader().database.deleteRecordWithId(
-        transferTaskId(
-          prefix: group,
-          accountId: accountId,
-          fileId: fileId,
-          chunk: chunk,
-        ),
-      );
-    }
   }
 }
 

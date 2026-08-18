@@ -79,6 +79,80 @@ class FilesClient {
     }
   }
 
+  /// `POST /api/storage/{fileId}/upload-urls` — presigned URLs letting this
+  /// device write the file's chunks straight into the storage bucket.
+  ///
+  /// [chunkSizes] maps chunk index to the exact ciphertext length that will be
+  /// written. The server charges those against the quota and signs them into
+  /// the URLs, so a chunk that does not match its declared length is refused
+  /// by the bucket rather than by us.
+  ///
+  /// Returns null whenever the server cannot serve them, which is the same
+  /// fallback the read side has: local-disk deployments have no URLs to give,
+  /// and an S3 deployment whose bucket failed its startup checks withholds
+  /// them deliberately.
+  Future<ChunkUrlsResponse?> fetchUploadUrls({
+    required String fileId,
+    required String transferToken,
+    required Map<int, int> chunkSizes,
+  }) async {
+    if (chunkSizes.isEmpty) return null;
+
+    final tokenDio = _tokenDio(transferToken);
+    try {
+      final resp = await tokenDio.post(
+        '/api/storage/$fileId/upload-urls',
+        data: {
+          'chunks': [
+            for (final entry in chunkSizes.entries)
+              {'chunk': entry.key, 'size': entry.value},
+          ],
+        },
+      );
+      final data = resp.data;
+      if (data is! Map<String, dynamic>) return null;
+      return ChunkUrlsResponse.fromJson(data);
+    } on DioException {
+      return null;
+    } finally {
+      tokenDio.close();
+    }
+  }
+
+  /// `POST /api/storage/{fileId}/finalize` — commit a file whose chunks went
+  /// straight to the bucket.
+  ///
+  /// The relaying routes finalize themselves once their own writes complete
+  /// the count. Nothing tells the server when a direct write lands, so the
+  /// client says so and the bucket is asked to confirm it: every chunk has to
+  /// show in a listing before the version pointer moves. A failure here means
+  /// the upload is not committed, so it is not swallowed.
+  Future<void> finalizeDirectUpload({
+    required String fileId,
+    required String transferToken,
+  }) async {
+    final tokenDio = _tokenDio(transferToken);
+    try {
+      await tokenDio.post('/api/storage/$fileId/finalize');
+    } finally {
+      tokenDio.close();
+    }
+  }
+
+  /// A short-lived client authenticated by a file's transfer token rather than
+  /// the session, for the routes that take one.
+  Dio _tokenDio(String transferToken) => Dio(
+    BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 60),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $transferToken',
+      },
+    ),
+  );
+
   /// `GET /api/storage/{fileId}/thumbnail` — the encrypted thumbnail of a
   /// single file. Listings ask for `compact` rows without the blob; this
   /// route serves it on demand. Returns null when the file has no

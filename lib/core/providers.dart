@@ -27,6 +27,7 @@ import 'services/background_upload_service.dart';
 import 'services/binary_upload_transport.dart';
 import 'services/chunk_download_transport.dart';
 import 'services/direct_chunk_download.dart';
+import 'services/direct_chunk_upload.dart';
 import 'services/file_downloader_config.dart';
 import 'services/file_downloader.dart';
 import 'services/file_mutator.dart';
@@ -386,6 +387,15 @@ final transferReconcilerProvider =
       };
     });
 
+/// Direct-transfer write leg: one OS-native task per encrypted chunk, straight
+/// at the bucket. Same reasoning as the read side — a presigned URL needs
+/// nothing from the session, so this holds nothing that could leak into one.
+final directChunkUploadProvider = Provider<DirectChunkUploadService>((ref) {
+  final service = DirectChunkUploadService();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
 /// Direct-transfer leg: one OS-native task per encrypted chunk, straight at
 /// the bucket. Independent of [apiClientProvider] because a presigned URL
 /// needs nothing from the session — and a leg that never sees a cookie cannot
@@ -709,6 +719,7 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
     offlineManager: ref.read(offlineManagerProvider),
     backgroundDownloadService: bds,
     backgroundUploadService: bus,
+    directUpload: ref.read(directChunkUploadProvider),
     tarCapabilityCache: ref.read(tarCapabilityCacheProvider),
     chunkDownloadTransport: chunkTransport,
     uploadTarTransport: uploadTarTransport,
@@ -718,14 +729,16 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
     sharedUpload: sharedUpload,
   );
 
-  // Wire cancel: UI → TransferManager → WorkerManager + BackgroundUploadService + BackgroundDownloadService + BackgroundTarTransfer + DirectChunkDownloadService + FileOperations
+  // Wire cancel: UI → TransferManager → WorkerManager + BackgroundUploadService + BackgroundDownloadService + BackgroundTarTransfer + the two direct-chunk services + FileOperations
   final directChunks = ref.read(directChunkDownloadProvider);
+  final directUploads = ref.read(directChunkUploadProvider);
   tm.onCancelRequested = (fileId) {
     wm?.cancelEncryption(fileId);
     bus?.cancelUpload(fileId);
     bds?.cancelDownload(fileId);
     tarTransfer?.cancel(fileId);
     directChunks.cancel(fileId);
+    directUploads.cancel(fileId);
     ops.requestCancel(fileId);
   };
 

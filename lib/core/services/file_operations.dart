@@ -13,6 +13,7 @@ import 'chunk_download_transport.dart';
 import 'file_downloader.dart';
 import 'file_mutator.dart';
 import 'file_uploader.dart';
+import 'direct_chunk_upload.dart';
 import 'offline_manager.dart';
 import 'shared_folder_target.dart';
 import 'shared_folder_upload.dart';
@@ -63,6 +64,7 @@ class FileOperations {
     OfflineManager? offlineManager,
     BackgroundDownloadService? backgroundDownloadService,
     BackgroundUploadService? backgroundUploadService,
+    DirectChunkUploadService? directUpload,
     TarCapabilityCache? tarCapabilityCache,
     ChunkDownloadTransport? chunkDownloadTransport,
     UploadTarTransport? uploadTarTransport,
@@ -100,6 +102,7 @@ class FileOperations {
         workerManager: workerManager,
         offlineManager: offlineManager,
         backgroundUploadService: backgroundUploadService,
+        directUpload: directUpload,
         uploadTarTransport: uploadTarTransport,
         accountId: accountId,
         sharedTarget: sharedTarget,
