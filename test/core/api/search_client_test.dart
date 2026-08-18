@@ -109,4 +109,38 @@ void main() {
       );
     });
   });
+
+  group('SearchClient scopes', () {
+    // Both surfaces that search — the search screen and the MCP tool — have to
+    // send file tags, not just root tags. Without them a query silently covers
+    // only what the user owns and reports everything shared with them as
+    // absent, which looks identical to the files not existing.
+test('carries both scopes when the caller has incoming shares', () async {
+      final dio = _FakeDio();
+      final client = SearchClient(dio);
+
+      await client.searchFiles(
+        rootTags: ['a' * 32],
+        fileTags: ['b' * 32, 'c' * 32],
+      );
+
+      final body = dio.lastPostData as Map<String, dynamic>;
+      expect(body['root_tags'], ['a' * 32]);
+      expect(body['file_tags'], ['b' * 32, 'c' * 32]);
+    });
+
+    test('sends an empty file scope rather than omitting it', () async {
+      // The server treats a missing list and an empty one the same, but an
+      // explicit empty makes "this caller has no incoming shares" visible on
+      // the wire instead of ambiguous with "this client forgot to send them".
+      final dio = _FakeDio();
+      final client = SearchClient(dio);
+
+      await client.searchFiles(rootTags: ['a' * 32]);
+
+      final body = dio.lastPostData as Map<String, dynamic>;
+      expect(body.containsKey('file_tags'), isTrue);
+      expect(body['file_tags'], isEmpty);
+    });
+  });
 }

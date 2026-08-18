@@ -111,7 +111,7 @@ class ProductionMcpGateway implements McpGateway {
     required String query,
     String? dirId,
     int? limit,
-  }) {
+  }) async {
     // The MCP tool hands over a plaintext query; it stops here. Tokenized and
     // tagged on-device so only tags reach the wire, same as the search UI.
     final fileCrypto = _ref.read(fileCryptoProvider);
@@ -119,8 +119,21 @@ class ProductionMcpGateway implements McpGateway {
       throw StateError('Cannot search without an unlocked private key');
     }
 
+    // Files shared with this account are tagged under each file's own key, so
+    // without these the agent would quietly see only what the user owns and
+    // report shared files as missing.
+    final sharedKeys = await _ref.read(incomingSearchKeysProvider.future);
+
     return _client().search.searchFiles(
       rootTags: fileCrypto.queryTags(fileCrypto.searchRootKey, query),
+      fileTags: sharedKeys
+          .expand(
+            (key) => fileCrypto.queryTags(
+              fileCrypto.searchFileKeyHex(key),
+              query,
+            ),
+          )
+          .toList(),
       hash: SearchClient.hashLookup(query),
       dirId: dirId,
       limit: limit ?? 20,
