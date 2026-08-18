@@ -3374,4 +3374,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get reindexCancel => 'Abbrechen';
+
+  @override
+  String get serverTooOldForSearch =>
+      'Dieser Server ist zu alt für die Suche. Bitte den Betreiber, Hoodik auf 2.5.0 oder neuer zu aktualisieren.';
+
+  @override
+  String get appBelowMinimumVersion =>
+      'Dieser Server benötigt eine neuere Version der App. Aktualisiere Hoodik, um sie weiter zu nutzen.';
+
+  @override
+  String get appBelowRecommendedVersion =>
+      'Für diesen Server ist eine neuere Version der App verfügbar.';
 }

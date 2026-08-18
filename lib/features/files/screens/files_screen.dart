@@ -11,6 +11,7 @@ import '../../../core/providers.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../core/widgets/app_update_nudge.dart';
 import '../../../core/widgets/outdated_server_warning.dart';
+import '../../../core/widgets/server_compatibility_warning.dart';
 import '../../search/widgets/reindex_dialog.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../notes/helpers/create_note_flow.dart';
@@ -488,6 +489,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               children: [
                 const AppUpdateNudge(),
                 const OutdatedServerWarning(),
+                const ServerCompatibilityWarning(),
                 Expanded(child: _buildBody(state)),
               ],
             ),

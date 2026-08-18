@@ -10,9 +10,52 @@ class LivenessInfo {
   /// `/api/liveness` without a `version` field.
   final String? version;
 
-  const LivenessInfo({required this.alive, this.version});
+  /// Oldest app this server will serve, as reported by `/api/liveness`.
+  /// `null` on servers predating the field.
+  final String? minimumClientVersion;
 
-  const LivenessInfo.offline() : alive = false, version = null;
+  /// App version this server is built to work with. `null` on servers
+  /// predating the field.
+  final String? recommendedClientVersion;
+
+  const LivenessInfo({
+    required this.alive,
+    this.version,
+    this.minimumClientVersion,
+    this.recommendedClientVersion,
+  });
+
+  const LivenessInfo.offline()
+      : alive = false,
+        version = null,
+        minimumClientVersion = null,
+        recommendedClientVersion = null;
+
+  /// This app is too old for the server and must be updated before it can
+  /// work. Blocks rather than nudges.
+  bool isClientBelowMinimum(String clientVersion) =>
+      alive &&
+      minimumClientVersion != null &&
+      compareSemver(clientVersion, minimumClientVersion!) < 0;
+
+  /// This app still works but is behind what the server is built for. Worth a
+  /// nudge and nothing more, which is why it is a separate number from the
+  /// minimum: raising the recommendation is cheap, raising the minimum breaks
+  /// people.
+  bool isClientBelowRecommended(String clientVersion) =>
+      alive &&
+      recommendedClientVersion != null &&
+      compareSemver(clientVersion, recommendedClientVersion!) < 0 &&
+      !isClientBelowMinimum(clientVersion);
+
+  /// The server is too old for this app's search to work at all.
+  ///
+  /// The absence of `minimum_client_version` is itself the signal: the field
+  /// arrived with the keyed search index in 2.5.0, so a server that omits it
+  /// still stores the reversible digests this build can no longer produce.
+  /// Searching there returns an empty list forever, with nothing to explain
+  /// why — which is worse than being told.
+  bool get isServerBelowClientMinimum => alive && minimumClientVersion == null;
 
   /// True iff we have **verified evidence** that this server is older
   /// than what's currently published. Two independent signals qualify:

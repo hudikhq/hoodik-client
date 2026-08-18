@@ -913,5 +913,8 @@
   "reindexProgress": "{done} od {total} datoteka",
   "reindexFailed": "{count} datoteka nije uspjelo ponovno indeksirati, pokušat ćemo ponovno sljedeći put.",
   "reindexBackground": "Nastavi u pozadini",
-  "reindexCancel": "Odustani"
+  "reindexCancel": "Odustani",
+  "serverTooOldForSearch": "Ovaj server je prestar za pretragu. Traži od administratora da ažurira Hoodik na 2.5.0 ili noviji.",
+  "appBelowMinimumVersion": "Ovaj server traži noviju verziju aplikacije. Ažuriraj Hoodik da nastaviš.",
+  "appBelowRecommendedVersion": "Za ovaj server dostupna je novija verzija aplikacije."
 }

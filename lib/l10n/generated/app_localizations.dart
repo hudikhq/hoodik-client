@@ -5510,6 +5510,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get reindexCancel;
+
+  /// No description provided for @serverTooOldForSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'This server is too old for search. Ask whoever runs it to update Hoodik to 2.5.0 or newer.'**
+  String get serverTooOldForSearch;
+
+  /// No description provided for @appBelowMinimumVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'This server needs a newer version of the app. Update Hoodik to keep using it.'**
+  String get appBelowMinimumVersion;
+
+  /// No description provided for @appBelowRecommendedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'A newer version of the app is available for this server.'**
+  String get appBelowRecommendedVersion;
 }
 
 class _AppLocalizationsDelegate

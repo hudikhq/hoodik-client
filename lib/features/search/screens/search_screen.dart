@@ -87,6 +87,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       _error = null;
     });
 
+    // An older server still holds the reversible digests this build cannot
+    // produce, so its search would answer 200 with an empty list forever. Say
+    // so instead: "no results" reads as "my files are gone".
+    final liveness = ref.read(serverLivenessProvider).valueOrNull;
+    if (liveness != null && liveness.isServerBelowClientMinimum) {
+      setState(() {
+        _loading = false;
+        _error = AppLocalizations.of(context).serverTooOldForSearch;
+        _hasSearched = true;
+      });
+      return;
+    }
+
     try {
       final fileCrypto = ref.read(fileCryptoProvider);
       if (fileCrypto == null) {
