@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../src/rust/api.dart' as rust;
 import '../storage/database.dart';
+import '../storage/pending_downloads_dao.dart';
 import '../utils/format.dart' as fmt;
 import '../utils/log_redact.dart';
 import '../utils/logger.dart';
@@ -25,6 +26,34 @@ class OfflineManager extends ChangeNotifier {
   String? _basePath;
 
   OfflineManager(this._db);
+
+  /// Note that a download is in flight, or refresh it if one already is.
+  ///
+  /// Lives here because this is what already owns the database and the
+  /// on-disk chunk state a resume has to diff against. Only the intent is
+  /// stored — never the presigned URLs, which stay valid for days and have no
+  /// business persisting past the transfer they belong to.
+  Future<void> recordPendingDownload({
+    required String accountId,
+    required String fileId,
+    required int chunkCount,
+    required String outputDir,
+  }) => _db.recordPendingDownload(
+    accountId: accountId,
+    fileId: fileId,
+    chunkCount: chunkCount,
+    outputDir: outputDir,
+  );
+
+  /// Forget a download once its chunks are all on disk, or the user drops it.
+  Future<void> clearPendingDownload({
+    required String accountId,
+    required String fileId,
+  }) => _db.clearPendingDownload(accountId: accountId, fileId: fileId);
+
+  /// Downloads this account expected to finish but has not.
+  Future<List<PendingDownload>> pendingDownloads(String accountId) =>
+      _db.getPendingDownloads(accountId);
 
   /// Register that encrypted chunks for a file are stored in [chunksDir].
   /// Call after a chunk download completes to record the file in the cache.

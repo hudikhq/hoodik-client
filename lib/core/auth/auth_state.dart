@@ -67,22 +67,20 @@ extension AuthStateExtension on WidgetRef {
 
     read(activeAccountProvider.notifier).state = account;
 
-    // The OS transfer queue outlives the process, so whatever it is carrying
-    // at this point may belong to whoever was signed in last. Sort it out now
-    // that there is an account to compare against: this one's transfers are
-    // kept running, everyone else's are cancelled.
-    //
-    // Deliberately not awaited. It is a reconcile against work the OS is
+    // Settle the OS transfer queue against the account that just arrived.
+    // Deliberately not awaited: it is a reconcile against work the OS is
     // already doing, and sign-in should not wait on it.
-    unawaited(
-      adoptTransfersForAccount(account.id).catchError((Object e) {
-        _log.warn(
-          'transfer adoption skipped on sign-in',
-          fields: {'error': redactException(e)},
-        );
-        return <String>{};
-      }),
-    );
+    final reconcile = read(transferReconcilerProvider);
+    if (reconcile != null) {
+      unawaited(
+        reconcile(account.id).catchError((Object e) {
+          _log.warn(
+            'transfer adoption skipped on sign-in',
+            fields: {'error': redactException(e)},
+          );
+        }),
+      );
+    }
 
     // Eagerly evaluate mcpServerProvider so its auto-start listener is
     // registered. Without this, the provider is never created (it's lazy)
@@ -110,6 +108,18 @@ extension AuthStateExtension on WidgetRef {
     read(activeServerProvider.notifier).state = null;
     read(decryptedPrivateKeyProvider.notifier).state = null;
     read(decryptedWrappingPrivateKeyProvider.notifier).state = null;
+
+    // Nothing the OS is still carrying belongs to whoever signs in next, and
+    // logout is the one moment that is true — an account switch keeps its own
+    // transfers alive through [adoptTransfersForAccount] instead.
+    unawaited(
+      cleanUpFileDownloader().catchError((Object e) {
+        _log.warn(
+          'transfer cleanup skipped on sign-out',
+          fields: {'error': redactException(e)},
+        );
+      }),
+    );
 
     // Drop the logger's account prefix so post-logout lifecycle logs are
     // not mis-attributed to the account that just left.

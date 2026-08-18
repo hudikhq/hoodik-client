@@ -102,6 +102,14 @@ class ChunkDownloadPipeline {
             fileSize: totalBytes,
             chunkCount: totalChunks,
             chunksPath: chunksPath,
+            onProgress: downloadItem == null
+                ? null
+                : (completedChunks, transferredBytes) =>
+                      _transferManager?.updateProgress(
+                        downloadItem.id,
+                        completedChunks: completedChunks,
+                        transferredBytes: transferredBytes,
+                      ),
           );
         } catch (e) {
           if (downloadItem != null) {
@@ -151,6 +159,7 @@ class ChunkDownloadPipeline {
     required int fileSize,
     required int chunkCount,
     required String chunksPath,
+    void Function(int completedChunks, int transferredBytes)? onProgress,
   }) async {
     final alreadyDownloaded = await _offlineManager.getDownloadedChunks(
       _accountId,
@@ -165,6 +174,17 @@ class ChunkDownloadPipeline {
     // normal case and falls through to downloading via the server.
     final manifest = await _client.files.fetchChunkUrls(fileId);
 
+    // Recorded before the transfer starts, so a launch that follows a kill can
+    // tell a download the user still wants from one abandoned with an old
+    // session. Only the intent is stored — never the signed URLs, which stay
+    // valid for days and have no business sitting on disk.
+    await _offlineManager.recordPendingDownload(
+      accountId: _accountId,
+      fileId: fileId,
+      chunkCount: chunkCount,
+      outputDir: chunksPath,
+    );
+
     await _runner.run(
       baseUrl: _client.baseUrl,
       cookie: cookie,
@@ -173,7 +193,18 @@ class ChunkDownloadPipeline {
       chunkCount: chunkCount,
       outputDir: chunksPath,
       alreadyDownloaded: alreadyDownloaded,
+      accountId: _accountId,
       directUrls: manifest?.urls ?? const [],
+      refreshDirectUrls: () async =>
+          (await _client.files.fetchChunkUrls(fileId))?.urls,
+      onProgress: onProgress,
+    );
+
+    // Every chunk is on disk; there is nothing left for a later launch to
+    // resume.
+    await _offlineManager.clearPendingDownload(
+      accountId: _accountId,
+      fileId: fileId,
     );
   }
 

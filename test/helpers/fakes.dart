@@ -34,6 +34,13 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
   /// Arguments supplied to each per-chunk call.
   final List<ChunkDownloadInvocation> perChunkCalls = [];
 
+  /// Arguments supplied to each direct (presigned-URL) call.
+  final List<ChunkDownloadInvocation> directCalls = [];
+
+  /// Throw this on the next [downloadDirectChunks]. Clears itself after one
+  /// throw so the manifest-refresh retry runs its normal flow.
+  Object? directError;
+
   /// Throw this when [downloadAsTar] is called. Clears itself after one
   /// throw so a fallback attempt through the per-chunk path still runs
   /// its normal flow.
@@ -52,6 +59,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
     required int chunkCount,
     required String outputDir,
     required List<int> alreadyDownloaded,
+    required String accountId,
   }) async {
     tarCalls.add(
       ChunkDownloadInvocation(
@@ -80,7 +88,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
     required int chunkCount,
     required String outputDir,
     required List<int> alreadyDownloaded,
-    List<String> directUrls = const [],
+    required String accountId,
   }) async {
     perChunkCalls.add(
       ChunkDownloadInvocation(
@@ -91,11 +99,40 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
         chunkCount: chunkCount,
         outputDir: outputDir,
         alreadyDownloaded: List.unmodifiable(alreadyDownloaded),
-        directUrls: List.unmodifiable(directUrls),
       ),
     );
     final err = perChunkError;
     if (err != null) throw err;
+  }
+
+  @override
+  Future<void> downloadDirectChunks({
+    required String fileId,
+    required List<String> urls,
+    required int fileSize,
+    required String outputDir,
+    required List<int> alreadyDownloaded,
+    required String accountId,
+    void Function(int completedChunks, int transferredBytes)? onProgress,
+  }) async {
+    directCalls.add(
+      ChunkDownloadInvocation(
+        baseUrl: '',
+        cookie: '',
+        fileId: fileId,
+        fileSize: fileSize,
+        chunkCount: urls.length,
+        outputDir: outputDir,
+        alreadyDownloaded: List.unmodifiable(alreadyDownloaded),
+        directUrls: List.unmodifiable(urls),
+      ),
+    );
+    final err = directError;
+    if (err != null) {
+      directError = null;
+      throw err;
+    }
+    onProgress?.call(urls.length, fileSize);
   }
 }
 

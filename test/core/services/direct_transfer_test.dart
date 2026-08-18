@@ -109,10 +109,16 @@ void main() {
     setUp(() {
       transport = FakeChunkDownloadTransport();
       cache = TarCapabilityCache();
-      runner = ChunkDownloadRunner(transport: transport, tarCapabilityCache: cache);
+      runner = ChunkDownloadRunner(
+        transport: transport,
+        tarCapabilityCache: cache,
+      );
     });
 
-    Future<void> run({List<String> directUrls = const []}) => runner.run(
+    Future<void> run({
+      List<String> directUrls = const [],
+      Future<List<String>?> Function()? refreshDirectUrls,
+    }) => runner.run(
       baseUrl: 'https://drive.example.com',
       cookie: 'session=abc',
       fileId: 'file-1',
@@ -120,18 +126,22 @@ void main() {
       chunkCount: 2,
       outputDir: '/tmp/chunks',
       alreadyDownloaded: const [],
+      accountId: 'acct-test',
       directUrls: directUrls,
+      refreshDirectUrls: refreshDirectUrls,
     );
 
     // The tar exists to spare the server N requests. When the chunks are not
     // coming from the server at all, routing them through it is the one thing
-    // worth avoiding.
-    test('a manifest takes the per-chunk path and skips tar entirely', () async {
+    // worth avoiding — and the bucket leg is the only one the OS keeps
+    // running while the app is suspended.
+    test('a manifest goes straight at the bucket, skipping tar and the '
+        'in-process pipeline', () async {
       await run(directUrls: ['https://bucket/0', 'https://bucket/1']);
 
       expect(transport.tarCalls, isEmpty);
-      expect(transport.perChunkCalls, hasLength(1));
-      expect(transport.perChunkCalls.single.directUrls, [
+      expect(transport.perChunkCalls, isEmpty);
+      expect(transport.directCalls.single.directUrls, [
         'https://bucket/0',
         'https://bucket/1',
       ]);
@@ -141,8 +151,70 @@ void main() {
       await run();
 
       expect(transport.tarCalls, hasLength(1));
-      expect(transport.perChunkCalls, isEmpty);
+      expect(transport.directCalls, isEmpty);
     });
+
+    // Half a manifest would split one file across two transports, only one of
+    // which survives suspension — so the transfer as a whole still would not.
+    test('a manifest missing a chunk falls back rather than splitting the '
+        'file across transports', () async {
+      await run(directUrls: const ['https://bucket/0', '']);
+
+      expect(transport.directCalls, isEmpty);
+      expect(transport.tarCalls, hasLength(1));
+    });
+
+    test('a manifest shorter than the file falls back too', () async {
+      await run(directUrls: const ['https://bucket/0']);
+
+      expect(transport.directCalls, isEmpty);
+      expect(transport.tarCalls, hasLength(1));
+    });
+
+    // Presigned URLs outlive the transfer they were minted for, but not
+    // forever, and a download the OS carried across several launches can come
+    // back to a 403.
+    test(
+      'an expired manifest is refetched once and the transfer continues',
+      () async {
+        transport.directError = Exception('403 Forbidden (status 403)');
+
+        await run(
+          directUrls: const ['https://bucket/0', 'https://bucket/1'],
+          refreshDirectUrls: () async => const [
+            'https://bucket/0?fresh',
+            'https://bucket/1?fresh',
+          ],
+        );
+
+        expect(transport.directCalls, hasLength(2));
+        expect(transport.directCalls.last.directUrls, [
+          'https://bucket/0?fresh',
+          'https://bucket/1?fresh',
+        ]);
+        expect(transport.tarCalls, isEmpty);
+      },
+    );
+
+    // A second failure is a real failure. Falling back to the server here
+    // would quietly put the bytes back on the metered path this feature
+    // exists to avoid.
+    test(
+      'a server that can no longer sign gives up instead of relaying',
+      () async {
+        transport.directError = Exception('403 Forbidden');
+
+        await expectLater(
+          run(
+            directUrls: const ['https://bucket/0', 'https://bucket/1'],
+            refreshDirectUrls: () async => null,
+          ),
+          throwsA(isA<Exception>()),
+        );
+        expect(transport.tarCalls, isEmpty);
+        expect(transport.perChunkCalls, isEmpty);
+      },
+    );
   });
 
   group('transfer task ids', () {
@@ -172,9 +244,15 @@ void main() {
       expect(fileIdFromTaskId(id), 'file-4');
     });
 
+    // Chunk uploads and tar downloads still use their own id schemes, which
+    // carry no owner. adoptTransfersForAccount leaves those running rather
+    // than cancelling them on sign-in, so the answer has to be "unknown"
+    // rather than a guess.
     test('an unrecognised id yields no owner rather than a wrong one', () {
       expect(accountIdFromTaskId('legacy-task-id'), isNull);
       expect(fileIdFromTaskId('legacy-task-id'), isNull);
+      expect(accountIdFromTaskId('upload:file-1:3'), isNull);
+      expect(accountIdFromTaskId('tar:file-1'), isNull);
     });
   });
 }

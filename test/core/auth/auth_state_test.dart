@@ -120,6 +120,9 @@ void main() {
           databaseProvider.overrideWithValue(db),
           authServiceProvider.overrideWithValue(authService),
           mcpServerProvider.overrideWithValue(null),
+          // Touching `background_downloader` here would start real platform
+          // work the fake-async zone never gets to finish.
+          transferReconcilerProvider.overrideWithValue(null),
         ],
         child: Consumer(
           builder: (context, r, _) {

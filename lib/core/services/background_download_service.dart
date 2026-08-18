@@ -23,7 +23,14 @@ const _log = Logger('BackgroundDownloadService');
 /// After the tar completes, chunks are extracted to individual `.enc` files
 /// for subsequent decryption via Rust FFI.
 class BackgroundDownloadService {
+  static const String group = 'chunk-downloads';
+  static const String _taskPrefix = '$group|';
+
   final String baseUrl;
+
+  /// Owner stamped into every task id, so a later sign-in can tell this
+  /// account's transfers from another's — see [transferTaskId].
+  final String accountId;
 
   Future<void>? _configuring;
 
@@ -43,7 +50,7 @@ class BackgroundDownloadService {
   final Map<String, String> _fileIdToTransferId = {};
   final Set<String> _cancelledFileIds = {};
 
-  BackgroundDownloadService({required this.baseUrl});
+  BackgroundDownloadService({required this.baseUrl, required this.accountId});
 
   /// Wire to TransferManager for UI progress updates.
   void setTransferManager(TransferManager tm) {
@@ -56,7 +63,7 @@ class BackgroundDownloadService {
 
   Future<void> _doConfigure() async {
     await ensureFileDownloaderConfigured();
-    registerTaskUpdateHandler('tar:', _handleUpdate);
+    registerTaskUpdateHandler(_taskPrefix, _handleUpdate);
   }
 
   // ── Public API ──────────────────────────────────────────────────────────
@@ -139,12 +146,12 @@ class BackgroundDownloadService {
       _cleanupOutputDir(info.outputDir);
     }
 
-    FileDownloader().cancelAll(group: 'chunk-downloads');
-    FileDownloader().database.deleteAllRecords(group: 'chunk-downloads');
-    unregisterTaskUpdateHandler('tar:');
+    FileDownloader().cancelAll(group: group);
+    FileDownloader().database.deleteAllRecords(group: group);
+    unregisterTaskUpdateHandler(_taskPrefix);
 
     // Reset module-level state so the next BackgroundDownloadService
-    // re-runs configure() from scratch (including cancelAll + DB purge).
+    // re-runs configure() from scratch.
     resetFileDownloaderState();
 
     for (final completer in _completers.values) {
@@ -178,7 +185,11 @@ class BackgroundDownloadService {
         // call could cancelAll() after we enqueue.
         await configure();
 
-        final taskId = 'tar:${cmd.fileId}';
+        final taskId = transferTaskId(
+          prefix: group,
+          accountId: accountId,
+          fileId: cmd.fileId,
+        );
 
         _active[cmd.fileId] = _FileDownloadInfo(
           fileId: cmd.fileId,
@@ -208,7 +219,7 @@ class BackgroundDownloadService {
           baseDirectory: BaseDirectory.root,
           directory: cmd.outputDir,
           filename: '${cmd.fileId}.tar',
-          group: 'chunk-downloads',
+          group: group,
           updates: Updates.statusAndProgress,
           retries: 3,
           allowPause: false,
@@ -434,10 +445,7 @@ class BackgroundDownloadService {
   // ── Task ID helpers ─────────────────────────────────────────────────────
 
   /// Extract fileId from task ID format `tar:{fileId}`.
-  static String? _parseFileId(String taskId) {
-    if (!taskId.startsWith('tar:')) return null;
-    return taskId.substring(4);
-  }
+  static String? _parseFileId(String taskId) => fileIdFromTaskId(taskId);
 }
 
 /// Per-file download metadata.

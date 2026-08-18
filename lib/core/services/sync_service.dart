@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
@@ -60,6 +62,15 @@ class SyncService extends ChangeNotifier {
   /// Number of pending uploads awaiting processing.
   int _pendingUploadCount = 0;
   int get pendingUploadCount => _pendingUploadCount;
+
+  /// Rows this process is uploading right now.
+  ///
+  /// Static because the provider rebuilds this service whenever the session
+  /// around it changes, while an upload already under way keeps running on
+  /// the instance that started it. An instance field would forget the upload
+  /// the moment that happened, and [activate] would revive a row whose
+  /// transfer is still in flight.
+  static final Set<int> _liveUploadRows = {};
 
   /// Whether the pending upload queue is currently being processed.
   bool _processingQueue = false;
@@ -221,24 +232,47 @@ class SyncService extends ChangeNotifier {
   ///
   /// If online: attempts immediate upload via FileOperations.
   /// If offline or upload fails: queues for later retry.
+  ///
+  /// The row is written *before* the attempt, not after it fails. An upload
+  /// that dies with the process — the app killed mid-transfer — never gets to
+  /// report a failure, and without a row nothing would ever pick it back up:
+  /// its encrypted chunks would sit in staging forever and the user would see
+  /// a file that simply never arrived. Sign-in hands any row left in-flight
+  /// back to the queue (`reviveInterruptedUploads`).
   Future<void> uploadFileOrQueue({
     required String localPath,
     String? parentDirId,
   }) async {
-    if (!isOnline || fileOperations == null) {
+    final acctId = accountId;
+    if (!isOnline || fileOperations == null || acctId == null) {
       await queueUpload(localPath: localPath, targetDirId: parentDirId);
       return;
     }
 
+    final row = await _db.insertPendingUpload(
+      PendingUploadsCompanion.insert(
+        accountId: acctId,
+        localPath: localPath,
+        targetDirId: Value(parentDirId),
+        status: const Value(PendingUploadStatus.uploading),
+      ),
+    );
+    _liveUploadRows.add(row.id);
+    await _refreshPendingCount();
+
     try {
       await fileOperations!.uploadFile(localPath, parentDirId: parentDirId);
+      await _db.deletePendingUpload(row.id);
     } catch (e) {
       _log.warn(
         'upload failed — queuing for retry',
         fields: {'error': describeError(e)},
       );
-      await queueUpload(localPath: localPath, targetDirId: parentDirId);
+      await _recordUploadFailure(row, e);
+    } finally {
+      _liveUploadRows.remove(row.id);
     }
+    await _refreshPendingCount();
   }
 
   /// Drain the pending upload queue, respecting per-row exponential
@@ -273,6 +307,7 @@ class SyncService extends ChangeNotifier {
   }
 
   Future<void> _attemptUpload(PendingUpload upload, FileOperations ops) async {
+    _liveUploadRows.add(upload.id);
     try {
       await _db.updatePendingUploadStatus(
         upload.id,
@@ -284,6 +319,8 @@ class SyncService extends ChangeNotifier {
       _log.info('pending upload completed', fields: {'upload_id': upload.id});
     } catch (e) {
       await _recordUploadFailure(upload, e);
+    } finally {
+      _liveUploadRows.remove(upload.id);
     }
   }
 
@@ -382,11 +419,36 @@ class SyncService extends ChangeNotifier {
     this.accountId = accountId;
     this.apiClient = apiClient;
     this.fileOperations = fileOperations;
+
+    // Rows left marked in-flight belong to a process that died mid-upload —
+    // the app killed while a transfer was running. Their encrypted chunks are
+    // still in staging and the server already has whatever landed, so the
+    // retry pays only for the rest. Anything this process is genuinely
+    // uploading is excluded, because activate() runs again on every provider
+    // rebuild, and reviving a live row would upload the same file twice.
+    final revived = await _db.reviveInterruptedUploads(
+      accountId,
+      startedByThisProcess: _liveUploadRows,
+    );
+    if (revived > 0) {
+      _log.info(
+        'uploads interrupted by a previous session',
+        fields: {'count': revived},
+      );
+    }
+
     await _refreshPendingCount();
+
+    // Drain here as well as on reconnect. What was just revived would
+    // otherwise sit in the queue until the network happened to drop and come
+    // back, which on a device that never loses signal is never.
+    unawaited(processPendingUploads());
   }
 
   /// Call on logout to clear state.
   void deactivate() {
+    // Sign-out ends every upload this process had going.
+    _liveUploadRows.clear();
     accountId = null;
     apiClient = null;
     fileOperations = null;

@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/services/binary_upload_transport.dart';
 import 'package:hoodik_app/core/services/chunk_download_transport.dart';
+import 'package:hoodik_app/core/services/direct_chunk_download.dart';
+import 'package:hoodik_app/core/services/file_downloader_config.dart';
 import 'package:path/path.dart' as p;
 
 /// Regression coverage for the fix that moves tar HTTP out of Rust and
@@ -32,6 +34,7 @@ void main() {
         'that path, and the tar is deleted after success', () async {
       final backend = _FakeDownloadBackend();
       final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
         backend: backend,
         stagingTarPath: stagingPath,
       );
@@ -44,11 +47,17 @@ void main() {
         chunkCount: 1,
         outputDir: p.join(tmp.path, 'chunks'),
         alreadyDownloaded: const [],
+        accountId: 'acct-test',
       );
 
       expect(backend.fetchCalls, hasLength(1));
       final fetchCall = backend.fetchCalls.single;
-      expect(fetchCall.taskId, equals('file-123'));
+      // The id carries its owning account: the OS hands tasks back after a
+      // restart with nothing else to identify them by, and a cold start has to
+      // tell this account's work from the previous session's.
+      expect(fetchCall.taskId, equals('tar-downloads|acct-test|file-123'));
+      expect(accountIdFromTaskId(fetchCall.taskId), equals('acct-test'));
+      expect(fileIdFromTaskId(fetchCall.taskId), equals('file-123'));
       expect(
         fetchCall.url,
         equals('https://drive.example.com/api/storage/file-123?format=tar'),
@@ -82,6 +91,7 @@ void main() {
       final backend = _FakeDownloadBackend()
         ..fetchError = Exception('Connection reset');
       final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
         backend: backend,
         stagingTarPath: stagingPath,
       );
@@ -95,6 +105,7 @@ void main() {
           chunkCount: 1,
           outputDir: p.join(tmp.path, 'chunks'),
           alreadyDownloaded: const [],
+          accountId: 'acct-test',
         ),
         throwsA(isA<Exception>()),
       );
@@ -112,6 +123,7 @@ void main() {
         'auth semantics where an empty value means "no header")', () async {
       final backend = _FakeDownloadBackend();
       final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
         backend: backend,
         stagingTarPath: stagingPath,
       );
@@ -124,6 +136,7 @@ void main() {
         chunkCount: 1,
         outputDir: p.join(tmp.path, 'chunks'),
         alreadyDownloaded: const [],
+        accountId: 'acct-test',
       );
 
       expect(backend.fetchCalls.single.headers, isEmpty);

@@ -26,6 +26,8 @@ import 'services/background_tar_transfer.dart';
 import 'services/background_upload_service.dart';
 import 'services/binary_upload_transport.dart';
 import 'services/chunk_download_transport.dart';
+import 'services/direct_chunk_download.dart';
+import 'services/file_downloader_config.dart';
 import 'services/file_downloader.dart';
 import 'services/file_mutator.dart';
 import 'services/file_operations.dart';
@@ -300,14 +302,20 @@ final workerManagerProvider = Provider<WorkerManager?>((ref) {
 /// OS-native background download service. Uses URLSession (iOS) and
 /// WorkManager (Android) so downloads survive app suspension.
 ///
-/// Null if not logged in (no API client).
+/// Null until there is both an API client and an account — the account
+/// stamps every task id, which is what lets a later sign-in tell this
+/// account's transfers from another's.
 final backgroundDownloadServiceProvider = Provider<BackgroundDownloadService?>((
   ref,
 ) {
   final client = ref.watch(apiClientProvider);
-  if (client == null) return null;
+  final account = ref.watch(activeAccountProvider);
+  if (client == null || account == null) return null;
 
-  final bds = BackgroundDownloadService(baseUrl: client.baseUrl);
+  final bds = BackgroundDownloadService(
+    baseUrl: client.baseUrl,
+    accountId: account.id,
+  );
   bds.setTransferManager(ref.read(transferManagerProvider));
   ref.onDispose(() => bds.dispose());
   return bds;
@@ -316,14 +324,20 @@ final backgroundDownloadServiceProvider = Provider<BackgroundDownloadService?>((
 /// OS-native background upload service. Dispatches encrypted chunks as
 /// individual [UploadTask]s so uploads survive app suspension on mobile.
 ///
-/// Null if not logged in (no API client).
+/// Null until there is both an API client and an account — the account
+/// stamps every task id, which is what lets a later sign-in tell this
+/// account's transfers from another's.
 final backgroundUploadServiceProvider = Provider<BackgroundUploadService?>((
   ref,
 ) {
   final client = ref.watch(apiClientProvider);
-  if (client == null) return null;
+  final account = ref.watch(activeAccountProvider);
+  if (client == null || account == null) return null;
 
-  final bus = BackgroundUploadService(baseUrl: client.baseUrl);
+  final bus = BackgroundUploadService(
+    baseUrl: client.baseUrl,
+    accountId: account.id,
+  );
   bus.setTransferManager(ref.read(transferManagerProvider));
   ref.onDispose(() => bus.dispose());
   return bus;
@@ -346,13 +360,40 @@ final backgroundTarTransferProvider = Provider<BackgroundTarTransfer?>((ref) {
   return service;
 });
 
+/// Reconciles the OS transfer queue with the account that just signed in.
+///
+/// A provider rather than a direct call so tests can override it away — it
+/// reaches into `background_downloader`, which spins up real platform work
+/// the moment it is touched. Same reason [mcpServerProvider] is overridden
+/// to null in widget tests.
+final transferReconcilerProvider =
+    Provider<Future<void> Function(String accountId)?>((ref) {
+      final db = ref.watch(databaseProvider);
+      return (accountId) =>
+          reconcileTransfersForAccount(db: db, accountId: accountId);
+    });
+
+/// Direct-transfer leg: one OS-native task per encrypted chunk, straight at
+/// the bucket. Independent of [apiClientProvider] because a presigned URL
+/// needs nothing from the session — and a leg that never sees a cookie cannot
+/// send one to object storage.
+final directChunkDownloadProvider = Provider<DirectChunkDownloadService>((ref) {
+  final service = DirectChunkDownloadService();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
 /// Chunk-download transport used by [ChunkDownloadPipeline]. Wraps
-/// [BackgroundTarTransfer] so the tar leg is backgroundable; the per-chunk
+/// [BackgroundTarTransfer] for the tar leg and [DirectChunkDownloadService]
+/// for presigned chunks, so both survive app suspension; the per-chunk
 /// fallback still goes through the Rust HTTP pipeline.
 final chunkDownloadTransportProvider = Provider<ChunkDownloadTransport?>((ref) {
   final tarTransfer = ref.watch(backgroundTarTransferProvider);
   if (tarTransfer == null) return null;
-  return BackgroundDownloaderChunkTransport(tarTransfer: tarTransfer);
+  return BackgroundDownloaderChunkTransport(
+    tarTransfer: tarTransfer,
+    directChunks: ref.watch(directChunkDownloadProvider),
+  );
 });
 
 /// Upload-tar transport used by [BinaryUploadPipeline]. Wraps
@@ -663,12 +704,14 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
     sharedUpload: sharedUpload,
   );
 
-  // Wire cancel: UI → TransferManager → WorkerManager + BackgroundUploadService + BackgroundDownloadService + BackgroundTarTransfer + FileOperations
+  // Wire cancel: UI → TransferManager → WorkerManager + BackgroundUploadService + BackgroundDownloadService + BackgroundTarTransfer + DirectChunkDownloadService + FileOperations
+  final directChunks = ref.read(directChunkDownloadProvider);
   tm.onCancelRequested = (fileId) {
     wm?.cancelEncryption(fileId);
     bus?.cancelUpload(fileId);
     bds?.cancelDownload(fileId);
     tarTransfer?.cancel(fileId);
+    directChunks.cancel(fileId);
     ops.requestCancel(fileId);
   };
 

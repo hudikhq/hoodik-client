@@ -18,7 +18,16 @@ const _log = Logger('BackgroundUploadService');
 /// at once — the rest wait automatically. On iOS this uses URLSession, on
 /// Android WorkManager, so uploads survive app suspension.
 class BackgroundUploadService {
+  static const String group = 'chunk-uploads';
+  static const String _taskPrefix = '$group|';
+
   final String baseUrl;
+
+  /// Owner stamped into every task id. The OS hands tasks back after a
+  /// restart with nothing but the id to go on, so a task that does not carry
+  /// its account cannot be told from another account's leftovers — see
+  /// [transferTaskId].
+  final String accountId;
 
   /// Per-file upload state keyed by file ID.
   final Map<String, _FileUploadInfo> _active = {};
@@ -34,7 +43,7 @@ class BackgroundUploadService {
 
   TransferManager? _transferManager;
 
-  BackgroundUploadService({required this.baseUrl});
+  BackgroundUploadService({required this.baseUrl, required this.accountId});
 
   void setTransferManager(TransferManager tm) {
     _transferManager = tm;
@@ -83,9 +92,9 @@ class BackgroundUploadService {
   }
 
   void dispose() {
-    FileDownloader().cancelAll(group: 'chunk-uploads');
-    FileDownloader().database.deleteAllRecords(group: 'chunk-uploads');
-    unregisterTaskUpdateHandler('upload:');
+    FileDownloader().cancelAll(group: group);
+    FileDownloader().database.deleteAllRecords(group: group);
+    unregisterTaskUpdateHandler(_taskPrefix);
 
     for (final completer in _completers.values) {
       if (!completer.isCompleted) {
@@ -105,7 +114,7 @@ class BackgroundUploadService {
     () async {
       try {
         await ensureFileDownloaderConfigured();
-        registerTaskUpdateHandler('upload:', _handleUpdate);
+        registerTaskUpdateHandler(_taskPrefix, _handleUpdate);
 
         final info = _FileUploadInfo(
           fileId: cmd.fileId,
@@ -135,7 +144,7 @@ class BackgroundUploadService {
             baseDirectory: BaseDirectory.root,
             headers: {'Authorization': 'Bearer ${cmd.transferToken}'},
             mimeType: 'application/octet-stream',
-            group: 'chunk-uploads',
+            group: group,
             updates: Updates.statusAndProgress,
             retries: 3,
           );
@@ -299,20 +308,19 @@ class BackgroundUploadService {
 
   // ── Task ID helpers ─────────────────────────────────────────────────────
 
-  /// Task ID format: `upload:{fileId}:{chunkIndex}`.
-  static String _taskId(String fileId, int chunkIndex) =>
-      'upload:$fileId:$chunkIndex';
+  String _taskId(String fileId, int chunkIndex) => transferTaskId(
+    prefix: group,
+    accountId: accountId,
+    fileId: fileId,
+    chunk: chunkIndex,
+  );
 
   /// Parse task ID back to (fileId, chunkIndex). Returns null for
   /// task IDs that don't belong to this service.
   static (String, int)? _parseTaskId(String taskId) {
-    if (!taskId.startsWith('upload:')) return null;
-    final rest = taskId.substring(7); // after 'upload:'
-    final lastColon = rest.lastIndexOf(':');
-    if (lastColon < 0) return null;
-    final fileId = rest.substring(0, lastColon);
-    final chunkIndex = int.tryParse(rest.substring(lastColon + 1));
-    if (chunkIndex == null) return null;
+    final fileId = fileIdFromTaskId(taskId);
+    final chunkIndex = chunkFromTaskId(taskId);
+    if (fileId == null || chunkIndex == null) return null;
     return (fileId, chunkIndex);
   }
 }
