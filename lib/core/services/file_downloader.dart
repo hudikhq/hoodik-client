@@ -102,6 +102,7 @@ class FileDownloader {
     accountId: _accountId!,
     transport: _chunkDownloadTransport!,
     database: _database,
+    fileCrypto: _fileCrypto,
     transferManager: _transferManager,
   );
 

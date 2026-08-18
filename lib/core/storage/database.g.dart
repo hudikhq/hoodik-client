@@ -3576,6 +3576,15 @@ class $PendingDownloadsTable extends PendingDownloads
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<String?, String> outputPath =
+      GeneratedColumn<String>(
+        'output_path',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<String?>($PendingDownloadsTable.$converteroutputPath);
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3595,6 +3604,7 @@ class $PendingDownloadsTable extends PendingDownloads
     fileId,
     chunkCount,
     outputDir,
+    outputPath,
     createdAt,
   ];
   @override
@@ -3683,6 +3693,12 @@ class $PendingDownloadsTable extends PendingDownloads
         DriftSqlType.string,
         data['${effectivePrefix}output_dir'],
       )!,
+      outputPath: $PendingDownloadsTable.$converteroutputPath.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}output_path'],
+        ),
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3694,6 +3710,9 @@ class $PendingDownloadsTable extends PendingDownloads
   $PendingDownloadsTable createAlias(String alias) {
     return $PendingDownloadsTable(attachedDatabase, alias);
   }
+
+  static TypeConverter<String?, String?> $converteroutputPath =
+      const AtRestTextConverter();
 }
 
 class PendingDownload extends DataClass implements Insertable<PendingDownload> {
@@ -3708,6 +3727,15 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
   /// Where the chunks are being collected, so a resumed transfer writes into
   /// the same place rather than starting a second one alongside it.
   final String outputDir;
+
+  /// Where the finished, decrypted file was headed, so a resume can land it
+  /// where the user asked rather than only filling the cache.
+  ///
+  /// Sealed at rest for the same reason [CachedFiles.decryptedName] is: a save
+  /// path names the file, and often says something about the person too.
+  /// Null for a download with no destination, which is what pinning a file for
+  /// offline use is.
+  final String? outputPath;
   final DateTime createdAt;
   const PendingDownload({
     required this.id,
@@ -3715,6 +3743,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
     required this.fileId,
     required this.chunkCount,
     required this.outputDir,
+    this.outputPath,
     required this.createdAt,
   });
   @override
@@ -3725,6 +3754,11 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
     map['file_id'] = Variable<String>(fileId);
     map['chunk_count'] = Variable<int>(chunkCount);
     map['output_dir'] = Variable<String>(outputDir);
+    if (!nullToAbsent || outputPath != null) {
+      map['output_path'] = Variable<String>(
+        $PendingDownloadsTable.$converteroutputPath.toSql(outputPath),
+      );
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -3736,6 +3770,9 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
       fileId: Value(fileId),
       chunkCount: Value(chunkCount),
       outputDir: Value(outputDir),
+      outputPath: outputPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(outputPath),
       createdAt: Value(createdAt),
     );
   }
@@ -3751,6 +3788,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
       fileId: serializer.fromJson<String>(json['fileId']),
       chunkCount: serializer.fromJson<int>(json['chunkCount']),
       outputDir: serializer.fromJson<String>(json['outputDir']),
+      outputPath: serializer.fromJson<String?>(json['outputPath']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -3763,6 +3801,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
       'fileId': serializer.toJson<String>(fileId),
       'chunkCount': serializer.toJson<int>(chunkCount),
       'outputDir': serializer.toJson<String>(outputDir),
+      'outputPath': serializer.toJson<String?>(outputPath),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -3773,6 +3812,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
     String? fileId,
     int? chunkCount,
     String? outputDir,
+    Value<String?> outputPath = const Value.absent(),
     DateTime? createdAt,
   }) => PendingDownload(
     id: id ?? this.id,
@@ -3780,6 +3820,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
     fileId: fileId ?? this.fileId,
     chunkCount: chunkCount ?? this.chunkCount,
     outputDir: outputDir ?? this.outputDir,
+    outputPath: outputPath.present ? outputPath.value : this.outputPath,
     createdAt: createdAt ?? this.createdAt,
   );
   PendingDownload copyWithCompanion(PendingDownloadsCompanion data) {
@@ -3791,6 +3832,9 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
           ? data.chunkCount.value
           : this.chunkCount,
       outputDir: data.outputDir.present ? data.outputDir.value : this.outputDir,
+      outputPath: data.outputPath.present
+          ? data.outputPath.value
+          : this.outputPath,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -3803,14 +3847,22 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
           ..write('fileId: $fileId, ')
           ..write('chunkCount: $chunkCount, ')
           ..write('outputDir: $outputDir, ')
+          ..write('outputPath: $outputPath, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, accountId, fileId, chunkCount, outputDir, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    accountId,
+    fileId,
+    chunkCount,
+    outputDir,
+    outputPath,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3820,6 +3872,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
           other.fileId == this.fileId &&
           other.chunkCount == this.chunkCount &&
           other.outputDir == this.outputDir &&
+          other.outputPath == this.outputPath &&
           other.createdAt == this.createdAt);
 }
 
@@ -3829,6 +3882,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
   final Value<String> fileId;
   final Value<int> chunkCount;
   final Value<String> outputDir;
+  final Value<String?> outputPath;
   final Value<DateTime> createdAt;
   const PendingDownloadsCompanion({
     this.id = const Value.absent(),
@@ -3836,6 +3890,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
     this.fileId = const Value.absent(),
     this.chunkCount = const Value.absent(),
     this.outputDir = const Value.absent(),
+    this.outputPath = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   PendingDownloadsCompanion.insert({
@@ -3844,6 +3899,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
     required String fileId,
     required int chunkCount,
     required String outputDir,
+    this.outputPath = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : accountId = Value(accountId),
        fileId = Value(fileId),
@@ -3855,6 +3911,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
     Expression<String>? fileId,
     Expression<int>? chunkCount,
     Expression<String>? outputDir,
+    Expression<String>? outputPath,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -3863,6 +3920,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
       if (fileId != null) 'file_id': fileId,
       if (chunkCount != null) 'chunk_count': chunkCount,
       if (outputDir != null) 'output_dir': outputDir,
+      if (outputPath != null) 'output_path': outputPath,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -3873,6 +3931,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
     Value<String>? fileId,
     Value<int>? chunkCount,
     Value<String>? outputDir,
+    Value<String?>? outputPath,
     Value<DateTime>? createdAt,
   }) {
     return PendingDownloadsCompanion(
@@ -3881,6 +3940,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
       fileId: fileId ?? this.fileId,
       chunkCount: chunkCount ?? this.chunkCount,
       outputDir: outputDir ?? this.outputDir,
+      outputPath: outputPath ?? this.outputPath,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -3903,6 +3963,11 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
     if (outputDir.present) {
       map['output_dir'] = Variable<String>(outputDir.value);
     }
+    if (outputPath.present) {
+      map['output_path'] = Variable<String>(
+        $PendingDownloadsTable.$converteroutputPath.toSql(outputPath.value),
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -3917,6 +3982,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
           ..write('fileId: $fileId, ')
           ..write('chunkCount: $chunkCount, ')
           ..write('outputDir: $outputDir, ')
+          ..write('outputPath: $outputPath, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -7761,6 +7827,7 @@ typedef $$PendingDownloadsTableCreateCompanionBuilder =
       required String fileId,
       required int chunkCount,
       required String outputDir,
+      Value<String?> outputPath,
       Value<DateTime> createdAt,
     });
 typedef $$PendingDownloadsTableUpdateCompanionBuilder =
@@ -7770,6 +7837,7 @@ typedef $$PendingDownloadsTableUpdateCompanionBuilder =
       Value<String> fileId,
       Value<int> chunkCount,
       Value<String> outputDir,
+      Value<String?> outputPath,
       Value<DateTime> createdAt,
     });
 
@@ -7806,6 +7874,12 @@ class $$PendingDownloadsTableFilterComposer
     column: $table.outputDir,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnWithTypeConverterFilters<String?, String, String> get outputPath =>
+      $composableBuilder(
+        column: $table.outputPath,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
@@ -7847,6 +7921,11 @@ class $$PendingDownloadsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get outputPath => $composableBuilder(
+    column: $table.outputPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -7878,6 +7957,12 @@ class $$PendingDownloadsTableAnnotationComposer
 
   GeneratedColumn<String> get outputDir =>
       $composableBuilder(column: $table.outputDir, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<String?, String> get outputPath =>
+      $composableBuilder(
+        column: $table.outputPath,
+        builder: (column) => column,
+      );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -7925,6 +8010,7 @@ class $$PendingDownloadsTableTableManager
                 Value<String> fileId = const Value.absent(),
                 Value<int> chunkCount = const Value.absent(),
                 Value<String> outputDir = const Value.absent(),
+                Value<String?> outputPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => PendingDownloadsCompanion(
                 id: id,
@@ -7932,6 +8018,7 @@ class $$PendingDownloadsTableTableManager
                 fileId: fileId,
                 chunkCount: chunkCount,
                 outputDir: outputDir,
+                outputPath: outputPath,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -7941,6 +8028,7 @@ class $$PendingDownloadsTableTableManager
                 required String fileId,
                 required int chunkCount,
                 required String outputDir,
+                Value<String?> outputPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => PendingDownloadsCompanion.insert(
                 id: id,
@@ -7948,6 +8036,7 @@ class $$PendingDownloadsTableTableManager
                 fileId: fileId,
                 chunkCount: chunkCount,
                 outputDir: outputDir,
+                outputPath: outputPath,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

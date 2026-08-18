@@ -33,6 +33,26 @@ class StorageClient {
 
   /// `POST /api/storage/stats` — aggregated storage usage for the current
   /// account (used-space, quota, breakdown by mime).
+  /// `GET /api/storage/by-hash/{hash}` — the caller's files whose bytes hash
+  /// to [hash], in any of the four digests stored at upload.
+  ///
+  /// Answers "do you already have these bytes" without going through the
+  /// search index, so it works on files that were never indexed. Independent
+  /// of the text index by design: whether a file is indexed has nothing to do
+  /// with whether its bytes match.
+  Future<List<FileItem>> filesByHash(String hash, {bool compact = false}) async {
+    final resp = await _dio.get(
+      '/api/storage/by-hash/$hash',
+      queryParameters: compact ? {'compact': true} : null,
+    );
+    final rows = resp.data is List ? resp.data as List : const [];
+
+    return rows
+        .whereType<Map<String, dynamic>>()
+        .map(FileItem.fromJson)
+        .toList();
+  }
+
   /// `GET /api/storage/reindex` — files that still need re-indexing against
   /// the keyed search scheme.
   ///

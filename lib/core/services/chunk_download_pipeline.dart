@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../src/rust/api.dart' as rust;
 import '../api/api_client.dart';
+import '../crypto/file_crypto.dart';
 import '../storage/database.dart';
 import '../utils/log_redact.dart';
 import '../utils/logger.dart';
@@ -34,6 +35,7 @@ class ChunkDownloadPipeline {
   final TransferManager? _transferManager;
   final ChunkDownloadRunner _runner;
   final AppDatabase? _database;
+  final FileCrypto? _fileCrypto;
   final String _accountId;
 
   ChunkDownloadPipeline({
@@ -43,9 +45,11 @@ class ChunkDownloadPipeline {
     required String accountId,
     required ChunkDownloadTransport transport,
     AppDatabase? database,
+    FileCrypto? fileCrypto,
     TransferManager? transferManager,
   }) : _client = client,
        _database = database,
+       _fileCrypto = fileCrypto,
        _offlineManager = offlineManager,
        _accountId = accountId,
        _transferManager = transferManager,
@@ -109,6 +113,7 @@ class ChunkDownloadPipeline {
             fileSize: totalBytes,
             chunkCount: totalChunks,
             chunksPath: chunksPath,
+            outputPath: outputPath,
             onProgress: downloadItem == null
                 ? null
                 : (completedChunks, transferredBytes) =>
@@ -162,16 +167,11 @@ class ChunkDownloadPipeline {
   }
 
   /// Finish the downloads a previous session started that the OS is no longer
-  /// carrying.
+  /// carrying, decrypting each one to where the user originally asked for it.
   ///
-  /// Only the chunks are fetched. Where the user originally asked the finished
-  /// file to be written is not recorded, so a resumed transfer fills the
-  /// offline cache instead and opening that file afterwards is immediate
-  /// rather than another download. Each one shows in the transfer list while
-  /// it runs, so it can be cancelled like anything else.
-  ///
-  /// One failure does not stop the rest: a file whose manifest is gone says
-  /// nothing about the next file's.
+  /// Each shows in the transfer list while it runs, so it can be cancelled
+  /// like anything else. One failure does not stop the rest: a file whose
+  /// manifest is gone says nothing about the next file's.
   Future<void> resumeInterrupted(List<PendingDownload> rows) async {
     for (final row in rows) {
       try {
@@ -191,14 +191,15 @@ class ChunkDownloadPipeline {
       row.chunkCount,
     );
 
+    final cached = await _database?.getCachedFileById(_accountId, row.fileId);
+
     // The OS finished it while the app was gone. Nothing left to fetch; it
     // just was never written down as done.
     if (present.length >= row.chunkCount) {
-      await _finishResumed(row);
+      await _finishResumed(row, cached);
       return;
     }
 
-    final cached = await _database?.getCachedFileById(_accountId, row.fileId);
     final item = _transferManager?.startTransfer(
       fileName: cached?.decryptedName ?? row.fileId.substring(0, 8),
       type: TransferType.downloadHttp,
@@ -234,16 +235,17 @@ class ChunkDownloadPipeline {
     }
 
     if (item != null) _transferManager?.completeTransfer(item.id);
-    await _finishResumed(row);
+    await _finishResumed(row, cached);
   }
 
-  Future<void> _finishResumed(PendingDownload row) async {
+  Future<void> _finishResumed(PendingDownload row, CachedFile? cached) async {
     await _offlineManager.registerChunks(
       accountId: _accountId,
       fileId: row.fileId,
       chunksDir: row.outputDir,
       chunkCount: row.chunkCount,
     );
+    await _writeResumedOutput(row, cached);
     await _offlineManager.clearPendingDownload(
       accountId: _accountId,
       fileId: row.fileId,
@@ -251,11 +253,46 @@ class ChunkDownloadPipeline {
     _log.info('resumed download finished', fields: {'file_id': row.fileId});
   }
 
+  /// Decrypt a resumed download to the destination it was originally headed
+  /// for.
+  ///
+  /// Skipped when there is no destination, which is what pinning a file for
+  /// offline use is, and when the key cannot be rebuilt — the account may have
+  /// lost access to the file between the two sessions. Either way the chunks
+  /// are cached, so opening the file is immediate rather than another
+  /// download, and the failure is not worth losing that over.
+  Future<void> _writeResumedOutput(
+    PendingDownload row,
+    CachedFile? cached,
+  ) async {
+    final outputPath = row.outputPath;
+    final crypto = _fileCrypto;
+    final encryptedKey = cached?.encryptedKey;
+    if (outputPath == null || crypto == null || encryptedKey == null) return;
+
+    try {
+      await rust.decryptChunksToFile(
+        chunksDir: row.outputDir,
+        chunkCount: BigInt.from(row.chunkCount),
+        decryptionKey: crypto.decryptFileKey(encryptedKey),
+        cipher: cached!.cipher,
+        outputPath: outputPath,
+        fileId: row.fileId,
+      );
+    } catch (e) {
+      _log.warn(
+        'resumed download stayed in the cache, could not be written out',
+        fields: {'file_id': row.fileId, 'error': describeError(e)},
+      );
+    }
+  }
+
   Future<void> _downloadChunks({
     required String fileId,
     required int fileSize,
     required int chunkCount,
     required String chunksPath,
+    String? outputPath,
     void Function(int completedChunks, int transferredBytes)? onProgress,
   }) async {
     final alreadyDownloaded = await _offlineManager.getDownloadedChunks(
@@ -280,6 +317,7 @@ class ChunkDownloadPipeline {
       fileId: fileId,
       chunkCount: chunkCount,
       outputDir: chunksPath,
+      outputPath: outputPath,
     );
 
     await _runner.run(

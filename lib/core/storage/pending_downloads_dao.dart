@@ -18,6 +18,7 @@ extension PendingDownloadsDao on AppDatabase {
     required String fileId,
     required int chunkCount,
     required String outputDir,
+    String? outputPath,
   }) async {
     await into(pendingDownloads).insert(
       PendingDownloadsCompanion.insert(
@@ -25,11 +26,13 @@ extension PendingDownloadsDao on AppDatabase {
         fileId: fileId,
         chunkCount: chunkCount,
         outputDir: outputDir,
+        outputPath: Value(outputPath),
       ),
       onConflict: DoUpdate(
         (_) => PendingDownloadsCompanion(
           chunkCount: Value(chunkCount),
           outputDir: Value(outputDir),
+          outputPath: Value(outputPath),
         ),
         target: [pendingDownloads.accountId, pendingDownloads.fileId],
       ),

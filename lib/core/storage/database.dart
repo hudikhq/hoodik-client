@@ -188,6 +188,16 @@ class PendingDownloads extends Table {
   /// the same place rather than starting a second one alongside it.
   TextColumn get outputDir => text()();
 
+  /// Where the finished, decrypted file was headed, so a resume can land it
+  /// where the user asked rather than only filling the cache.
+  ///
+  /// Sealed at rest for the same reason [CachedFiles.decryptedName] is: a save
+  /// path names the file, and often says something about the person too.
+  /// Null for a download with no destination, which is what pinning a file for
+  /// offline use is.
+  TextColumn get outputPath =>
+      text().map(const AtRestTextConverter()).nullable()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
@@ -310,7 +320,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -382,6 +392,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 20 && to >= 20) {
         await m.createTable(pendingDownloads);
+      }
+      if (from < 21 && to >= 21) {
+        await m.addColumn(pendingDownloads, pendingDownloads.outputPath);
       }
     },
   );

@@ -38,11 +38,13 @@ class OfflineManager extends ChangeNotifier {
     required String fileId,
     required int chunkCount,
     required String outputDir,
+    String? outputPath,
   }) => _db.recordPendingDownload(
     accountId: accountId,
     fileId: fileId,
     chunkCount: chunkCount,
     outputDir: outputDir,
+    outputPath: outputPath,
   );
 
   /// Forget a download once its chunks are all on disk, or the user drops it.
