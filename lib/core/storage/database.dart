@@ -331,41 +331,56 @@ class AppDatabase extends _$AppDatabase {
   /// that sees an unchanged version never runs the upgrade at all.
   static const int currentSchemaVersion = 21;
 
+  /// Steps run one at a time and each commits its own `user_version`, so an
+  /// upgrade that dies on step N resumes at N on the next launch instead of
+  /// replaying every step since the installed version. On top of that each
+  /// step is idempotent: statements already committed by a half-finished run
+  /// are recognised and skipped rather than throwing.
+  ///
+  /// Both halves are needed. Drift runs `onUpgrade` outside a transaction, so
+  /// the DDL a failing step already issued stays in the file — a phone that
+  /// upgraded before v21 was fixed kept the `pending_downloads` v20 had built
+  /// for it and then met that same `CREATE TABLE` again on every later launch.
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
-    onUpgrade: (m, from, to) async {
-      if (from < 2 && to >= 2) {
-        await m.addColumn(accounts, accounts.pinEncryptedPrivateKey);
-      }
-      if (from < 3 && to >= 3) {
-        await m.addColumn(accounts, accounts.biometricPin);
-      }
-      if (from < 4 && to >= 4) {
-        await m.addColumn(offlineFiles, offlineFiles.sizeOnDisk);
-        await m.addColumn(offlineFiles, offlineFiles.pinned);
-        await m.addColumn(offlineFiles, offlineFiles.lastAccessedAt);
-      }
+    onUpgrade: (m, from, to) =>
+        m.runMigrationSteps(from: from, to: to, steps: _upgradeStep),
+  );
+
+  /// Upgrades a database at version [from] to the next version, so `case 19`
+  /// is the step that arrives at v20.
+  ///
+  /// Every `CREATE TABLE` here is written out rather than built with
+  /// `createTable`, which would emit the table's *current* definition: a step
+  /// that later gains a column would start creating it complete, and the step
+  /// meant to add that column would find it already there.
+  Future<int> _upgradeStep(int from, GeneratedDatabase db) async {
+    final m = Migrator(db);
+    switch (from) {
+      case 1:
+        await _addColumn(m, accounts, accounts.pinEncryptedPrivateKey);
+      case 2:
+        await _addColumn(m, accounts, accounts.biometricPin);
+      case 3:
+        await _addColumn(m, offlineFiles, offlineFiles.sizeOnDisk);
+        await _addColumn(m, offlineFiles, offlineFiles.pinned);
+        await _addColumn(m, offlineFiles, offlineFiles.lastAccessedAt);
       // v5 created the subscriptions table and v11 extended it; both steps
       // were dropped along with the table when the app went free in v18 —
-      // upgraders from < 5 simply never get the table, and the v18 step
-      // below cleans it up on every database that still has it.
-      if (from < 6 && to >= 6) {
-        await m.addColumn(accounts, accounts.cacheLimitBytes);
-      }
-      if (from < 7 && to >= 7) {
-        await m.addColumn(servers, servers.trustSelfSignedCerts);
-      }
-      if (from < 8 && to >= 8) {
-        await m.addColumn(servers, servers.useHeaderAuth);
-        await m.addColumn(accounts, accounts.headerJwt);
-        await m.addColumn(accounts, accounts.headerRefreshToken);
-      }
-      if (from < 9 && to >= 9) {
-        // v9 created the old singleton McpSettings table — v10 replaces it.
-        // Frozen DDL: `createTable` would build today's columns, and v14 goes
-        // on to add three of them.
-        await customStatement('''
+      // upgraders from < 5 simply never get the table, and the step that
+      // arrives at v18 cleans it up on every database that still has it.
+      case 5:
+        await _addColumn(m, accounts, accounts.cacheLimitBytes);
+      case 6:
+        await _addColumn(m, servers, servers.trustSelfSignedCerts);
+      case 7:
+        await _addColumn(m, servers, servers.useHeaderAuth);
+        await _addColumn(m, accounts, accounts.headerJwt);
+        await _addColumn(m, accounts, accounts.headerRefreshToken);
+      case 8:
+        // The old singleton McpSettings table — v10 replaces it.
+        await db.customStatement('''
           CREATE TABLE IF NOT EXISTS mcp_settings (
             account_id TEXT NOT NULL,
             enabled INTEGER NOT NULL DEFAULT 0,
@@ -374,12 +389,12 @@ class AppDatabase extends _$AppDatabase {
             created_at INTEGER NOT NULL DEFAULT (strftime('%s', CURRENT_TIMESTAMP))
           )
         ''');
-      }
-      if (from < 10 && to >= 10) {
+      case 9:
         // Recreate McpSettings with accountId as primary key (per-account).
-        // Frozen at the v10 shape; v14 adds the rest.
+        // The drop is what makes the step repeatable; the table is a settings
+        // singleton created empty one version earlier, so nothing is lost.
         await m.deleteTable('mcp_settings');
-        await customStatement('''
+        await db.customStatement('''
           CREATE TABLE mcp_settings (
             account_id TEXT NOT NULL,
             enabled INTEGER NOT NULL DEFAULT 0,
@@ -389,17 +404,12 @@ class AppDatabase extends _$AppDatabase {
             PRIMARY KEY (account_id)
           )
         ''');
-      }
-      if (from < 12 && to >= 12) {
-        await m.addColumn(pendingUploads, pendingUploads.retryCount);
-        await m.addColumn(pendingUploads, pendingUploads.nextRetryAt);
-      }
-      if (from < 13 && to >= 13) {
-        // Frozen at the v13 shape. Nothing has extended this table yet, and
-        // this is what keeps the first column anybody adds from breaking the
-        // upgrade the way `pending_downloads` did.
-        await customStatement('''
-          CREATE TABLE mcp_audit_log (
+      case 11:
+        await _addColumn(m, pendingUploads, pendingUploads.retryCount);
+        await _addColumn(m, pendingUploads, pendingUploads.nextRetryAt);
+      case 12:
+        await db.customStatement('''
+          CREATE TABLE IF NOT EXISTS mcp_audit_log (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
             timestamp INTEGER NOT NULL,
             session_id TEXT NOT NULL,
@@ -411,20 +421,16 @@ class AppDatabase extends _$AppDatabase {
             duration_ms INTEGER NOT NULL
           )
         ''');
-      }
-      if (from < 14 && to >= 14) {
-        await m.addColumn(mcpSettings, mcpSettings.allowReadOnlyWhileLocked);
-        await m.addColumn(mcpSettings, mcpSettings.rateLimitRps);
-        await m.addColumn(mcpSettings, mcpSettings.rateLimitBurst);
-      }
-      if (from < 15 && to >= 15) {
-        await m.addColumn(mcpSettings, mcpSettings.auditRetentionDays);
-        await m.addColumn(mcpSettings, mcpSettings.lastAuditCleanupAt);
-      }
-      if (from < 16 && to >= 16) {
-        // Frozen at the v16 shape — v19 adds `email`.
-        await customStatement('''
-          CREATE TABLE trusted_fingerprints (
+      case 13:
+        await _addColumn(m, mcpSettings, mcpSettings.allowReadOnlyWhileLocked);
+        await _addColumn(m, mcpSettings, mcpSettings.rateLimitRps);
+        await _addColumn(m, mcpSettings, mcpSettings.rateLimitBurst);
+      case 14:
+        await _addColumn(m, mcpSettings, mcpSettings.auditRetentionDays);
+        await _addColumn(m, mcpSettings, mcpSettings.lastAuditCleanupAt);
+      case 15:
+        await db.customStatement('''
+          CREATE TABLE IF NOT EXISTS trusted_fingerprints (
             owner_user_id TEXT NOT NULL,
             user_id TEXT NOT NULL,
             fingerprint TEXT NOT NULL,
@@ -434,21 +440,16 @@ class AppDatabase extends _$AppDatabase {
             PRIMARY KEY (owner_user_id, user_id)
           )
         ''');
-      }
-      if (from < 17 && to >= 17) {
-        await m.addColumn(accounts, accounts.wrappingPublicKey);
-      }
-      if (from < 18 && to >= 18) {
+      case 16:
+        await _addColumn(m, accounts, accounts.wrappingPublicKey);
+      case 17:
         // The app went free — the IAP/trial cache is gone for good.
         await m.deleteTable('subscriptions');
-      }
-      if (from < 19 && to >= 19) {
-        await m.addColumn(trustedFingerprints, trustedFingerprints.email);
-      }
-      if (from < 20 && to >= 20) {
-        // Frozen at the v20 shape — v21 adds `output_path`.
-        await customStatement('''
-          CREATE TABLE pending_downloads (
+      case 18:
+        await _addColumn(m, trustedFingerprints, trustedFingerprints.email);
+      case 19:
+        await db.customStatement('''
+          CREATE TABLE IF NOT EXISTS pending_downloads (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
             account_id TEXT NOT NULL,
             file_id TEXT NOT NULL,
@@ -458,12 +459,31 @@ class AppDatabase extends _$AppDatabase {
             UNIQUE (account_id, file_id)
           )
         ''');
-      }
-      if (from < 21 && to >= 21) {
-        await m.addColumn(pendingDownloads, pendingDownloads.outputPath);
-      }
-    },
-  );
+      case 20:
+        await _addColumn(m, pendingDownloads, pendingDownloads.outputPath);
+    }
+    return from + 1;
+  }
+
+  /// Adds [column] to [table] unless the live schema already has it.
+  ///
+  /// Reading the schema rather than trusting the version number is what lets a
+  /// retried step get past the statements its previous attempt had already
+  /// committed.
+  static Future<void> _addColumn(
+    Migrator m,
+    TableInfo table,
+    GeneratedColumn column,
+  ) async {
+    final present = await m.database
+        .customSelect(
+          "SELECT 1 FROM pragma_table_info('${table.actualTableName}') "
+          'WHERE name = ?',
+          variables: [Variable<String>(column.$name)],
+        )
+        .get();
+    if (present.isEmpty) await m.addColumn(table, column);
+  }
 
   // ── Server operations ──────────────────────────────────────────────
 

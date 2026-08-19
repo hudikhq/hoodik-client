@@ -882,16 +882,131 @@ void main() {
       }
     });
 
-    // The guard against regression: no step may build a table from the live
-    // Dart definition, because that is the thing that goes stale.
-    test('no upgrade step creates a table from the current definition', () {
+    // The guard against regression: a step may neither build a table from the
+    // live Dart definition, because that is the thing that goes stale, nor add
+    // a column unguarded, because a retried step meets its own finished work.
+    test('every step freezes its DDL and guards its columns', () {
       final source = File('lib/core/storage/database.dart').readAsStringSync();
-      final onUpgrade = source.substring(source.indexOf('onUpgrade:'));
+      final steps = source.substring(
+        source.indexOf('Future<int> _upgradeStep('),
+        source.indexOf('static Future<void> _addColumn('),
+      );
       expect(
-        onUpgrade.contains('m.createTable('),
+        steps.contains('m.createTable('),
         isFalse,
         reason: 'freeze the DDL at the version the step belongs to instead',
       );
+      expect(
+        steps.contains('m.addColumn('),
+        isFalse,
+        reason: 'go through _addColumn so a retried step skips its own work',
+      );
+    });
+  });
+
+  // ── Interrupted upgrades ───────────────────────────────────────────
+  //
+  // Drift runs `onUpgrade` outside a transaction, so a step that throws leaves
+  // everything it had already issued committed in the file. Two properties
+  // keep that survivable, and both are checked here: the version advances one
+  // step at a time so a retry resumes where it stopped, and every step is
+  // idempotent so the retry gets past its own leftovers.
+  group('interrupted upgrades', () {
+    Future<AppDatabase> memoryDb() async {
+      final silence = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
+      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+      addTearDown(() {
+        driftRuntimeOptions.dontWarnAboutMultipleDatabases = silence;
+      });
+
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      return db;
+    }
+
+    Future<int> userVersion(AppDatabase db) async {
+      final row = await db.customSelect('PRAGMA user_version').getSingle();
+      return row.read<int>('user_version');
+    }
+
+    Future<Map<String, List<String>>> schemaOf(AppDatabase db) async {
+      final tables = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name NOT LIKE 'sqlite_%' ORDER BY name",
+          )
+          .get();
+      final schema = <String, List<String>>{};
+      for (final table in tables.map((r) => r.read<String>('name'))) {
+        final columns = await db
+            .customSelect(
+              "SELECT name FROM pragma_table_info('$table') ORDER BY name",
+            )
+            .get();
+        schema[table] = columns.map((r) => r.read<String>('name')).toList();
+      }
+      return schema;
+    }
+
+    // The failure that shipped. An older build created `pending_downloads`
+    // from the live definition at v20, complete with `output_path`, and then
+    // threw adding that column at v21 — leaving the table behind at version
+    // 19. Every launch after that met its own table again.
+    test('resumes past a table an aborted run already created', () async {
+      final db = await memoryDb();
+
+      await db.customStatement('DROP TABLE pending_downloads');
+      await db.customStatement('''
+        CREATE TABLE pending_downloads (
+          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          account_id TEXT NOT NULL,
+          file_id TEXT NOT NULL,
+          chunk_count INTEGER NOT NULL,
+          output_dir TEXT NOT NULL,
+          output_path TEXT,
+          created_at INTEGER NOT NULL DEFAULT (strftime('%s', CURRENT_TIMESTAMP)),
+          UNIQUE (account_id, file_id)
+        )
+      ''');
+      await db.customStatement('PRAGMA user_version = 19');
+
+      await db.migration.onUpgrade(Migrator(db), 19, 21);
+
+      final columns = await db
+          .customSelect("SELECT name FROM pragma_table_info('pending_downloads')")
+          .get();
+      expect(
+        columns.map((r) => r.read<String>('name')).where((c) => c == 'output_path'),
+        hasLength(1),
+      );
+      expect(await userVersion(db), 21);
+    });
+
+    test('replaying every step over a current database changes nothing', () async {
+      final db = await memoryDb();
+      final before = await schemaOf(db);
+
+      await db.migration.onUpgrade(Migrator(db), 1, 21);
+
+      expect(await schemaOf(db), before);
+    });
+
+    test('a failing step leaves the version at the last one that finished',
+        () async {
+      final db = await memoryDb();
+
+      // v7 is the first step to touch `servers`; without the table its
+      // `ALTER TABLE` throws the way any genuinely broken step would.
+      await db.customStatement('DROP TABLE servers');
+      await db.customStatement('PRAGMA user_version = 1');
+
+      await expectLater(
+        db.migration.onUpgrade(Migrator(db), 1, 21),
+        throwsA(isA<SqliteException>()),
+      );
+
+      // Steps 1 through 5 finished; the run stopped upgrading 6 to 7.
+      expect(await userVersion(db), 6);
     });
   });
 }
