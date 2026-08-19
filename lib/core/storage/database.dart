@@ -393,7 +393,12 @@ class AppDatabase extends _$AppDatabase {
       if (from < 20 && to >= 20) {
         await m.createTable(pendingDownloads);
       }
-      if (from < 21 && to >= 21) {
+      // Only a database that already carries the v20 table needs the column
+      // added. `createTable` above builds it from the current definition,
+      // which already has `outputPath` — so anyone arriving from before v20
+      // gets the finished table and this step would be adding a column that
+      // is already there.
+      if (from >= 20 && from < 21 && to >= 21) {
         await m.addColumn(pendingDownloads, pendingDownloads.outputPath);
       }
     },

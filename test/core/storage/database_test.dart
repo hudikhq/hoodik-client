@@ -787,4 +787,65 @@ void main() {
       expect(await subscriptionsTableExists(migrationDb), isFalse);
     });
   });
+
+  // ── PendingDownloads v21 migration ─────────────────────────────────
+  //
+  // v20 creates `pending_downloads` from the current definition, which already
+  // carries `output_path`. v21 then added the same column again, so anyone
+  // arriving from before v20 hit "duplicate column name: output_path" and the
+  // app could not open its database at all. Only the phone saw it: a simulator
+  // that had already run a v20 build upgrades 20 → 21 and adds the column to a
+  // table that genuinely lacks it.
+  group('PendingDownloads v21 migration', () {
+    Future<AppDatabase> migrated({required int from}) async {
+      final silenceWarning = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
+      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+      addTearDown(() {
+        driftRuntimeOptions.dontWarnAboutMultipleDatabases = silenceWarning;
+      });
+
+      final migrationDb = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(migrationDb.close);
+
+      await migrationDb.customStatement('DROP TABLE pending_downloads');
+      if (from >= 20) {
+        // The v20 shape: everything the current table has, minus output_path.
+        await migrationDb.customStatement('''
+          CREATE TABLE pending_downloads (
+            account_id TEXT NOT NULL,
+            file_id TEXT NOT NULL,
+            chunk_count INTEGER NOT NULL,
+            output_dir TEXT NOT NULL,
+            started_at INTEGER NOT NULL,
+            PRIMARY KEY (account_id, file_id)
+          );
+        ''');
+      }
+
+      await migrationDb.migration.onUpgrade(Migrator(migrationDb), from, 21);
+      return migrationDb;
+    }
+
+    Future<List<String>> columnsOf(AppDatabase target) async {
+      final rows = await target
+          .customSelect("SELECT name FROM pragma_table_info('pending_downloads')")
+          .get();
+      return rows.map((r) => r.read<String>('name')).toList();
+    }
+
+    test('upgrading from before v20 builds the table complete, once', () async {
+      final db = await migrated(from: 19);
+      final columns = await columnsOf(db);
+      expect(
+        columns.where((c) => c == 'output_path'),
+        hasLength(1),
+        reason: 'v20 already creates it; adding it again throws',
+      );
+    });
+
+    test('upgrading from v20 adds the column the table is missing', () async {
+      final db = await migrated(from: 20);
+      expect(await columnsOf(db), contains('output_path'));
+    });
+  });
 }
