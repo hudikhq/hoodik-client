@@ -119,6 +119,39 @@ class FilesClient {
     }
   }
 
+  /// Write one already-encrypted chunk straight into the bucket.
+  ///
+  /// A bare client on purpose. The presigned URL is signed over the method,
+  /// the object key and the exact content length, so the session must not come
+  /// along: several S3 implementations refuse a request that arrives both
+  /// presigned and authenticated, and the cookie would be handed to a third
+  /// party for nothing.
+  ///
+  /// For content the app already holds in memory — a note being saved. Files
+  /// picked from disk go through [DirectChunkUploadService] instead, which
+  /// hands each chunk to the OS so the transfer survives the app being
+  /// suspended; a note is one small chunk and does not need that.
+  Future<void> putChunkDirect({
+    required String url,
+    required Uint8List data,
+  }) async {
+    final bare = Dio();
+    try {
+      await bare.put<void>(
+        url,
+        data: Stream.fromIterable([data]),
+        options: Options(
+          headers: {
+            Headers.contentLengthHeader: data.length,
+            Headers.contentTypeHeader: 'application/octet-stream',
+          },
+        ),
+      );
+    } finally {
+      bare.close();
+    }
+  }
+
   /// `POST /api/storage/{fileId}/finalize` — commit a file whose chunks went
   /// straight to the bucket.
   ///

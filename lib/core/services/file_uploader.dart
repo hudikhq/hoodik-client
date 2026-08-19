@@ -290,22 +290,59 @@ class FileUploader {
       action: 'upload',
     );
 
+    // Encrypted up front rather than chunk by chunk as they go out: the
+    // server signs each chunk's exact ciphertext length into its URL, so the
+    // lengths have to be known before any URL is asked for. A note is small
+    // enough that holding it twice costs nothing.
+    final encrypted = <int, Uint8List>{
+      for (var i = 0; i < totalChunks; i++)
+        i: _fileCrypto.encryptChunk(
+          data: plaintext.sublist(
+            i * kUploadChunkSize,
+            ((i + 1) * kUploadChunkSize).clamp(0, plaintext.length),
+          ),
+          fileKey: fileKey,
+          cipher: cipher,
+          chunkIndex: i,
+        ),
+    };
+
+    final manifest = await _client.files.fetchUploadUrls(
+      fileId: fileId,
+      transferToken: token.token,
+      chunkSizes: {
+        for (final entry in encrypted.entries) entry.key: entry.value.length,
+      },
+    );
+
+    // Covers every chunk or none of them: a note is written in one shot, and a
+    // half-direct write would need the same commit either way for no gain.
+    final direct =
+        manifest != null &&
+        manifest.urls.length >= totalChunks &&
+        !manifest.urls.take(totalChunks).any((url) => url.isEmpty);
+
     for (var i = 0; i < totalChunks; i++) {
-      final start = i * kUploadChunkSize;
-      final end = (start + kUploadChunkSize).clamp(0, plaintext.length);
-      final chunkPlain = plaintext.sublist(start, end);
+      if (direct) {
+        await _client.files.putChunkDirect(
+          url: manifest.urls[i],
+          data: encrypted[i]!,
+        );
+      } else {
+        await _client.files.uploadChunk(
+          fileId: fileId,
+          chunk: i,
+          data: encrypted[i]!,
+        );
+      }
+    }
 
-      final encrypted = _fileCrypto.encryptChunk(
-        data: chunkPlain,
-        fileKey: fileKey,
-        cipher: cipher,
-        chunkIndex: i,
-      );
-
-      await _client.files.uploadChunk(
+    // Nothing tells the server a bucket write landed, so the client says so.
+    // The relaying route commits itself as its own last chunk arrives.
+    if (direct) {
+      await _client.files.finalizeDirectUpload(
         fileId: fileId,
-        chunk: i,
-        data: encrypted,
+        transferToken: token.token,
       );
     }
 

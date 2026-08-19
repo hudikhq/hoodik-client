@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
+import 'package:hoodik_app/core/api/chunk_urls_models.dart';
 import 'package:hoodik_app/core/crypto/crypto_service.dart';
 import 'package:hoodik_app/core/services/file_operations.dart';
 import 'package:hoodik_app/src/rust/api.dart' as rust;
@@ -12,6 +13,16 @@ import 'package:hoodik_app/src/rust/frb_generated.dart';
 class _CapturingFilesClient extends Fake implements FilesClient {
   String? dirEncryptedKey;
   String? fileEncryptedKey;
+
+  /// This suite is about key wrapping, not transport. Answering "no URLs"
+  /// keeps the note on the relaying route, which is what a local-disk
+  /// deployment does and what these assertions were written against.
+  @override
+  Future<ChunkUrlsResponse?> fetchUploadUrls({
+    required String fileId,
+    required String transferToken,
+    required Map<int, int> chunkSizes,
+  }) async => null;
 
   @override
   Future<Map<String, dynamic>> createDirectory({
