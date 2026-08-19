@@ -354,19 +354,54 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 9 && to >= 9) {
         // v9 created the old singleton McpSettings table — v10 replaces it.
-        await m.createTable(mcpSettings);
+        // Frozen DDL: `createTable` would build today's columns, and v14 goes
+        // on to add three of them.
+        await customStatement('''
+          CREATE TABLE IF NOT EXISTS mcp_settings (
+            account_id TEXT NOT NULL,
+            enabled INTEGER NOT NULL DEFAULT 0,
+            port INTEGER NOT NULL DEFAULT 19548,
+            bearer_token TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL DEFAULT (strftime('%s', CURRENT_TIMESTAMP))
+          )
+        ''');
       }
       if (from < 10 && to >= 10) {
         // Recreate McpSettings with accountId as primary key (per-account).
+        // Frozen at the v10 shape; v14 adds the rest.
         await m.deleteTable('mcp_settings');
-        await m.createTable(mcpSettings);
+        await customStatement('''
+          CREATE TABLE mcp_settings (
+            account_id TEXT NOT NULL,
+            enabled INTEGER NOT NULL DEFAULT 0,
+            port INTEGER NOT NULL DEFAULT 19548,
+            bearer_token TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL DEFAULT (strftime('%s', CURRENT_TIMESTAMP)),
+            PRIMARY KEY (account_id)
+          )
+        ''');
       }
       if (from < 12 && to >= 12) {
         await m.addColumn(pendingUploads, pendingUploads.retryCount);
         await m.addColumn(pendingUploads, pendingUploads.nextRetryAt);
       }
       if (from < 13 && to >= 13) {
-        await m.createTable(mcpAuditLog);
+        // Frozen at the v13 shape. Nothing has extended this table yet, and
+        // this is what keeps the first column anybody adds from breaking the
+        // upgrade the way `pending_downloads` did.
+        await customStatement('''
+          CREATE TABLE mcp_audit_log (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            timestamp INTEGER NOT NULL,
+            session_id TEXT NOT NULL,
+            account_id TEXT,
+            tool_name TEXT NOT NULL,
+            params_hash TEXT NOT NULL,
+            result_status TEXT NOT NULL,
+            error_message TEXT,
+            duration_ms INTEGER NOT NULL
+          )
+        ''');
       }
       if (from < 14 && to >= 14) {
         await m.addColumn(mcpSettings, mcpSettings.allowReadOnlyWhileLocked);
@@ -378,7 +413,18 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(mcpSettings, mcpSettings.lastAuditCleanupAt);
       }
       if (from < 16 && to >= 16) {
-        await m.createTable(trustedFingerprints);
+        // Frozen at the v16 shape — v19 adds `email`.
+        await customStatement('''
+          CREATE TABLE trusted_fingerprints (
+            owner_user_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            fingerprint TEXT NOT NULL,
+            last_verified_at INTEGER,
+            verification_method TEXT NOT NULL DEFAULT 'tofu',
+            created_at INTEGER NOT NULL DEFAULT (strftime('%s', CURRENT_TIMESTAMP)),
+            PRIMARY KEY (owner_user_id, user_id)
+          )
+        ''');
       }
       if (from < 17 && to >= 17) {
         await m.addColumn(accounts, accounts.wrappingPublicKey);
@@ -391,14 +437,20 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(trustedFingerprints, trustedFingerprints.email);
       }
       if (from < 20 && to >= 20) {
-        await m.createTable(pendingDownloads);
+        // Frozen at the v20 shape — v21 adds `output_path`.
+        await customStatement('''
+          CREATE TABLE pending_downloads (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            account_id TEXT NOT NULL,
+            file_id TEXT NOT NULL,
+            chunk_count INTEGER NOT NULL,
+            output_dir TEXT NOT NULL,
+            created_at INTEGER NOT NULL DEFAULT (strftime('%s', CURRENT_TIMESTAMP)),
+            UNIQUE (account_id, file_id)
+          )
+        ''');
       }
-      // Only a database that already carries the v20 table needs the column
-      // added. `createTable` above builds it from the current definition,
-      // which already has `outputPath` — so anyone arriving from before v20
-      // gets the finished table and this step would be adding a column that
-      // is already there.
-      if (from >= 20 && from < 21 && to >= 21) {
+      if (from < 21 && to >= 21) {
         await m.addColumn(pendingDownloads, pendingDownloads.outputPath);
       }
     },

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -788,64 +790,108 @@ void main() {
     });
   });
 
-  // ── PendingDownloads v21 migration ─────────────────────────────────
+  // ── Create-then-extend migration steps ─────────────────────────────
   //
-  // v20 creates `pending_downloads` from the current definition, which already
-  // carries `output_path`. v21 then added the same column again, so anyone
-  // arriving from before v20 hit "duplicate column name: output_path" and the
-  // app could not open its database at all. Only the phone saw it: a simulator
-  // that had already run a v20 build upgrades 20 → 21 and adds the column to a
-  // table that genuinely lacks it.
-  group('PendingDownloads v21 migration', () {
-    Future<AppDatabase> migrated({required int from}) async {
-      final silenceWarning = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
+  // A step that creates a table must build the shape that table had at that
+  // version, not the shape it has today. `m.createTable` does the latter, so
+  // an old step silently changes meaning every time a column is added — and
+  // then the step that adds the column runs against a table that already has
+  // it and the whole upgrade throws.
+  //
+  // This is what shipped: v21 added `output_path` to a `pending_downloads`
+  // that v20 had just created complete, so any install older than v20 could
+  // not open its database at all. Only devices that had already run a v20
+  // build escaped, which is why every simulator here was fine and a phone
+  // was not.
+  group('create-then-extend steps', () {
+    // `forTesting` builds today's schema, so replaying an older range would
+    // re-add columns that are already there. Clearing what the intervening
+    // steps add puts the database back in the shape that range expects.
+    Future<AppDatabase> upgradedFrom(
+      int from, {
+      required List<String> drop,
+      List<String> dropColumns = const [],
+      int to = 21,
+    }) async {
+      final silence = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
       driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
       addTearDown(() {
-        driftRuntimeOptions.dontWarnAboutMultipleDatabases = silenceWarning;
+        driftRuntimeOptions.dontWarnAboutMultipleDatabases = silence;
       });
 
-      final migrationDb = AppDatabase.forTesting(NativeDatabase.memory());
-      addTearDown(migrationDb.close);
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
 
-      await migrationDb.customStatement('DROP TABLE pending_downloads');
-      if (from >= 20) {
-        // The v20 shape: everything the current table has, minus output_path.
-        await migrationDb.customStatement('''
-          CREATE TABLE pending_downloads (
-            account_id TEXT NOT NULL,
-            file_id TEXT NOT NULL,
-            chunk_count INTEGER NOT NULL,
-            output_dir TEXT NOT NULL,
-            started_at INTEGER NOT NULL,
-            PRIMARY KEY (account_id, file_id)
-          );
-        ''');
+      // An install from before the creating step has no such table.
+      for (final table in drop) {
+        await db.customStatement('DROP TABLE IF EXISTS $table');
       }
-
-      await migrationDb.migration.onUpgrade(Migrator(migrationDb), from, 21);
-      return migrationDb;
+      for (final column in dropColumns) {
+        await db.customStatement('ALTER TABLE $column');
+      }
+      await db.migration.onUpgrade(Migrator(db), from, to);
+      return db;
     }
 
-    Future<List<String>> columnsOf(AppDatabase target) async {
-      final rows = await target
-          .customSelect("SELECT name FROM pragma_table_info('pending_downloads')")
-          .get();
+    Future<List<String>> columnsOf(AppDatabase db, String table) async {
+      final rows =
+          await db.customSelect("SELECT name FROM pragma_table_info('$table')").get();
       return rows.map((r) => r.read<String>('name')).toList();
     }
 
-    test('upgrading from before v20 builds the table complete, once', () async {
-      final db = await migrated(from: 19);
-      final columns = await columnsOf(db);
-      expect(
-        columns.where((c) => c == 'output_path'),
-        hasLength(1),
-        reason: 'v20 already creates it; adding it again throws',
-      );
+    test('pending_downloads: created at v20, extended at v21', () async {
+      final db = await upgradedFrom(19, drop: ['pending_downloads']);
+      final columns = await columnsOf(db, 'pending_downloads');
+      expect(columns.where((c) => c == 'output_path'), hasLength(1));
+      expect(columns, containsAll(['account_id', 'file_id', 'output_dir']));
     });
 
-    test('upgrading from v20 adds the column the table is missing', () async {
-      final db = await migrated(from: 20);
-      expect(await columnsOf(db), contains('output_path'));
+    test('trusted_fingerprints: created at v16, extended at v19', () async {
+      final db = await upgradedFrom(
+        15,
+        drop: ['trusted_fingerprints'],
+        // v17 adds this to accounts; the current table already has it.
+        dropColumns: ['accounts DROP COLUMN wrapping_public_key'],
+        to: 19,
+      );
+      final columns = await columnsOf(db, 'trusted_fingerprints');
+      expect(columns.where((c) => c == 'email'), hasLength(1));
+      expect(columns, containsAll(['owner_user_id', 'user_id', 'fingerprint']));
+    });
+
+    test('mcp_settings: created at v10, extended at v14 and v15', () async {
+      final db = await upgradedFrom(
+        9,
+        drop: ['mcp_settings', 'mcp_audit_log'],
+        // v12 adds these to pending_uploads; the current table has them.
+        dropColumns: [
+          'pending_uploads DROP COLUMN retry_count',
+          'pending_uploads DROP COLUMN next_retry_at',
+        ],
+        to: 15,
+      );
+      final columns = await columnsOf(db, 'mcp_settings');
+      for (final added in const [
+        'allow_read_only_while_locked',
+        'rate_limit_rps',
+        'rate_limit_burst',
+        'audit_retention_days',
+        'last_audit_cleanup_at',
+      ]) {
+        expect(columns.where((c) => c == added), hasLength(1), reason: added);
+      }
+    });
+
+    // The guard against regression: no step may build a table from the live
+    // Dart definition, because that is the thing that goes stale.
+    test('no upgrade step creates a table from the current definition', () {
+      final source = File('lib/core/storage/database.dart').readAsStringSync();
+      final onUpgrade = source.substring(source.indexOf('onUpgrade:'));
+      expect(
+        onUpgrade.contains('m.createTable('),
+        isFalse,
+        reason: 'freeze the DDL at the version the step belongs to instead',
+      );
     });
   });
 }
