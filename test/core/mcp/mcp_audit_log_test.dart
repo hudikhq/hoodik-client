@@ -213,6 +213,10 @@ void main() {
       final migrationDb = AppDatabase.forTesting(NativeDatabase.memory());
       addTearDown(migrationDb.close);
 
+      // The ledger, not the version number, decides what runs. `forTesting`
+      // builds the current schema and records every migration as applied, so
+      // reproducing a v12 device means dropping the ledger it never had.
+      await migrationDb.customStatement('DROP TABLE schema_migrations');
       await migrationDb.customStatement('DROP TABLE mcp_audit_log');
 
       const presenceCheckSql =
@@ -224,7 +228,11 @@ void main() {
       expect(before, isEmpty);
 
       final migrator = Migrator(migrationDb);
-      await migrationDb.migration.onUpgrade(migrator, 12, 13);
+      await migrationDb.migration.onUpgrade(
+        migrator,
+        12,
+        AppDatabase.currentSchemaVersion,
+      );
 
       final after = await migrationDb.customSelect(presenceCheckSql).get();
       expect(after, hasLength(1));

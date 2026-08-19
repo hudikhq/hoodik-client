@@ -5,6 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 import 'at_rest_cipher.dart';
+import 'migrations/registry.dart';
+import 'migrations/runner.dart';
 
 part 'database.g.dart';
 
@@ -325,165 +327,30 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => currentSchemaVersion;
 
-  /// The schema this build expects, named so tests can assert against it
-  /// rather than repeating the number. Bump it in the same change that alters
-  /// a table, and export a snapshot for the new version — an installed app
-  /// that sees an unchanged version never runs the upgrade at all.
+  /// The schema this build expects, which is the last migration's version.
+  ///
+  /// Written out rather than read off the registry because `drift_dev schema
+  /// dump` resolves it from the source to name the snapshot it writes, and
+  /// cannot evaluate a computed one. A registry test holds the two together.
   static const int currentSchemaVersion = 21;
 
-  /// Steps run one at a time and each commits its own `user_version`, so an
-  /// upgrade that dies on step N resumes at N on the next launch instead of
-  /// replaying every step since the installed version. On top of that each
-  /// step is idempotent: statements already committed by a half-finished run
-  /// are recognised and skipped rather than throwing.
-  ///
-  /// Both halves are needed. Drift runs `onUpgrade` outside a transaction, so
-  /// the DDL a failing step already issued stays in the file — a phone that
-  /// upgraded before v21 was fixed kept the `pending_downloads` v20 had built
-  /// for it and then met that same `CREATE TABLE` again on every later launch.
+  static const _runner = MigrationRunner(migrations);
+
+  /// Which migrations have run is recorded in `schema_migrations`, one row per
+  /// migration, and that ledger — not sqlite's `user_version` — decides what
+  /// applies. A version is a single integer written only once the whole
+  /// upgrade finishes, so an upgrade that dies halfway leaves it describing a
+  /// schema that no longer exists, and the next launch replays steps onto
+  /// their own committed work. Rows survive that: a resumed upgrade runs
+  /// exactly what is missing, whatever version the database claims to be.
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (m) => m.createAll(),
-    onUpgrade: (m, from, to) =>
-        m.runMigrationSteps(from: from, to: to, steps: _upgradeStep),
+    onCreate: (m) async {
+      await m.createAll();
+      await _runner.adoptFresh(m.database);
+    },
+    onUpgrade: (m, from, to) => _runner.upgrade(m.database, from),
   );
-
-  /// Upgrades a database at version [from] to the next version, so `case 19`
-  /// is the step that arrives at v20.
-  ///
-  /// Every `CREATE TABLE` here is written out rather than built with
-  /// `createTable`, which would emit the table's *current* definition: a step
-  /// that later gains a column would start creating it complete, and the step
-  /// meant to add that column would find it already there.
-  Future<int> _upgradeStep(int from, GeneratedDatabase db) async {
-    final m = Migrator(db);
-    switch (from) {
-      case 1:
-        await _addColumn(m, accounts, accounts.pinEncryptedPrivateKey);
-      case 2:
-        await _addColumn(m, accounts, accounts.biometricPin);
-      case 3:
-        await _addColumn(m, offlineFiles, offlineFiles.sizeOnDisk);
-        await _addColumn(m, offlineFiles, offlineFiles.pinned);
-        await _addColumn(m, offlineFiles, offlineFiles.lastAccessedAt);
-      // v5 created the subscriptions table and v11 extended it; both steps
-      // were dropped along with the table when the app went free in v18 —
-      // upgraders from < 5 simply never get the table, and the step that
-      // arrives at v18 cleans it up on every database that still has it.
-      case 5:
-        await _addColumn(m, accounts, accounts.cacheLimitBytes);
-      case 6:
-        await _addColumn(m, servers, servers.trustSelfSignedCerts);
-      case 7:
-        await _addColumn(m, servers, servers.useHeaderAuth);
-        await _addColumn(m, accounts, accounts.headerJwt);
-        await _addColumn(m, accounts, accounts.headerRefreshToken);
-      case 8:
-        // The old singleton McpSettings table — v10 replaces it.
-        await db.customStatement('''
-          CREATE TABLE IF NOT EXISTS mcp_settings (
-            account_id TEXT NOT NULL,
-            enabled INTEGER NOT NULL DEFAULT 0,
-            port INTEGER NOT NULL DEFAULT 19548,
-            bearer_token TEXT NOT NULL DEFAULT '',
-            created_at INTEGER NOT NULL DEFAULT (strftime('%s', CURRENT_TIMESTAMP))
-          )
-        ''');
-      case 9:
-        // Recreate McpSettings with accountId as primary key (per-account).
-        // The drop is what makes the step repeatable; the table is a settings
-        // singleton created empty one version earlier, so nothing is lost.
-        await m.deleteTable('mcp_settings');
-        await db.customStatement('''
-          CREATE TABLE mcp_settings (
-            account_id TEXT NOT NULL,
-            enabled INTEGER NOT NULL DEFAULT 0,
-            port INTEGER NOT NULL DEFAULT 19548,
-            bearer_token TEXT NOT NULL DEFAULT '',
-            created_at INTEGER NOT NULL DEFAULT (strftime('%s', CURRENT_TIMESTAMP)),
-            PRIMARY KEY (account_id)
-          )
-        ''');
-      case 11:
-        await _addColumn(m, pendingUploads, pendingUploads.retryCount);
-        await _addColumn(m, pendingUploads, pendingUploads.nextRetryAt);
-      case 12:
-        await db.customStatement('''
-          CREATE TABLE IF NOT EXISTS mcp_audit_log (
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-            timestamp INTEGER NOT NULL,
-            session_id TEXT NOT NULL,
-            account_id TEXT,
-            tool_name TEXT NOT NULL,
-            params_hash TEXT NOT NULL,
-            result_status TEXT NOT NULL,
-            error_message TEXT,
-            duration_ms INTEGER NOT NULL
-          )
-        ''');
-      case 13:
-        await _addColumn(m, mcpSettings, mcpSettings.allowReadOnlyWhileLocked);
-        await _addColumn(m, mcpSettings, mcpSettings.rateLimitRps);
-        await _addColumn(m, mcpSettings, mcpSettings.rateLimitBurst);
-      case 14:
-        await _addColumn(m, mcpSettings, mcpSettings.auditRetentionDays);
-        await _addColumn(m, mcpSettings, mcpSettings.lastAuditCleanupAt);
-      case 15:
-        await db.customStatement('''
-          CREATE TABLE IF NOT EXISTS trusted_fingerprints (
-            owner_user_id TEXT NOT NULL,
-            user_id TEXT NOT NULL,
-            fingerprint TEXT NOT NULL,
-            last_verified_at INTEGER,
-            verification_method TEXT NOT NULL DEFAULT 'tofu',
-            created_at INTEGER NOT NULL DEFAULT (strftime('%s', CURRENT_TIMESTAMP)),
-            PRIMARY KEY (owner_user_id, user_id)
-          )
-        ''');
-      case 16:
-        await _addColumn(m, accounts, accounts.wrappingPublicKey);
-      case 17:
-        // The app went free — the IAP/trial cache is gone for good.
-        await m.deleteTable('subscriptions');
-      case 18:
-        await _addColumn(m, trustedFingerprints, trustedFingerprints.email);
-      case 19:
-        await db.customStatement('''
-          CREATE TABLE IF NOT EXISTS pending_downloads (
-            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-            account_id TEXT NOT NULL,
-            file_id TEXT NOT NULL,
-            chunk_count INTEGER NOT NULL,
-            output_dir TEXT NOT NULL,
-            created_at INTEGER NOT NULL DEFAULT (strftime('%s', CURRENT_TIMESTAMP)),
-            UNIQUE (account_id, file_id)
-          )
-        ''');
-      case 20:
-        await _addColumn(m, pendingDownloads, pendingDownloads.outputPath);
-    }
-    return from + 1;
-  }
-
-  /// Adds [column] to [table] unless the live schema already has it.
-  ///
-  /// Reading the schema rather than trusting the version number is what lets a
-  /// retried step get past the statements its previous attempt had already
-  /// committed.
-  static Future<void> _addColumn(
-    Migrator m,
-    TableInfo table,
-    GeneratedColumn column,
-  ) async {
-    final present = await m.database
-        .customSelect(
-          "SELECT 1 FROM pragma_table_info('${table.actualTableName}') "
-          'WHERE name = ?',
-          variables: [Variable<String>(column.$name)],
-        )
-        .get();
-    if (present.isEmpty) await m.addColumn(table, column);
-  }
 
   // ── Server operations ──────────────────────────────────────────────
 

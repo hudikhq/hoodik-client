@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/storage/database.dart';
+import 'package:hoodik_app/core/storage/migrations/registry.dart';
 import 'package:hoodik_app/core/storage/pending_uploads_dao.dart';
 
 /// Creates an in-memory [AppDatabase] for testing.
@@ -689,129 +690,18 @@ void main() {
   //
   // Lives in its own group so the outer [setUp] that opens a full v12
   // schema doesn't race the bespoke v11 shape built inside the test.
-  group('PendingUploads v12 migration', () {
-    test('adds retry_count + next_retry_at columns to v11 database', () async {
-      final silenceWarning = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
-      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-      addTearDown(() {
-        driftRuntimeOptions.dontWarnAboutMultipleDatabases = silenceWarning;
-      });
-
-      final migrationDb = AppDatabase.forTesting(NativeDatabase.memory());
-      addTearDown(migrationDb.close);
-
-      await migrationDb.customStatement('DROP TABLE pending_uploads');
-      await migrationDb.customStatement('''
-        CREATE TABLE pending_uploads (
-          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-          account_id TEXT NOT NULL,
-          local_path TEXT NOT NULL,
-          target_dir_id TEXT,
-          status TEXT NOT NULL DEFAULT 'pending',
-          created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
-        );
-      ''');
-      await migrationDb.customStatement(
-        'INSERT INTO pending_uploads(account_id, local_path) '
-        "VALUES ('a1', '/tmp/pre_migration.jpg')",
-      );
-
-      final migrator = Migrator(migrationDb);
-      await migrationDb.migration.onUpgrade(migrator, 11, 12);
-
-      final rows = await migrationDb
-          .customSelect(
-            'SELECT id, retry_count, next_retry_at '
-            'FROM pending_uploads WHERE account_id = ?',
-            variables: [Variable<String>('a1')],
-          )
-          .get();
-      expect(rows.length, 1);
-      expect(rows.single.read<int>('retry_count'), 0);
-      expect(rows.single.readNullable<DateTime>('next_retry_at'), isNull);
-    });
-  });
-
-  // ── Free-pivot v18 migration ───────────────────────────────────────
+  // ── Migrations ─────────────────────────────────────────────────────
   //
-  // v18 drops the subscriptions table left behind by the paid era. Two
-  // paths matter: a database that has the table loses it, and a database
-  // that never had it (pre-v5 installs) upgrades without error.
-  group('subscriptions v18 migration', () {
-    Future<bool> subscriptionsTableExists(AppDatabase target) async {
-      final rows = await target
-          .customSelect(
-            'SELECT name FROM sqlite_master '
-            "WHERE type = 'table' AND name = 'subscriptions'",
-          )
-          .get();
-      return rows.isNotEmpty;
-    }
-
-    test('drops the subscriptions table from a v17 database', () async {
-      final silenceWarning = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
-      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-      addTearDown(() {
-        driftRuntimeOptions.dontWarnAboutMultipleDatabases = silenceWarning;
-      });
-
-      final migrationDb = AppDatabase.forTesting(NativeDatabase.memory());
-      addTearDown(migrationDb.close);
-
-      await migrationDb.customStatement('''
-        CREATE TABLE subscriptions (
-          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-          trial_started_at INTEGER,
-          cached_status TEXT NOT NULL DEFAULT 'unknown'
-        );
-      ''');
-      expect(await subscriptionsTableExists(migrationDb), isTrue);
-
-      final migrator = Migrator(migrationDb);
-      await migrationDb.migration.onUpgrade(migrator, 17, 18);
-
-      expect(await subscriptionsTableExists(migrationDb), isFalse);
-    });
-
-    test('upgrading a database that never had the table succeeds', () async {
-      final silenceWarning = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
-      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-      addTearDown(() {
-        driftRuntimeOptions.dontWarnAboutMultipleDatabases = silenceWarning;
-      });
-
-      final migrationDb = AppDatabase.forTesting(NativeDatabase.memory());
-      addTearDown(migrationDb.close);
-
-      final migrator = Migrator(migrationDb);
-      await migrationDb.migration.onUpgrade(migrator, 17, 18);
-
-      expect(await subscriptionsTableExists(migrationDb), isFalse);
-    });
-  });
-
-  // ── Create-then-extend migration steps ─────────────────────────────
-  //
-  // A step that creates a table must build the shape that table had at that
-  // version, not the shape it has today. `m.createTable` does the latter, so
-  // an old step silently changes meaning every time a column is added — and
-  // then the step that adds the column runs against a table that already has
-  // it and the whole upgrade throws.
-  //
-  // This is what shipped: v21 added `output_path` to a `pending_downloads`
-  // that v20 had just created complete, so any install older than v20 could
-  // not open its database at all. Only devices that had already run a v20
-  // build escaped, which is why every simulator here was fine and a phone
-  // was not.
-  group('create-then-extend steps', () {
-    // `forTesting` builds today's schema, so replaying an older range would
-    // re-add columns that are already there. Clearing what the intervening
-    // steps add puts the database back in the shape that range expects.
-    Future<AppDatabase> upgradedFrom(
-      int from, {
-      required List<String> drop,
-      List<String> dropColumns = const [],
-      int to = 21,
+  // What runs is decided by the `schema_migrations` ledger, so a test database
+  // cannot be aged by version number alone: `forTesting` builds the current
+  // schema through `onCreate`, which records every migration as applied. A
+  // device that predates the ledger has no such table, and dropping it is what
+  // actually reproduces one.
+  group('migrations', () {
+    Future<AppDatabase> deviceAt(
+      int version, {
+      List<String> drop = const [],
+      List<String> alter = const [],
     }) async {
       final silence = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
       driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -822,139 +712,59 @@ void main() {
       final db = AppDatabase.forTesting(NativeDatabase.memory());
       addTearDown(db.close);
 
-      // An install from before the creating step has no such table.
+      await db.customStatement('DROP TABLE schema_migrations');
       for (final table in drop) {
         await db.customStatement('DROP TABLE IF EXISTS $table');
       }
-      for (final column in dropColumns) {
-        await db.customStatement('ALTER TABLE $column');
+      for (final statement in alter) {
+        await db.customStatement('ALTER TABLE $statement');
       }
-      await db.migration.onUpgrade(Migrator(db), from, to);
+      await db.customStatement('PRAGMA user_version = $version');
       return db;
     }
 
     Future<List<String>> columnsOf(AppDatabase db, String table) async {
-      final rows =
-          await db.customSelect("SELECT name FROM pragma_table_info('$table')").get();
+      final rows = await db
+          .customSelect("SELECT name FROM pragma_table_info('$table')")
+          .get();
       return rows.map((r) => r.read<String>('name')).toList();
     }
 
-    test('pending_downloads: created at v20, extended at v21', () async {
-      final db = await upgradedFrom(19, drop: ['pending_downloads']);
-      final columns = await columnsOf(db, 'pending_downloads');
-      expect(columns.where((c) => c == 'output_path'), hasLength(1));
-      expect(columns, containsAll(['account_id', 'file_id', 'output_dir']));
-    });
-
-    test('trusted_fingerprints: created at v16, extended at v19', () async {
-      final db = await upgradedFrom(
-        15,
-        drop: ['trusted_fingerprints'],
-        // v17 adds this to accounts; the current table already has it.
-        dropColumns: ['accounts DROP COLUMN wrapping_public_key'],
-        to: 19,
-      );
-      final columns = await columnsOf(db, 'trusted_fingerprints');
-      expect(columns.where((c) => c == 'email'), hasLength(1));
-      expect(columns, containsAll(['owner_user_id', 'user_id', 'fingerprint']));
-    });
-
-    test('mcp_settings: created at v10, extended at v14 and v15', () async {
-      final db = await upgradedFrom(
-        9,
-        drop: ['mcp_settings', 'mcp_audit_log'],
-        // v12 adds these to pending_uploads; the current table has them.
-        dropColumns: [
-          'pending_uploads DROP COLUMN retry_count',
-          'pending_uploads DROP COLUMN next_retry_at',
-        ],
-        to: 15,
-      );
-      final columns = await columnsOf(db, 'mcp_settings');
-      for (final added in const [
-        'allow_read_only_while_locked',
-        'rate_limit_rps',
-        'rate_limit_burst',
-        'audit_retention_days',
-        'last_audit_cleanup_at',
-      ]) {
-        expect(columns.where((c) => c == added), hasLength(1), reason: added);
-      }
-    });
-
-    // The guard against regression: a step may neither build a table from the
-    // live Dart definition, because that is the thing that goes stale, nor add
-    // a column unguarded, because a retried step meets its own finished work.
-    test('every step freezes its DDL and guards its columns', () {
-      final source = File('lib/core/storage/database.dart').readAsStringSync();
-      final steps = source.substring(
-        source.indexOf('Future<int> _upgradeStep('),
-        source.indexOf('static Future<void> _addColumn('),
-      );
-      expect(
-        steps.contains('m.createTable('),
-        isFalse,
-        reason: 'freeze the DDL at the version the step belongs to instead',
-      );
-      expect(
-        steps.contains('m.addColumn('),
-        isFalse,
-        reason: 'go through _addColumn so a retried step skips its own work',
-      );
-    });
-  });
-
-  // ── Interrupted upgrades ───────────────────────────────────────────
-  //
-  // Drift runs `onUpgrade` outside a transaction, so a step that throws leaves
-  // everything it had already issued committed in the file. Two properties
-  // keep that survivable, and both are checked here: the version advances one
-  // step at a time so a retry resumes where it stopped, and every step is
-  // idempotent so the retry gets past its own leftovers.
-  group('interrupted upgrades', () {
-    Future<AppDatabase> memoryDb() async {
-      final silence = driftRuntimeOptions.dontWarnAboutMultipleDatabases;
-      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-      addTearDown(() {
-        driftRuntimeOptions.dontWarnAboutMultipleDatabases = silence;
-      });
-
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
-      addTearDown(db.close);
-      return db;
-    }
-
-    Future<int> userVersion(AppDatabase db) async {
-      final row = await db.customSelect('PRAGMA user_version').getSingle();
-      return row.read<int>('user_version');
-    }
-
-    Future<Map<String, List<String>>> schemaOf(AppDatabase db) async {
-      final tables = await db
-          .customSelect(
-            "SELECT name FROM sqlite_master WHERE type = 'table' "
-            "AND name NOT LIKE 'sqlite_%' ORDER BY name",
-          )
+    Future<List<String>> appliedNames(AppDatabase db) async {
+      final rows = await db
+          .customSelect('SELECT name FROM schema_migrations ORDER BY version')
           .get();
-      final schema = <String, List<String>>{};
-      for (final table in tables.map((r) => r.read<String>('name'))) {
-        final columns = await db
-            .customSelect(
-              "SELECT name FROM pragma_table_info('$table') ORDER BY name",
-            )
-            .get();
-        schema[table] = columns.map((r) => r.read<String>('name')).toList();
-      }
-      return schema;
+      return rows.map((r) => r.read<String>('name')).toList();
     }
 
-    // The failure that shipped. An older build created `pending_downloads`
-    // from the live definition at v20, complete with `output_path`, and then
-    // threw adding that column at v21 — leaving the table behind at version
-    // 19. Every launch after that met its own table again.
-    test('resumes past a table an aborted run already created', () async {
-      final db = await memoryDb();
+    Future<void> upgrade(AppDatabase db, int from) => db.migration.onUpgrade(
+      Migrator(db),
+      from,
+      AppDatabase.currentSchemaVersion,
+    );
 
+    test(
+      'a database that predates the ledger keeps what it already has',
+      () async {
+        final db = await deviceAt(19);
+
+        await upgrade(db, 19);
+
+        // Everything up to the installed version is adopted rather than re-run;
+        // only what is genuinely missing applies.
+        final applied = await appliedNames(db);
+        expect(applied, contains('add_accounts_biometric_pin'));
+        expect(applied.last, 'rebuild_pending_downloads_output_path');
+        expect(applied.toSet(), hasLength(applied.length));
+      },
+    );
+
+    // The failure that shipped. An earlier build created `pending_downloads`
+    // from the live definition, complete with `output_path`, then threw adding
+    // that column — leaving the table behind at version 19. Every launch after
+    // met its own table again and the app could not open its database at all.
+    test('heals a table an aborted upgrade already created', () async {
+      final db = await deviceAt(19);
       await db.customStatement('DROP TABLE pending_downloads');
       await db.customStatement('''
         CREATE TABLE pending_downloads (
@@ -968,45 +778,217 @@ void main() {
           UNIQUE (account_id, file_id)
         )
       ''');
-      await db.customStatement('PRAGMA user_version = 19');
 
-      await db.migration.onUpgrade(Migrator(db), 19, 21);
+      await upgrade(db, 19);
 
-      final columns = await db
-          .customSelect("SELECT name FROM pragma_table_info('pending_downloads')")
+      final columns = await columnsOf(db, 'pending_downloads');
+      expect(columns.where((c) => c == 'output_path'), hasLength(1));
+    });
+
+    test('adds the retry columns to a database that predates them', () async {
+      final db = await deviceAt(
+        11,
+        alter: const [
+          'pending_uploads DROP COLUMN retry_count',
+          'pending_uploads DROP COLUMN next_retry_at',
+        ],
+      );
+      await db.customStatement(
+        'INSERT INTO pending_uploads(account_id, local_path) '
+        "VALUES ('a1', '/tmp/pre_migration.jpg')",
+      );
+
+      await upgrade(db, 11);
+
+      final row = await db
+          .customSelect(
+            'SELECT retry_count, next_retry_at FROM pending_uploads '
+            'WHERE account_id = ?',
+            variables: [Variable<String>('a1')],
+          )
+          .getSingle();
+      expect(row.read<int>('retry_count'), 0);
+      expect(row.readNullable<DateTime>('next_retry_at'), isNull);
+    });
+
+    test('drops the subscriptions table the paid app left behind', () async {
+      final db = await deviceAt(17);
+      await db.customStatement('''
+        CREATE TABLE subscriptions (
+          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          trial_started_at INTEGER,
+          cached_status TEXT NOT NULL DEFAULT 'unknown'
+        )
+      ''');
+
+      await upgrade(db, 17);
+
+      final rows = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE name = 'subscriptions'",
+          )
           .get();
-      expect(
-        columns.map((r) => r.read<String>('name')).where((c) => c == 'output_path'),
-        hasLength(1),
-      );
-      expect(await userVersion(db), 21);
+      expect(rows, isEmpty);
     });
 
-    test('replaying every step over a current database changes nothing', () async {
-      final db = await memoryDb();
-      final before = await schemaOf(db);
-
-      await db.migration.onUpgrade(Migrator(db), 1, 21);
-
-      expect(await schemaOf(db), before);
+    test('upgrades a database that never had subscriptions', () async {
+      final db = await deviceAt(17);
+      await expectLater(upgrade(db, 17), completes);
     });
 
-    test('a failing step leaves the version at the last one that finished',
-        () async {
-      final db = await memoryDb();
-
-      // v7 is the first step to touch `servers`; without the table its
-      // `ALTER TABLE` throws the way any genuinely broken step would.
-      await db.customStatement('DROP TABLE servers');
-      await db.customStatement('PRAGMA user_version = 1');
-
-      await expectLater(
-        db.migration.onUpgrade(Migrator(db), 1, 21),
-        throwsA(isA<SqliteException>()),
+    // Sqlite will not add a NOT NULL column with an expression default to a
+    // table that has rows, and `last_accessed_at` defaults to the current
+    // time. Adding it works on an empty table and fails on exactly the devices
+    // that have offline files, so v4 carries the rows across instead.
+    test('carries offline files across the v4 rebuild', () async {
+      final db = await deviceAt(
+        3,
+        alter: const [
+          'offline_files DROP COLUMN size_on_disk',
+          'offline_files DROP COLUMN pinned',
+          'offline_files DROP COLUMN last_accessed_at',
+        ],
+      );
+      await db.customStatement(
+        'INSERT INTO offline_files(account_id, file_id, local_path) '
+        "VALUES ('a1', 'f1', '/tmp/kept.bin')",
       );
 
-      // Steps 1 through 5 finished; the run stopped upgrading 6 to 7.
-      expect(await userVersion(db), 6);
+      await upgrade(db, 3);
+
+      final row = await db
+          .customSelect(
+            'SELECT local_path, size_on_disk, pinned, last_accessed_at '
+            "FROM offline_files WHERE file_id = 'f1'",
+          )
+          .getSingle();
+      expect(row.read<String>('local_path'), '/tmp/kept.bin');
+      expect(row.read<int>('size_on_disk'), 0);
+      expect(row.read<int>('last_accessed_at'), greaterThan(0));
+    });
+
+    test('reaches every table a later migration extends', () async {
+      const extended = {
+        'trusted_fingerprints': ['email', 'owner_user_id', 'fingerprint'],
+        'mcp_settings': [
+          'allow_read_only_while_locked',
+          'rate_limit_rps',
+          'audit_retention_days',
+          'last_audit_cleanup_at',
+        ],
+        'pending_downloads': ['output_path', 'output_dir', 'chunk_count'],
+      };
+      for (final table in extended.entries) {
+        final db = await deviceAt(1, drop: [table.key]);
+        await upgrade(db, 1);
+        expect(
+          await columnsOf(db, table.key),
+          containsAll(table.value),
+          reason: table.key,
+        );
+      }
+    });
+
+    test('running the whole registry again changes nothing', () async {
+      final db = await deviceAt(1);
+      await upgrade(db, 1);
+
+      Future<Map<String, List<String>>> shape() async {
+        final tables = await db
+            .customSelect(
+              "SELECT name FROM sqlite_master WHERE type = 'table' "
+              "AND name NOT LIKE 'sqlite_%' ORDER BY name",
+            )
+            .get();
+        return {
+          for (final t in tables.map((r) => r.read<String>('name')))
+            t: await columnsOf(db, t),
+        };
+      }
+
+      final before = await shape();
+      await db.customStatement('DELETE FROM schema_migrations');
+      await upgrade(db, 1);
+
+      expect(await shape(), before);
+    });
+
+    test(
+      'a failing migration records neither itself nor what follows',
+      () async {
+        // v7 is the first migration to touch `servers`; without the table its
+        // ALTER throws the way any genuinely broken migration would.
+        final db = await deviceAt(1, drop: ['servers']);
+
+        await expectLater(upgrade(db, 1), throwsA(isA<SqliteException>()));
+
+        final applied = await appliedNames(db);
+        expect(applied, contains('rebuild_offline_files_cache_columns'));
+        expect(applied, isNot(contains('add_servers_trust_self_signed_certs')));
+        expect(applied, isNot(contains('create_mcp_settings')));
+      },
+    );
+  });
+
+  // ── Registry invariants ────────────────────────────────────────────
+  group('migration registry', () {
+    const steps = 'lib/core/storage/migrations/steps';
+
+    test('versions strictly increase and names are unique', () {
+      final versions = [for (final m in migrations) m.version];
+      expect(versions, orderedEquals(versions.toList()..sort()));
+      expect(versions.toSet(), hasLength(versions.length));
+      expect({
+        for (final m in migrations) m.name,
+      }, hasLength(migrations.length));
+    });
+
+    test('the schema version is the last migration', () {
+      expect(AppDatabase.currentSchemaVersion, migrations.last.version);
+    });
+
+    test('each file is named for the migration it holds', () {
+      for (final m in migrations) {
+        final padded = m.version.toString().padLeft(4, '0');
+        expect(
+          File('$steps/m${padded}_${m.name}.dart').existsSync(),
+          isTrue,
+          reason: m.name,
+        );
+      }
+    });
+
+    // A migration that could reach the current table definitions would go
+    // stale every time one changed, which is how a step creating a table
+    // complete ended up followed by a step adding a column it already had.
+    test('no migration can see the current schema', () {
+      for (final file in Directory(steps).listSync().whereType<File>()) {
+        expect(
+          file.readAsStringSync(),
+          isNot(contains('database.dart')),
+          reason: file.path,
+        );
+      }
+    });
+
+    // Dropping any of these is not a recoverable annoyance: accounts hold the
+    // encrypted private keys, and trusted fingerprints are the record that
+    // makes a changed key visible instead of silently re-trusted.
+    test('nothing rebuilds a table that cannot be rebuilt', () {
+      for (final file in Directory(steps).listSync().whereType<File>()) {
+        final source = file.readAsStringSync();
+        for (final durable in const [
+          'servers',
+          'accounts',
+          'trusted_fingerprints',
+        ]) {
+          expect(
+            source,
+            isNot(matches(RegExp('(DROP TABLE|rebuild)[^;]*$durable'))),
+            reason: '${file.path} must not drop $durable',
+          );
+        }
+      }
     });
   });
 }

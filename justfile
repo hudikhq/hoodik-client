@@ -44,6 +44,13 @@ unit:
 integration:
     @scripts/release-check/integration.sh
 
+# Export the schema snapshot for the current version and rebuild the migration
+# helper. Run after adding a migration and bumping currentSchemaVersion — the
+# snapshot is what lets a later release test the upgrade from this one.
+schema-snapshot:
+    dart run drift_dev schema dump lib/core/storage/database.dart drift_schemas/
+    dart run drift_dev schema generate drift_schemas/ test/generated/migrations/
+
 # Run the Patrol iOS smoke flows against an ephemeral hoodik server.
 # Lifecycle: docker-hoodik-up → Playwright bootstrap (registers e2e@hoodik.local
 # via the real /auth/register form) → patrol test → docker-hoodik-down.
