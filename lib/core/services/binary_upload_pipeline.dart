@@ -289,63 +289,67 @@ class BinaryUploadPipeline {
       // Straight into the bucket when the server can sign for it. Tar exists
       // to spare the server N requests; when the bytes never touch the server
       // there is nothing left for it to spare.
-      if (await _uploadDirect(
+      //
+      // Falls through rather than returning: the transfer is marked complete at
+      // the end of this method, and a direct upload that returned early from
+      // here left its row sitting at 100% for the rest of the session.
+      final wentDirect = await _uploadDirect(
         fileId: fileId,
         fileSize: fileSize,
         totalChunks: totalChunks,
         stagingDir: stagingDir,
         transferToken: transferToken,
         uploadItem: uploadItem,
-      )) {
-        return;
-      }
-
-      await _runner.run(
-        baseUrl: _client.baseUrl,
-        transferToken: transferToken,
-        fileId: fileId,
-        stagingDir: stagingDir,
-        chunkCount: totalChunks,
-        perChunk: () => _uploadPerChunk(
-          fileId: fileId,
-          fileSize: fileSize,
-          totalChunks: totalChunks,
-          stagingDir: stagingDir,
-          transferToken: transferToken,
-          checksums: checksums,
-          uploadItem: uploadItem,
-        ),
-        onTarResult: (result) {
-          if (uploadItem != null) {
-            _transferManager?.updateProgress(
-              uploadItem.id,
-              completedChunks: result.chunksStored,
-              transferredBytes: fileSize,
-            );
-          }
-        },
-        onTarProgress: uploadItem == null
-            ? null
-            : (transferred, total) {
-                // Tar progress is in tar-archive bytes; the UI's totalBytes
-                // is plaintext fileSize. Map proportionally so the bar
-                // stays accurate even though the wire size is slightly
-                // larger (16 B AEAD tag per chunk + tar headers).
-                final fraction = total > 0
-                    ? (transferred / total).clamp(0.0, 1.0)
-                    : 0.0;
-                final mappedBytes = (fraction * fileSize).round();
-                final mappedChunks = (fraction * totalChunks).floor().clamp(
-                  0,
-                  totalChunks,
-                );
-                _transferManager?.updateProgress(
-                  uploadItem.id,
-                  completedChunks: mappedChunks,
-                  transferredBytes: mappedBytes,
-                );
-              },
       );
+
+      if (!wentDirect) {
+        await _runner.run(
+          baseUrl: _client.baseUrl,
+          transferToken: transferToken,
+          fileId: fileId,
+          stagingDir: stagingDir,
+          chunkCount: totalChunks,
+          perChunk: () => _uploadPerChunk(
+            fileId: fileId,
+            fileSize: fileSize,
+            totalChunks: totalChunks,
+            stagingDir: stagingDir,
+            transferToken: transferToken,
+            checksums: checksums,
+            uploadItem: uploadItem,
+          ),
+          onTarResult: (result) {
+            if (uploadItem != null) {
+              _transferManager?.updateProgress(
+                uploadItem.id,
+                completedChunks: result.chunksStored,
+                transferredBytes: fileSize,
+              );
+            }
+          },
+          onTarProgress: uploadItem == null
+              ? null
+              : (transferred, total) {
+                  // Tar progress is in tar-archive bytes; the UI's totalBytes
+                  // is plaintext fileSize. Map proportionally so the bar
+                  // stays accurate even though the wire size is slightly
+                  // larger (16 B AEAD tag per chunk + tar headers).
+                  final fraction = total > 0
+                      ? (transferred / total).clamp(0.0, 1.0)
+                      : 0.0;
+                  final mappedBytes = (fraction * fileSize).round();
+                  final mappedChunks = (fraction * totalChunks).floor().clamp(
+                    0,
+                    totalChunks,
+                  );
+                  _transferManager?.updateProgress(
+                    uploadItem.id,
+                    completedChunks: mappedChunks,
+                    transferredBytes: mappedBytes,
+                  );
+                },
+        );
+      }
     } catch (e) {
       if (uploadItem != null) {
         _transferManager?.failTransfer(
