@@ -445,6 +445,15 @@ The Mac App Store requires app sandbox. Verify these capabilities work:
 - [ ] **Store listing:** Name, description, keywords, category
 - [ ] **Privacy policy:** Hosted at public URL
 - [ ] **Version:** 1.0.0 in `pubspec.yaml`
+- [ ] **Database schema:** if `schemaVersion` changed, export a snapshot for the
+      new version and regenerate the helpers — a version without a snapshot has
+      no migration anyone can verify afterwards, and snapshots cannot be
+      recovered once the release is out:
+
+      ```bash
+      dart run drift_dev schema dump lib/core/storage/database.dart drift_schemas/
+      dart run drift_dev schema generate drift_schemas/ test/generated/migrations/
+      ```
 - [ ] **Signing:** iOS cert + profile, Android keystore, macOS cert
 - [ ] **Builds:** `flutter build ipa`, `flutter build appbundle`, `flutter build macos` all succeed
 - [ ] **Tests:** 203 tests pass, manual smoke test on each platform

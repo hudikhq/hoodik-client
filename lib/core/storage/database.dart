@@ -104,9 +104,12 @@ class CachedFiles extends Table {
   IntColumn get fileModifiedAt => integer().nullable()();
   IntColumn get createdAt => integer().nullable()();
   IntColumn get finishedUploadAt => integer().nullable()();
-  TextColumn get cachePolicy => textEnum<CachePolicyType>().withDefault(
-    Constant(CachePolicyType.auto.name),
-  )();
+  // The literal rather than `CachePolicyType.auto.name`: a schema snapshot has
+  // to be expressible without importing app types, and the column stores the
+  // enum's name anyway, so the DDL default is the same string either way.
+  // Keep it in step with [CachePolicyType.auto].
+  TextColumn get cachePolicy =>
+      textEnum<CachePolicyType>().withDefault(const Constant('auto'))();
   DateTimeColumn get syncedAt => dateTime().nullable()();
 
   @override
@@ -320,7 +323,13 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => currentSchemaVersion;
+
+  /// The schema this build expects, named so tests can assert against it
+  /// rather than repeating the number. Bump it in the same change that alters
+  /// a table, and export a snapshot for the new version — an installed app
+  /// that sees an unchanged version never runs the upgrade at all.
+  static const int currentSchemaVersion = 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
