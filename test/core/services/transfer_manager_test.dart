@@ -630,4 +630,122 @@ void main() {
       expect(item.onWorker, true);
     });
   });
+
+  // One upload is two stages and one download is two the other way round.
+  // Both render as "Done {size}" once finished — the stage name shows only
+  // while a stage runs — so a finished stage left in the list showed the same
+  // file twice with identical text, which reads as the transfer having run
+  // twice.
+  group('stages of one operation', () {
+    test('a starting stage retires the finished stage it follows', () {
+      final encrypt = manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.uploadEncrypt,
+        totalBytes: 100,
+        totalChunks: 1,
+        fileId: 'staging-1',
+        groupId: 'staging-1',
+      );
+      manager.completeTransfer(encrypt.id);
+
+      // The server file id only exists once encryption is done, so the two
+      // stages carry different `fileId`s and the group is what links them.
+      manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.uploadHttp,
+        totalBytes: 100,
+        totalChunks: 1,
+        fileId: 'server-file-1',
+        groupId: 'staging-1',
+      );
+
+      expect(manager.transfers, hasLength(1));
+      expect(manager.transfers.single.type, TransferType.uploadHttp);
+    });
+
+    test('a download groups on its file id without being told', () {
+      final download = manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.downloadHttp,
+        totalBytes: 100,
+        totalChunks: 1,
+        fileId: 'file-1',
+      );
+      manager.completeTransfer(download.id);
+
+      manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.downloadDecrypt,
+        totalBytes: 100,
+        totalChunks: 1,
+        fileId: 'file-1',
+      );
+
+      expect(manager.transfers, hasLength(1));
+      expect(manager.transfers.single.type, TransferType.downloadDecrypt);
+    });
+
+    test('an unfinished stage is never retired', () {
+      manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.uploadEncrypt,
+        totalBytes: 100,
+        totalChunks: 1,
+        groupId: 'staging-1',
+      );
+      manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.uploadHttp,
+        totalBytes: 100,
+        totalChunks: 1,
+        groupId: 'staging-1',
+      );
+
+      expect(manager.transfers, hasLength(2));
+    });
+
+    // Downloading a file and then uploading one are separate operations that
+    // happen to share an id; neither should clear the other's history.
+    test('an upload does not retire a finished download of the same file', () {
+      final download = manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.downloadDecrypt,
+        totalBytes: 100,
+        totalChunks: 1,
+        fileId: 'file-1',
+      );
+      manager.completeTransfer(download.id);
+
+      manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.uploadHttp,
+        totalBytes: 100,
+        totalChunks: 1,
+        fileId: 'file-1',
+      );
+
+      expect(manager.transfers, hasLength(2));
+    });
+
+    test('two files uploading at once do not retire each other', () {
+      final first = manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.uploadEncrypt,
+        totalBytes: 100,
+        totalChunks: 1,
+        groupId: 'staging-1',
+      );
+      manager.completeTransfer(first.id);
+
+      manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.uploadHttp,
+        totalBytes: 100,
+        totalChunks: 1,
+        groupId: 'staging-2',
+      );
+
+      expect(manager.transfers, hasLength(2));
+    });
+  });
 }

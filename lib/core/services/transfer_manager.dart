@@ -44,6 +44,15 @@ class _SpeedSample {
 class TransferItem {
   final String id;
   String? fileId;
+
+  /// Which operation this item is a stage of.
+  ///
+  /// One upload is two items — encrypt, then ship — and one download is two
+  /// the other way round. They cannot be matched on `fileId`: encryption runs
+  /// before the server has been told the file exists, so the encrypt stage
+  /// only knows its staging id while the upload stage knows the real one.
+  /// Falls back to `fileId`, which is all a download needs.
+  final String? groupId;
   final String fileName;
   final TransferType type;
   final bool onWorker;
@@ -69,6 +78,7 @@ class TransferItem {
   TransferItem({
     required this.id,
     this.fileId,
+    this.groupId,
     required this.fileName,
     required this.type,
     this.onWorker = false,
@@ -211,18 +221,37 @@ class TransferManager extends ChangeNotifier {
   void Function(String fileId)? onCancelRequested;
 
   /// Start tracking a new transfer. Returns the created [TransferItem].
+  /// Begin a stage, and retire the finished stage it follows.
+  ///
+  /// A completed stage of the same operation is dropped rather than left in
+  /// the list. Both stages render as "Done {size}" once they finish — the
+  /// stage name only appears while one is running — so keeping the earlier one
+  /// showed the same file twice with identical text and read as the upload
+  /// having run twice.
   TransferItem startTransfer({
     required String fileName,
     required TransferType type,
     required int totalBytes,
     required int totalChunks,
     String? fileId,
+    String? groupId,
     bool onWorker = false,
     bool silent = false,
   }) {
+    final group = groupId ?? fileId;
+    if (group != null) {
+      _transfers.removeWhere(
+        (t) =>
+            t.status == TransferStatus.completed &&
+            (t.groupId ?? t.fileId) == group &&
+            t.type.isUpload == type.isUpload,
+      );
+    }
+
     final item = TransferItem(
       id: 'transfer_${_nextId++}_${DateTime.now().millisecondsSinceEpoch}',
       fileId: fileId,
+      groupId: groupId,
       fileName: fileName,
       type: type,
       onWorker: onWorker,

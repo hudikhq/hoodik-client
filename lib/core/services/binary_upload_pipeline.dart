@@ -169,6 +169,7 @@ class BinaryUploadPipeline {
     try {
       await _uploadFromStaging(
         fileId: fileId,
+        stagingId: resolvedStagingId,
         fileName: fileName,
         fileSize: fileSize,
         totalChunks: totalChunks,
@@ -230,6 +231,7 @@ class BinaryUploadPipeline {
       totalBytes: fileSize,
       totalChunks: totalChunks,
       fileId: tempId,
+      groupId: tempId,
       onWorker: true,
     );
 
@@ -268,6 +270,7 @@ class BinaryUploadPipeline {
 
   Future<void> _uploadFromStaging({
     required String fileId,
+    required String stagingId,
     required String fileName,
     required int fileSize,
     required int totalChunks,
@@ -282,6 +285,7 @@ class BinaryUploadPipeline {
       totalBytes: fileSize,
       totalChunks: totalChunks,
       fileId: fileId,
+      groupId: stagingId,
       onWorker: useBgUploader,
     );
 
