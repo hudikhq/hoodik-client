@@ -55,53 +55,52 @@ class _ReindexDialogState extends ConsumerState<ReindexDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return PopScope(
-      // Both exits are explicit choices with different meanings, so a stray
-      // back gesture should not silently pick one.
-      canPop: false,
-      child: AlertDialog(
-        title: Text(l10n.reindexTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.reindexExplanation),
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: _progress.total == 0 ? null : _progress.fraction,
-            ),
+    // No PopScope here. `canPop: false` blocks every pop, including the ones
+    // these buttons issue, which left the dialog with two exits and no way
+    // out. Dismissal is already gated by `barrierDismissible: false` at the
+    // call site, so a stray tap outside cannot pick an exit by accident.
+    return AlertDialog(
+      title: Text(l10n.reindexTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.reindexExplanation),
+          const SizedBox(height: 16),
+          LinearProgressIndicator(
+            value: _progress.total == 0 ? null : _progress.fraction,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.reindexProgress(_progress.done, _progress.total),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (_progress.failed > 0) ...[
             const SizedBox(height: 8),
             Text(
-              l10n.reindexProgress(_progress.done, _progress.total),
+              l10n.reindexFailed(_progress.failed),
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            if (_progress.failed > 0) ...[
-              const SizedBox(height: 8),
-              Text(
-                l10n.reindexFailed(_progress.failed),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
           ],
-        ),
-        actions: [
-          TextButton(
-            // Stops after the batch in flight. Whatever is left stays pending
-            // server-side, so the next session picks it up.
-            onPressed: () {
-              widget.service.cancel();
-              Navigator.of(context).maybePop();
-            },
-            child: Text(l10n.reindexCancel),
-          ),
-          TextButton(
-            // Closes the dialog and lets the sweep finish: the subscription
-            // lives on the service, not on this widget.
-            onPressed: () => Navigator.of(context).maybePop(),
-            child: Text(l10n.reindexBackground),
-          ),
         ],
       ),
+      actions: [
+        TextButton(
+          // Stops after the batch in flight. Whatever is left stays pending
+          // server-side, so the next session picks it up.
+          onPressed: () {
+            widget.service.cancel();
+            Navigator.of(context).maybePop();
+          },
+          child: Text(l10n.reindexCancel),
+        ),
+        TextButton(
+          // Closes the dialog and lets the sweep finish: the subscription
+          // lives on the service, not on this widget.
+          onPressed: () => Navigator.of(context).maybePop(),
+          child: Text(l10n.reindexBackground),
+        ),
+      ],
     );
   }
 }
@@ -122,10 +121,26 @@ Future<void> maybeShowReindexDialog(BuildContext context, WidgetRef ref) async {
     downloader: ref.read(fileDownloaderProvider),
   );
 
+  final prefs = ref.read(preferencesProvider);
+  final gaveUp = prefs.reindexGaveUpFileIds;
+
+  final List<String> pending;
   try {
-    if (await service.pendingCount() == 0) return;
+    pending = (await client.storage.pendingReindex()).map((f) => f.id).toList();
   } catch (_) {
     // An older server has no such route; nothing to rebuild against it.
+    return;
+  }
+
+  // Only interrupt the user for work that might actually finish. Files the
+  // sweep has already failed on stay pending forever, and without this the
+  // dialog returns on every launch with no way to stop it.
+  if (pending.every(gaveUp.contains)) {
+    if (pending.isNotEmpty) {
+      // Still worth retrying quietly: a file that becomes readable again
+      // recovers without the user ever seeing this.
+      unawaited(service.run().drain<void>());
+    }
     return;
   }
 
@@ -136,4 +151,13 @@ Future<void> maybeShowReindexDialog(BuildContext context, WidgetRef ref) async {
     barrierDismissible: false,
     builder: (_) => ReindexDialog(service: service),
   );
+
+  // Whatever is still pending after a full sweep could not be indexed, so
+  // remember it rather than asking again next launch.
+  try {
+    final left = (await client.storage.pendingReindex()).map((f) => f.id);
+    await prefs.setReindexGaveUpFileIds({...gaveUp, ...left});
+  } catch (_) {
+    // Not worth failing the flow over; the next run reaches the same state.
+  }
 }

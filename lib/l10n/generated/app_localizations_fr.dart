@@ -3345,11 +3345,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'La recherche nécessite une mise à jour. Vos fichiers sont intacts : mettez Hoodik à jour pour les retrouver.';
 
   @override
-  String get reindexTitle => 'La recherche a été renforcée';
+  String get reindexTitle => 'Amélioration de l\'index de recherche';
 
   @override
   String get reindexExplanation =>
-      'Nous avons amélioré la protection de votre index de recherche : il ne peut plus être lu depuis la base de données. Vos fichiers doivent être réindexés sur cet appareil pour fonctionner avec. Les notes sont téléchargées et déchiffrées ici pour être réindexées, ce qui peut prendre un moment. Les fichiers pas encore traités n\'apparaîtront pas dans la recherche.';
+      'Nous avons renforcé le hachage de vos noms de fichiers et de vos notes pour la recherche, les rendant bien plus difficiles à casser. Vos fichiers doivent être réindexés sur cet appareil pour utiliser le nouveau format. Les notes sont téléchargées et déchiffrées ici, ce qui peut prendre un moment. Les fichiers pas encore traités n\'apparaîtront pas dans la recherche.';
 
   @override
   String reindexProgress(int done, int total) {

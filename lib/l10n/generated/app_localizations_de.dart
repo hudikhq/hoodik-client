@@ -3353,11 +3353,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Suche benötigt ein App-Update. Deine Dateien sind sicher — aktualisiere Hoodik, um sie wieder zu durchsuchen.';
 
   @override
-  String get reindexTitle => 'Die Suche wurde abgesichert';
+  String get reindexTitle => 'Verbesserung des Suchindex';
 
   @override
   String get reindexExplanation =>
-      'Wir haben den Schutz deines Suchindex verbessert, sodass er nicht mehr aus der Datenbank gelesen werden kann. Deine Dateien müssen dafür auf diesem Gerät neu indexiert werden. Notizen werden hier heruntergeladen und entschlüsselt, um neu indexiert zu werden, deshalb kann das einen Moment dauern. Noch nicht verarbeitete Dateien erscheinen nicht in der Suche.';
+      'Wir haben das Hashing deiner Dateinamen und Notizen für die Suche verstärkt, sodass es deutlich schwerer zu knacken ist. Deine Dateien müssen auf diesem Gerät neu indexiert werden, um das neue Format zu nutzen. Notizen werden dabei heruntergeladen und entschlüsselt, deshalb kann das einen Moment dauern. Noch nicht verarbeitete Dateien erscheinen nicht in der Suche.';
 
   @override
   String reindexProgress(int done, int total) {

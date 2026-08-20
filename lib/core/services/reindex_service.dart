@@ -1,7 +1,10 @@
 import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'dart:typed_data';
 
 import '../api/api_client.dart';
+import '../utils/logger.dart';
 import '../crypto/file_crypto.dart';
 import 'file_downloader.dart';
 
@@ -9,6 +12,8 @@ import 'file_downloader.dart';
 /// that a note download never blocks the bar for long, large enough that the
 /// request overhead is not what dominates the sweep.
 const _batchSize = 10;
+
+const _log = Logger('ReindexService');
 
 /// Progress of a re-index sweep.
 class ReindexProgress {
@@ -26,13 +31,17 @@ class ReindexProgress {
 
   double get fraction => total == 0 ? 0 : (done / total).clamp(0, 1).toDouble();
 
-  ReindexProgress copyWith({int? total, int? done, int? failed, bool? running}) =>
-      ReindexProgress(
-        total: total ?? this.total,
-        done: done ?? this.done,
-        failed: failed ?? this.failed,
-        running: running ?? this.running,
-      );
+  ReindexProgress copyWith({
+    int? total,
+    int? done,
+    int? failed,
+    bool? running,
+  }) => ReindexProgress(
+    total: total ?? this.total,
+    done: done ?? this.done,
+    failed: failed ?? this.failed,
+    running: running ?? this.running,
+  );
 }
 
 /// Rebuilds the search index for files that predate keyed tags.
@@ -51,9 +60,9 @@ class ReindexService {
     required ApiClient client,
     required FileCrypto fileCrypto,
     FileDownloader? downloader,
-  })  : _client = client,
-        _fileCrypto = fileCrypto,
-        _downloader = downloader;
+  }) : _client = client,
+       _fileCrypto = fileCrypto,
+       _downloader = downloader;
 
   final ApiClient _client;
   final FileCrypto _fileCrypto;
@@ -66,13 +75,21 @@ class ReindexService {
   /// couldn't be re-indexed" when one file failed twice.
   final Set<String> _failedIds = {};
 
+  /// Every file this run has attempted, and every file it has ever seen
+  /// pending. Both are counted by id for the same reason as [_failedIds]:
+  /// a retried file would otherwise advance the bar twice and show "39 of 39"
+  /// on an account with 28 files.
+  final Set<String> _attemptedIds = {};
+  final Set<String> _seenIds = {};
+
   /// Stop after the batch in flight. Whatever is left is still pending
   /// server-side, so the next session picks it up from there.
   void cancel() => _cancelled = true;
 
   /// How many files still need doing. Cheap enough to call on unlock to decide
   /// whether the sweep is worth showing at all.
-  Future<int> pendingCount() async => (await _client.storage.pendingReindex()).length;
+  Future<int> pendingCount() async =>
+      (await _client.storage.pendingReindex()).length;
 
   /// A note's body is indexed word for word, which is why the old scheme
   /// leaked note contents and not just names. Rebuilding that means fetching
@@ -107,8 +124,10 @@ class ReindexService {
       fileId: file.id,
       nameHash: _fileCrypto.hashFileName(name),
       searchTokensRoot: _fileCrypto.tokenizeForSearch(indexed),
-      searchTokensFile:
-          _fileCrypto.tokenizeForSearchWithFileKey(fileKey, indexed),
+      searchTokensFile: _fileCrypto.tokenizeForSearchWithFileKey(
+        fileKey,
+        indexed,
+      ),
     );
   }
 
@@ -120,10 +139,13 @@ class ReindexService {
   Stream<ReindexProgress> run() async* {
     _cancelled = false;
     _failedIds.clear();
+    _attemptedIds.clear();
+    _seenIds.clear();
 
     var state = const ReindexProgress(running: true);
     var pending = await _client.storage.pendingReindex();
-    state = state.copyWith(total: pending.length);
+    _seenIds.addAll(pending.map((f) => f.id));
+    state = state.copyWith(total: _seenIds.length);
     yield state;
 
     while (pending.isNotEmpty) {
@@ -139,11 +161,29 @@ class ReindexService {
           try {
             await _reindexOne(file);
             _failedIds.remove(file.id);
-          } catch (_) {
+          } catch (e) {
+            // Swallowing this silently is how a systematic failure looks like
+            // a handful of unlucky files: the counter goes up and nothing says
+            // why. The sweep still continues — one bad file must not cost the
+            // user their index — but it says what happened.
+            _log.warn(
+              'file could not be re-indexed',
+              fields: {
+                'file_id': file.id,
+                'editable': file.editable,
+                if (e is DioException) ...{
+                  'path': e.requestOptions.path,
+                  'status': e.response?.statusCode,
+                  'body': e.response?.data?.toString(),
+                } else
+                  'error': e.toString(),
+              },
+            );
             _failedIds.add(file.id);
           } finally {
+            _attemptedIds.add(file.id);
             state = state.copyWith(
-              done: state.done + 1,
+              done: _attemptedIds.length,
               failed: _failedIds.length,
             );
           }
@@ -163,7 +203,8 @@ class ReindexService {
       final next = await _client.storage.pendingReindex();
       if (next.length >= pending.length) break;
 
-      state = state.copyWith(total: state.total + next.length);
+      _seenIds.addAll(next.map((f) => f.id));
+      state = state.copyWith(total: _seenIds.length);
       pending = next;
     }
 

@@ -3336,11 +3336,11 @@ class AppLocalizationsHr extends AppLocalizations {
       'Pretraga traži ažuriranje aplikacije. Datoteke su sigurne — ažuriraj Hoodik da ih ponovno pretražuješ.';
 
   @override
-  String get reindexTitle => 'Pretraga je dodatno osigurana';
+  String get reindexTitle => 'Nadogradnja search indeksa';
 
   @override
   String get reindexExplanation =>
-      'Poboljšali smo zaštitu tvog search indeksa pa se više ne može pročitati iz baze. Zato tvoje datoteke treba ponovno indeksirati na ovom uređaju. Bilješke se ovdje preuzimaju i dekriptiraju da bi se ponovno indeksirale, pa to može potrajati. Datoteke koje još nisu obrađene neće se pojaviti u pretrazi.';
+      'Pojačali smo hashiranje naziva datoteka i bilješki za pretragu pa ih je puno teže probiti. Datoteke treba ponovno indeksirati na ovom uređaju da koriste novi format. Bilješke se pritom preuzimaju i dekriptiraju, pa to može potrajati. Datoteke koje još nisu obrađene neće se pojaviti u pretrazi.';
 
   @override
   String reindexProgress(int done, int total) {

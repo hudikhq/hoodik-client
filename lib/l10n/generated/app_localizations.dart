@@ -5478,13 +5478,13 @@ abstract class AppLocalizations {
   /// No description provided for @reindexTitle.
   ///
   /// In en, this message translates to:
-  /// **'Search has been hardened'**
+  /// **'Search index upgrade'**
   String get reindexTitle;
 
   /// No description provided for @reindexExplanation.
   ///
   /// In en, this message translates to:
-  /// **'We improved how your search index is protected, so it can no longer be read from the database. Your files need to be re-indexed on this device to work with it. Notes are downloaded and decrypted here to be re-indexed, which is why this can take a moment. Files that haven\'t been processed yet won\'t turn up in search.'**
+  /// **'We\'ve strengthened how your file names and notes are hashed for search, making them far harder to crack. Your files need re-indexing on this device to use the new format. Notes are downloaded and decrypted here, which is why this can take a moment. Files that haven\'t been processed yet won\'t turn up in search.'**
   String get reindexExplanation;
 
   /// No description provided for @reindexProgress.
