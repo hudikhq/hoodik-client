@@ -29,29 +29,26 @@ class _FakeDio extends Fake implements Dio {
 
 void main() {
   group('SearchClient wire privacy', () {
-    test(
-      'sends keyed tags only — the body has no plaintext field',
-      () async {
-        final dio = _FakeDio();
-        final client = SearchClient(dio);
+    test('sends keyed tags only — the body has no plaintext field', () async {
+      final dio = _FakeDio();
+      final client = SearchClient(dio);
 
-        final tags = ['a' * 32, 'b' * 32];
-        await client.searchFiles(rootTags: tags);
+      final tags = ['a' * 32, 'b' * 32];
+      await client.searchFiles(rootTags: tags);
 
-        expect(dio.lastPostPath, '/api/storage/search');
-        final body = dio.lastPostData as Map<String, dynamic>;
-        expect(body['root_tags'], tags);
-        expect(body['file_tags'], isEmpty);
-        // The legacy shapes are refused by the server with 426; this build
-        // must not send them at all.
-        expect(body.containsKey('search'), isFalse);
-        expect(body.containsKey('search_tokens_hashed'), isFalse);
-        expect(body.containsKey('hash'), isFalse);
-        expect(body['limit'], 10);
-        expect(body['skip'], 0);
-        expect(body['compact'], isTrue);
-      },
-    );
+      expect(dio.lastPostPath, '/api/storage/search');
+      final body = dio.lastPostData as Map<String, dynamic>;
+      expect(body['root_tags'], tags);
+      expect(body['file_tags'], isEmpty);
+      // The legacy shapes are refused by the server with 426; this build
+      // must not send them at all.
+      expect(body.containsKey('search'), isFalse);
+      expect(body.containsKey('search_tokens_hashed'), isFalse);
+      expect(body.containsKey('hash'), isFalse);
+      expect(body['limit'], 10);
+      expect(body['skip'], 0);
+      expect(body['compact'], isTrue);
+    });
 
     test('forwards content hash, dir scope and editable filter', () async {
       final dio = _FakeDio();
@@ -115,7 +112,7 @@ void main() {
     // send file tags, not just root tags. Without them a query silently covers
     // only what the user owns and reports everything shared with them as
     // absent, which looks identical to the files not existing.
-test('carries both scopes when the caller has incoming shares', () async {
+    test('carries both scopes when the caller has incoming shares', () async {
       final dio = _FakeDio();
       final client = SearchClient(dio);
 

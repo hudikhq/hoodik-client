@@ -148,40 +148,48 @@ void main() {
     expectWentDirect();
   }, timeout: const Timeout(Duration(minutes: 2)));
 
-  test('an in-memory read fetches its chunks from the bucket', () async {
-    // The decrypt half needs the Rust runtime, which `flutter test` has no way
-    // to boot, so it throws after the transfer. Where the bytes came from is
-    // the half that regressed and the half this asserts.
-    await expectLater(
-      build().downloadFile(file, fileKey: Uint8List(32)),
-      throwsA(anything),
-    );
+  test(
+    'an in-memory read fetches its chunks from the bucket',
+    () async {
+      // The decrypt half needs the Rust runtime, which `flutter test` has no way
+      // to boot, so it throws after the transfer. Where the bytes came from is
+      // the half that regressed and the half this asserts.
+      await expectLater(
+        build().downloadFile(file, fileKey: Uint8List(32)),
+        throwsA(anything),
+      );
 
-    expectWentDirect();
-  }, timeout: const Timeout(Duration(minutes: 2)));
+      expectWentDirect();
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 
-  test('a second read of the same file refetches nothing', () async {
-    final first = Completer<void>();
-    final downloader = build();
-    downloader.downloadAndPinOffline(
-      file,
-      onComplete: first.complete,
-      onError: (e) => first.completeError(e),
-    );
-    await first.future;
+  test(
+    'a second read of the same file refetches nothing',
+    () async {
+      final first = Completer<void>();
+      final downloader = build();
+      downloader.downloadAndPinOffline(
+        file,
+        onComplete: first.complete,
+        onError: (e) => first.completeError(e),
+      );
+      await first.future;
 
-    final second = Completer<void>();
-    downloader.downloadAndPinOffline(
-      file,
-      onComplete: second.complete,
-      onError: (e) => second.completeError(e),
-    );
-    await second.future;
+      final second = Completer<void>();
+      downloader.downloadAndPinOffline(
+        file,
+        onComplete: second.complete,
+        onError: (e) => second.completeError(e),
+      );
+      await second.future;
 
-    expect(
-      transport.directCalls,
-      hasLength(1),
-      reason: 'the cache should have answered the second read',
-    );
-  }, timeout: const Timeout(Duration(minutes: 2)));
+      expect(
+        transport.directCalls,
+        hasLength(1),
+        reason: 'the cache should have answered the second read',
+      );
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 }

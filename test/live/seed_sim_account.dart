@@ -74,11 +74,7 @@ void main() {
     final server = (await db.getAllServers()).single;
 
     try {
-      await auth.register(
-        server: server,
-        email: _email,
-        password: _password,
-      );
+      await auth.register(server: server, email: _email, password: _password);
     } on DioException {
       await auth.login(server: server, email: _email, password: _password);
     }

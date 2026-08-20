@@ -170,10 +170,12 @@ class SharesClient {
 
     return rows
         .whereType<Map<String, dynamic>>()
-        .map((row) => {
-              'file_id': row['file_id'] as String? ?? '',
-              'encrypted_key': row['encrypted_key'] as String? ?? '',
-            })
+        .map(
+          (row) => {
+            'file_id': row['file_id'] as String? ?? '',
+            'encrypted_key': row['encrypted_key'] as String? ?? '',
+          },
+        )
         .where((row) => row['encrypted_key']!.isNotEmpty)
         .toList();
   }

@@ -12,13 +12,12 @@ LivenessInfo _server({
   String version = '2.5.0',
   String? minimum = '2.5.0',
   String? recommended = '2.5.0',
-}) =>
-    LivenessInfo(
-      alive: true,
-      version: version,
-      minimumClientVersion: minimum,
-      recommendedClientVersion: recommended,
-    );
+}) => LivenessInfo(
+  alive: true,
+  version: version,
+  minimumClientVersion: minimum,
+  recommendedClientVersion: recommended,
+);
 
 void main() {
   group('client below the server minimum', () {
@@ -39,7 +38,10 @@ void main() {
     });
 
     test('is never blocked by an unreachable server', () {
-      expect(const LivenessInfo.offline().isClientBelowMinimum('1.0.0'), isFalse);
+      expect(
+        const LivenessInfo.offline().isClientBelowMinimum('1.0.0'),
+        isFalse,
+      );
     });
   });
 

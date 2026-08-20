@@ -175,8 +175,10 @@ class FilesForkController {
         // The fork is a distinct file under `newKey`, so its file scope is
         // keyed on that — tagging under the source's key would index it for
         // whoever holds the original instead.
-        'search_tokens_file':
-            fileCrypto.tokenizeForSearchWithFileKey(newKey, displayName),
+        'search_tokens_file': fileCrypto.tokenizeForSearchWithFileKey(
+          newKey,
+          displayName,
+        ),
         'event_signature': eventSignature,
         'timestamp': timestamp,
       };

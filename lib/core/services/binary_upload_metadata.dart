@@ -56,8 +56,10 @@ class BinaryUploadMetadata {
       cipher: cipher,
     );
     final searchTokens = _fileCrypto.tokenizeForSearch(fileName);
-    final searchTokensFile =
-        _fileCrypto.tokenizeForSearchWithFileKey(fileKey, fileName);
+    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
+      fileKey,
+      fileName,
+    );
 
     String? encryptedThumbnail;
     if (canGenerateThumbnail(mime)) {

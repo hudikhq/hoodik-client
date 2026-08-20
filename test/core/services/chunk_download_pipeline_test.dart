@@ -20,7 +20,7 @@ void main() {
     chunkCount: chunkCount,
     outputDir: outputDir,
     alreadyDownloaded: const [],
-      accountId: 'acct-test',
+    accountId: 'acct-test',
   );
 
   test('happy path: tar succeeds, capability cache records the win', () async {

@@ -126,7 +126,10 @@ void main() {
           .map((e) => e.split(':').first)
           .toList();
 
-      expect(fileCrypto.queryTags(fileCrypto.searchRootKey, 'invoice'), indexed);
+      expect(
+        fileCrypto.queryTags(fileCrypto.searchRootKey, 'invoice'),
+        indexed,
+      );
     });
   });
 

@@ -109,12 +109,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       final rootKey = fileCrypto.searchRootKey;
       final results = await client.search.searchFiles(
         rootTags: fileCrypto.queryTags(rootKey, query),
-        fileTags: await ref.read(incomingSearchKeysProvider.future).then(
+        fileTags: await ref
+            .read(incomingSearchKeysProvider.future)
+            .then(
               (keys) => keys
-                  .expand((key) => fileCrypto.queryTags(
-                        fileCrypto.searchFileKeyHex(key),
-                        query,
-                      ))
+                  .expand(
+                    (key) => fileCrypto.queryTags(
+                      fileCrypto.searchFileKeyHex(key),
+                      query,
+                    ),
+                  )
                   .toList(),
             ),
         hash: SearchClient.hashLookup(query),

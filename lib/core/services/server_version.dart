@@ -26,10 +26,10 @@ class LivenessInfo {
   });
 
   const LivenessInfo.offline()
-      : alive = false,
-        version = null,
-        minimumClientVersion = null,
-        recommendedClientVersion = null;
+    : alive = false,
+      version = null,
+      minimumClientVersion = null,
+      recommendedClientVersion = null;
 
   /// This app is too old for the server and must be updated before it can
   /// work. Blocks rather than nudges.

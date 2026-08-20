@@ -88,12 +88,11 @@ class AuthClient {
   /// Both compatibility fields arrived in 2.5.0, so their absence is itself
   /// evidence the server predates it.
   static LivenessInfo _readLiveness(dynamic body) => LivenessInfo(
-        alive: true,
-        version: _readVersion(body),
-        minimumClientVersion: _readString(body, 'minimum_client_version'),
-        recommendedClientVersion:
-            _readString(body, 'recommended_client_version'),
-      );
+    alive: true,
+    version: _readVersion(body),
+    minimumClientVersion: _readString(body, 'minimum_client_version'),
+    recommendedClientVersion: _readString(body, 'recommended_client_version'),
+  );
 
   /// `POST /api/auth/login` — email + password + optional 2FA token.
   /// The server sets session cookies automatically via the cookie jar.

@@ -128,10 +128,8 @@ class ProductionMcpGateway implements McpGateway {
       rootTags: fileCrypto.queryTags(fileCrypto.searchRootKey, query),
       fileTags: sharedKeys
           .expand(
-            (key) => fileCrypto.queryTags(
-              fileCrypto.searchFileKeyHex(key),
-              query,
-            ),
+            (key) =>
+                fileCrypto.queryTags(fileCrypto.searchFileKeyHex(key), query),
           )
           .toList(),
       hash: SearchClient.hashLookup(query),

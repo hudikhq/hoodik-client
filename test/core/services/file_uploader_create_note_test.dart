@@ -291,49 +291,62 @@ void main() {
   // server. Everything else had moved to the bucket, and this one kept
   // relaying because it predates the manifest and nobody had looked at it.
   group('note content reaches the bucket', () {
-    test('chunks are written straight to the bucket and then committed',
-        () async {
-      final files = _NoteFilesClient()
-        ..uploadUrls = const ['https://bucket.example.com/obj/000000.chunk'];
-      final uploader = build(
-        files: files,
-        shared: false,
-        upload: _MockSharedFolderUpload(),
-      );
+    test(
+      'chunks are written straight to the bucket and then committed',
+      () async {
+        final files = _NoteFilesClient()
+          ..uploadUrls = const ['https://bucket.example.com/obj/000000.chunk'];
+        final uploader = build(
+          files: files,
+          shared: false,
+          upload: _MockSharedFolderUpload(),
+        );
 
-      await uploader.createNote('note.md', '# Hi\n', parentDirId: 'folder-id');
+        await uploader.createNote(
+          'note.md',
+          '# Hi\n',
+          parentDirId: 'folder-id',
+        );
 
-      expect(files.directPuts, hasLength(1));
-      expect(files.chunkFileIds, isEmpty, reason: 'nothing should have relayed');
-      expect(
-        files.finalizedFileId,
-        'owner-note-id',
-        reason: 'a bucket write tells the server nothing until the client does',
-      );
-    });
+        expect(files.directPuts, hasLength(1));
+        expect(
+          files.chunkFileIds,
+          isEmpty,
+          reason: 'nothing should have relayed',
+        );
+        expect(
+          files.finalizedFileId,
+          'owner-note-id',
+          reason:
+              'a bucket write tells the server nothing until the client does',
+        );
+      },
+    );
 
     // The server signs each chunk's exact ciphertext length into its URL, so a
     // declared plaintext length would have the bucket reject every chunk.
-    test('the declared size is the ciphertext length, not the plaintext one',
-        () async {
-      final files = _NoteFilesClient()
-        ..uploadUrls = const ['https://bucket.example.com/obj/000000.chunk'];
-      final uploader = build(
-        files: files,
-        shared: false,
-        upload: _MockSharedFolderUpload(),
-      );
+    test(
+      'the declared size is the ciphertext length, not the plaintext one',
+      () async {
+        final files = _NoteFilesClient()
+          ..uploadUrls = const ['https://bucket.example.com/obj/000000.chunk'];
+        final uploader = build(
+          files: files,
+          shared: false,
+          upload: _MockSharedFolderUpload(),
+        );
 
-      const body = '# Hi\n';
-      await uploader.createNote('note.md', body, parentDirId: 'folder-id');
+        const body = '# Hi\n';
+        await uploader.createNote('note.md', body, parentDirId: 'folder-id');
 
-      expect(files.declaredSizes, isNotNull);
-      expect(
-        files.declaredSizes![0],
-        greaterThan(body.length),
-        reason: 'every chunk carries its AEAD tag on top of the payload',
-      );
-    });
+        expect(files.declaredSizes, isNotNull);
+        expect(
+          files.declaredSizes![0],
+          greaterThan(body.length),
+          reason: 'every chunk carries its AEAD tag on top of the payload',
+        );
+      },
+    );
 
     test('a server that will not sign the URLs still gets the note', () async {
       final files = _NoteFilesClient();

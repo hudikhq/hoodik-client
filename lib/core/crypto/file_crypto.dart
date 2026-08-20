@@ -185,12 +185,11 @@ class FileCrypto {
   /// query needs it.
   String? _rootKey;
 
-  String get searchRootKey =>
-      _rootKey ??= _crypto.searchRootKey(
-        (wrappingPrivateKeyPem?.isNotEmpty ?? false)
-            ? wrappingPrivateKeyPem!
-            : privateKeyPem,
-      );
+  String get searchRootKey => _rootKey ??= _crypto.searchRootKey(
+    (wrappingPrivateKeyPem?.isNotEmpty ?? false)
+        ? wrappingPrivateKeyPem!
+        : privateKeyPem,
+  );
 
   /// Keyed `name_hash` for a file or directory name.
   ///

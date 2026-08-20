@@ -90,8 +90,7 @@ Color fileIconColor(
 /// — this helper only classifies, because [formatErrorMessage] has no
 /// `BuildContext` to translate with.
 bool isUpgradeRequired(Object e) =>
-    e is DioException &&
-    e.response?.statusCode == HttpStatus.upgradeRequired;
+    e is DioException && e.response?.statusCode == HttpStatus.upgradeRequired;
 
 String formatErrorMessage(Object e) {
   if (e is DioException) {

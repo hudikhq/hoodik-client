@@ -106,11 +106,11 @@ void main() {
         _pump(
           server: _server(),
           liveness: const LivenessInfo(
-          alive: true,
-          version: '0.1.0',
-          minimumClientVersion: '1.0.0',
-          recommendedClientVersion: '1.0.0',
-        ),
+            alive: true,
+            version: '0.1.0',
+            minimumClientVersion: '1.0.0',
+            recommendedClientVersion: '1.0.0',
+          ),
           latestRelease: null,
         ),
       );
@@ -126,11 +126,11 @@ void main() {
         _pump(
           server: _server(),
           liveness: const LivenessInfo(
-          alive: true,
-          version: '1.9.0',
-          minimumClientVersion: '1.0.0',
-          recommendedClientVersion: '1.0.0',
-        ),
+            alive: true,
+            version: '1.9.0',
+            minimumClientVersion: '1.0.0',
+            recommendedClientVersion: '1.0.0',
+          ),
         ),
       );
       await tester.pump();
@@ -142,31 +142,28 @@ void main() {
     },
   );
 
-  testWidgets(
-    'defers to the compatibility banner when the server predates the '
-    'compat fields',
-    (tester) async {
-      // A server that omits `version` predates v1.16.0, so it also predates
-      // the 2.5.0 compat fields — which makes it a server this app cannot
-      // search at all. ServerCompatibilityWarning says exactly that, and
-      // needs GitHub no more than this branch did, so stacking a vaguer
-      // "upgrade available" line above it would only push the useful message
-      // down the screen.
-      await tester.pumpWidget(
-        _pump(
-          server: _server(),
-          liveness: const LivenessInfo(alive: true, version: null),
-          latestRelease: null,
-        ),
-      );
-      await tester.pump();
-      expect(find.textContaining('Upgrade', findRichText: true), findsNothing);
-      expect(
-        find.textContaining('older than v1.16.0', findRichText: true),
-        findsNothing,
-      );
-    },
-  );
+  testWidgets('defers to the compatibility banner when the server predates the '
+      'compat fields', (tester) async {
+    // A server that omits `version` predates v1.16.0, so it also predates
+    // the 2.5.0 compat fields — which makes it a server this app cannot
+    // search at all. ServerCompatibilityWarning says exactly that, and
+    // needs GitHub no more than this branch did, so stacking a vaguer
+    // "upgrade available" line above it would only push the useful message
+    // down the screen.
+    await tester.pumpWidget(
+      _pump(
+        server: _server(),
+        liveness: const LivenessInfo(alive: true, version: null),
+        latestRelease: null,
+      ),
+    );
+    await tester.pump();
+    expect(find.textContaining('Upgrade', findRichText: true), findsNothing);
+    expect(
+      find.textContaining('older than v1.16.0', findRichText: true),
+      findsNothing,
+    );
+  });
 
   testWidgets('dismiss button hides the banner for that server URL only', (
     tester,

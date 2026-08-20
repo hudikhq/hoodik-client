@@ -40,7 +40,10 @@ class StorageClient {
   /// search index, so it works on files that were never indexed. Independent
   /// of the text index by design: whether a file is indexed has nothing to do
   /// with whether its bytes match.
-  Future<List<FileItem>> filesByHash(String hash, {bool compact = false}) async {
+  Future<List<FileItem>> filesByHash(
+    String hash, {
+    bool compact = false,
+  }) async {
     final resp = await _dio.get(
       '/api/storage/by-hash/$hash',
       queryParameters: compact ? {'compact': true} : null,

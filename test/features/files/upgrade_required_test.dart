@@ -6,14 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/features/files/helpers/file_helpers.dart';
 
 DioException _response(int status, {Object? data}) => DioException(
-      requestOptions: RequestOptions(path: '/api/storage/search'),
-      response: Response<dynamic>(
-        requestOptions: RequestOptions(path: '/api/storage/search'),
-        statusCode: status,
-        data: data,
-      ),
-      type: DioExceptionType.badResponse,
-    );
+  requestOptions: RequestOptions(path: '/api/storage/search'),
+  response: Response<dynamic>(
+    requestOptions: RequestOptions(path: '/api/storage/search'),
+    statusCode: status,
+    data: data,
+  ),
+  type: DioExceptionType.badResponse,
+);
 
 void main() {
   group('isUpgradeRequired', () {

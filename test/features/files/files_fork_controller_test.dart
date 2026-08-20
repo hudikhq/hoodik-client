@@ -137,7 +137,10 @@ void main() {
       expect(body['encrypted_key'], isA<String>());
       expect(body['event_signature'], isA<String>());
       expect(body['timestamp'], isA<int>());
-      expect(body['name_hash'], _expectedNameHash(caller.privateKeyPem, sourceName));
+      expect(
+        body['name_hash'],
+        _expectedNameHash(caller.privateKeyPem, sourceName),
+      );
       expect(body['search_tokens_root'], isA<List<dynamic>>());
       expect(body['search_tokens_file'], isA<List<dynamic>>());
     });

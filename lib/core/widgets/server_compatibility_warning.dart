@@ -37,10 +37,7 @@ class ServerCompatibilityWarning extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     if (appVersion != null && liveness.isClientBelowMinimum(appVersion)) {
-      return _Banner(
-        message: l10n.appBelowMinimumVersion,
-        severe: true,
-      );
+      return _Banner(message: l10n.appBelowMinimumVersion, severe: true);
     }
 
     if (liveness.isServerBelowClientMinimum) {
@@ -48,10 +45,7 @@ class ServerCompatibilityWarning extends ConsumerWidget {
     }
 
     if (appVersion != null && liveness.isClientBelowRecommended(appVersion)) {
-      return _Banner(
-        message: l10n.appBelowRecommendedVersion,
-        severe: false,
-      );
+      return _Banner(message: l10n.appBelowRecommendedVersion, severe: false);
     }
 
     return const SizedBox.shrink();
@@ -66,8 +60,9 @@ class _Banner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        severe ? context.colors.textCrimson : context.colors.textMuted;
+    final color = severe
+        ? context.colors.textCrimson
+        : context.colors.textMuted;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -79,10 +74,9 @@ class _Banner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: color),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: color),
             ),
           ),
         ],

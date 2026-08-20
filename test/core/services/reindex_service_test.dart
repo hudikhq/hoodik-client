@@ -92,10 +92,8 @@ void main() {
     };
   });
 
-  ReindexService serviceFor(_FakeStorageClient storage) => ReindexService(
-        client: _FakeApiClient(storage),
-        fileCrypto: fileCrypto,
-      );
+  ReindexService serviceFor(_FakeStorageClient storage) =>
+      ReindexService(client: _FakeApiClient(storage), fileCrypto: fileCrypto);
 
   test('pendingCount reports what the server still owes', () async {
     final storage = _FakeStorageClient([_item('a'), _item('b')]);
@@ -104,9 +102,7 @@ void main() {
   });
 
   test('walks every pending file and finishes empty', () async {
-    final storage = _FakeStorageClient(
-      List.generate(23, (i) => _item('f$i')),
-    );
+    final storage = _FakeStorageClient(List.generate(23, (i) => _item('f$i')));
 
     final states = await serviceFor(storage).run().toList();
 
@@ -149,9 +145,7 @@ void main() {
   });
 
   test('cancelling stops the sweep and leaves the rest pending', () async {
-    final storage = _FakeStorageClient(
-      List.generate(40, (i) => _item('f$i')),
-    );
+    final storage = _FakeStorageClient(List.generate(40, (i) => _item('f$i')));
     final service = serviceFor(storage);
 
     // Cancel after the first batch lands. The check runs between batches, so
@@ -165,9 +159,7 @@ void main() {
   });
 
   test('a cancelled sweep resumes from what is still pending', () async {
-    final storage = _FakeStorageClient(
-      List.generate(30, (i) => _item('f$i')),
-    );
+    final storage = _FakeStorageClient(List.generate(30, (i) => _item('f$i')));
 
     final first = serviceFor(storage);
     await for (final state in first.run()) {
