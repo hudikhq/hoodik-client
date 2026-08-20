@@ -131,6 +131,35 @@ void main() {
         indexed,
       );
     });
+
+    test('a capitalized word is findable by a lowercase query', () {
+      // The search box lowercases everything the user types, and the
+      // tokenizer is cased, so tagging has to fold case or a note about
+      // "Berlin" is silently unsearchable.
+      expect(
+        fileCrypto.tokenizeForSearch('Berlin Meetup'),
+        fileCrypto.tokenizeForSearch('berlin meetup'),
+      );
+    });
+
+    test('matches the pinned cross-client tag vector', () {
+      // The same key and input pinned in the server's cryptfns suite and in
+      // web's. Web tags through WASM and the app through FFI, both over this
+      // crate — a build against a different checkout, or a change to
+      // tokenization or case folding, splits an account's index in two. This
+      // fails first instead. Regenerate all three together on a deliberate
+      // change.
+      final key = List.generate(32, (i) => i);
+      final keyHex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+
+      expect(crypto.searchTags(keyHex, 'Invoice Q1'), [
+        'ade2702652df2b527ea85d06ea18cc2a:1',
+        '81a20aa0d8d8b149b992f4d641fffcad:1',
+        'e9e098de1b057acdc1f7eafdd37a96a5:1',
+        'e48f3669b623c473d2ae2e75739fd62f:1',
+        '6520fd80f2b3010402038bcc9af77100:1',
+      ]);
+    });
   });
 
   group('name_hash', () {
