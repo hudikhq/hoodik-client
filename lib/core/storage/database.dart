@@ -189,6 +189,12 @@ class PendingDownloads extends Table {
   /// from "stopped partway" without asking the server.
   IntColumn get chunkCount => integer()();
 
+  /// Size of the finished file, so a resumed transfer can show a real
+  /// percentage, speed and ETA rather than a bar stuck at zero. Kept here
+  /// rather than read back off `cached_files`, which only holds what the user
+  /// has browsed to recently.
+  IntColumn get fileSize => integer().withDefault(const Constant(0))();
+
   /// Where the chunks are being collected, so a resumed transfer writes into
   /// the same place rather than starting a second one alongside it.
   TextColumn get outputDir => text()();
@@ -332,7 +338,7 @@ class AppDatabase extends _$AppDatabase {
   /// Written out rather than read off the registry because `drift_dev schema
   /// dump` resolves it from the source to name the snapshot it writes, and
   /// cannot evaluate a computed one. A registry test holds the two together.
-  static const int currentSchemaVersion = 21;
+  static const int currentSchemaVersion = 22;
 
   static const _runner = MigrationRunner(migrations);
 

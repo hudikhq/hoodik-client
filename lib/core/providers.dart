@@ -298,6 +298,7 @@ final workerManagerProvider = Provider<WorkerManager?>((ref) {
   ref.onDispose(() => wm.dispose());
   return wm;
 });
+
 /// OS-native background upload service. Dispatches encrypted chunks as
 /// individual [UploadTask]s so uploads survive app suspension on mobile.
 ///
@@ -347,11 +348,11 @@ final transferReconcilerProvider =
     Provider<Future<void> Function(String accountId)?>((ref) {
       final db = ref.watch(databaseProvider);
       return (accountId) async {
-        final stranded = await reconcileTransfersForAccount(
+        final unfinished = await reconcileTransfersForAccount(
           db: db,
           accountId: accountId,
         );
-        if (stranded.isEmpty) return;
+        if (unfinished.isEmpty) return;
 
         // Read rather than watch, and inside the closure: this runs after
         // sign-in has returned, and evaluating the downloader during the
@@ -359,7 +360,7 @@ final transferReconcilerProvider =
         // half-published session.
         await ref
             .read(fileDownloaderProvider)
-            ?.resumeInterruptedDownloads(stranded);
+            ?.resumeInterruptedDownloads(unfinished);
       };
     });
 

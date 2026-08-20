@@ -75,6 +75,11 @@ class TransferItem {
   /// Rolling window of speed samples (last 5 seconds).
   final List<_SpeedSample> _speedSamples = [];
 
+  /// What was already transferred when this stage was created. Non-zero only
+  /// for a resumed download, where a previous session's bytes are on disk
+  /// before this one has moved any.
+  late final int _startedBytes;
+
   TransferItem({
     required this.id,
     this.fileId,
@@ -91,7 +96,9 @@ class TransferItem {
     required this.startedAt,
     this.lastChunkAt,
     this.errorMessage,
-  });
+  }) {
+    _startedBytes = transferredBytes;
+  }
 
   /// Progress as a fraction from 0.0 to 1.0.
   double get progress => totalBytes > 0 ? transferredBytes / totalBytes : 0;
@@ -111,11 +118,15 @@ class TransferItem {
   /// Speed in bytes per second based on a rolling 5-second window.
   double get bytesPerSecond {
     if (_speedSamples.length < 2) {
-      // Not enough samples; fall back to overall average.
-      if (transferredBytes == 0) return 0;
+      // Not enough samples; fall back to the average over what this stage has
+      // actually moved. A resumed download opens with the previous session's
+      // bytes already counted, and dividing those by the seconds since it was
+      // picked back up reads as several GB/s and an ETA of nothing.
+      final moved = transferredBytes - _startedBytes;
+      if (moved <= 0) return 0;
       final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
       if (elapsed <= 0) return 0;
-      return transferredBytes / (elapsed / 1000.0);
+      return moved / (elapsed / 1000.0);
     }
 
     final oldest = _speedSamples.first.timestamp;
@@ -228,6 +239,12 @@ class TransferManager extends ChangeNotifier {
   /// stage name only appears while one is running — so keeping the earlier one
   /// showed the same file twice with identical text and read as the upload
   /// having run twice.
+  ///
+  /// [completedChunks] and [transferredBytes] seed a stage that is already
+  /// part-way through, which is what a download resumed after the app was
+  /// killed is. Seeding rather than letting the first progress report carry
+  /// the jump keeps it out of the speed window: bytes fetched by a previous
+  /// session arriving at once reads as several GB/s and an ETA of nothing.
   TransferItem startTransfer({
     required String fileName,
     required TransferType type,
@@ -237,6 +254,8 @@ class TransferManager extends ChangeNotifier {
     String? groupId,
     bool onWorker = false,
     bool silent = false,
+    int completedChunks = 0,
+    int transferredBytes = 0,
   }) {
     final group = groupId ?? fileId;
     if (group != null) {
@@ -258,7 +277,9 @@ class TransferManager extends ChangeNotifier {
       silent: silent,
       status: TransferStatus.active,
       totalBytes: totalBytes,
+      transferredBytes: transferredBytes,
       totalChunks: totalChunks,
+      completedChunks: completedChunks,
       startedAt: DateTime.now(),
     );
     _transfers.insert(0, item);

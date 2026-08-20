@@ -17,6 +17,7 @@ import 'steps/m0018_drop_subscriptions.dart';
 import 'steps/m0019_add_trusted_fingerprints_email.dart';
 import 'steps/m0020_create_pending_downloads.dart';
 import 'steps/m0021_rebuild_pending_downloads_output_path.dart';
+import 'steps/m0022_rebuild_pending_downloads_file_size.dart';
 
 /// Every migration, in the order they apply.
 ///
@@ -44,4 +45,5 @@ const List<Migration> migrations = [
   AddTrustedFingerprintsEmail(),
   CreatePendingDownloads(),
   RebuildPendingDownloadsOutputPath(),
+  RebuildPendingDownloadsFileSize(),
 ];

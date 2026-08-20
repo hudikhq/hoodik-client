@@ -754,7 +754,7 @@ void main() {
         // only what is genuinely missing applies.
         final applied = await appliedNames(db);
         expect(applied, contains('add_accounts_biometric_pin'));
-        expect(applied.last, 'rebuild_pending_downloads_output_path');
+        expect(applied.last, 'rebuild_pending_downloads_file_size');
         expect(applied.toSet(), hasLength(applied.length));
       },
     );

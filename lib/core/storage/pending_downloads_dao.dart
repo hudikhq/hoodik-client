@@ -17,6 +17,7 @@ extension PendingDownloadsDao on AppDatabase {
     required String accountId,
     required String fileId,
     required int chunkCount,
+    required int fileSize,
     required String outputDir,
     String? outputPath,
   }) async {
@@ -25,12 +26,14 @@ extension PendingDownloadsDao on AppDatabase {
         accountId: accountId,
         fileId: fileId,
         chunkCount: chunkCount,
+        fileSize: Value(fileSize),
         outputDir: outputDir,
         outputPath: Value(outputPath),
       ),
       onConflict: DoUpdate(
         (_) => PendingDownloadsCompanion(
           chunkCount: Value(chunkCount),
+          fileSize: Value(fileSize),
           outputDir: Value(outputDir),
           outputPath: Value(outputPath),
         ),

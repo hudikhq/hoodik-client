@@ -284,19 +284,26 @@ class ChunkDownloadPipeline {
       return;
     }
 
+    // Seeded with what a previous session already fetched, so the bar opens at
+    // the fraction that is genuinely on disk and those bytes never reach the
+    // speed window.
     final item = _transferManager?.startTransfer(
-      fileName: cached?.decryptedName ?? row.fileId.substring(0, 8),
+      fileName: _resumedName(cached) ?? row.fileId.substring(0, 8),
       type: TransferType.downloadHttp,
-      totalBytes: cached?.size ?? 0,
+      totalBytes: row.fileSize,
       totalChunks: row.chunkCount,
       fileId: row.fileId,
       onWorker: true,
+      completedChunks: present.length,
+      transferredBytes: row.chunkCount == 0
+          ? 0
+          : (row.fileSize * present.length / row.chunkCount).round(),
     );
 
     try {
       await _downloadChunks(
         fileId: row.fileId,
-        fileSize: cached?.size ?? 0,
+        fileSize: row.fileSize,
         chunkCount: row.chunkCount,
         chunksPath: row.outputDir,
         onProgress: item == null
@@ -320,6 +327,32 @@ class ChunkDownloadPipeline {
 
     if (item != null) _transferManager?.completeTransfer(item.id);
     await _finishResumed(row, cached);
+  }
+
+  /// The file's name for the transfer list, or null when it cannot be read.
+  ///
+  /// Resume runs from a database row rather than from a listing, so the name
+  /// has to come back out of the metadata cache — where it is stored encrypted
+  /// like everything else. A file the account has lost access to between the
+  /// two sessions falls back to its id rather than failing the resume.
+  String? _resumedName(CachedFile? cached) {
+    final crypto = _fileCrypto;
+    final encryptedKey = cached?.encryptedKey;
+    if (crypto == null || encryptedKey == null) return null;
+
+    try {
+      return crypto.decryptFileName(
+        encryptedNameHex: cached!.encryptedName,
+        fileKey: crypto.decryptFileKey(encryptedKey),
+        cipher: cached.cipher,
+      );
+    } catch (e) {
+      _log.debug(
+        'could not read the name of a resumed download',
+        fields: {'file_id': cached!.id, 'error': describeError(e)},
+      );
+      return null;
+    }
   }
 
   Future<void> _finishResumed(PendingDownload row, CachedFile? cached) async {
@@ -400,6 +433,7 @@ class ChunkDownloadPipeline {
       accountId: _accountId,
       fileId: fileId,
       chunkCount: chunkCount,
+      fileSize: fileSize,
       outputDir: chunksPath,
       outputPath: outputPath,
     );

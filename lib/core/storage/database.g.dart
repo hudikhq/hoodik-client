@@ -1691,7 +1691,7 @@ class $CachedFilesTable extends CachedFiles
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: Constant(CachePolicyType.auto.name),
+    defaultValue: const Constant('auto'),
   ).withConverter<CachePolicyType>($CachedFilesTable.$convertercachePolicy);
   static const VerificationMeta _syncedAtMeta = const VerificationMeta(
     'syncedAt',
@@ -3565,6 +3565,18 @@ class $PendingDownloadsTable extends PendingDownloads
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _fileSizeMeta = const VerificationMeta(
+    'fileSize',
+  );
+  @override
+  late final GeneratedColumn<int> fileSize = GeneratedColumn<int>(
+    'file_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _outputDirMeta = const VerificationMeta(
     'outputDir',
   );
@@ -3603,6 +3615,7 @@ class $PendingDownloadsTable extends PendingDownloads
     accountId,
     fileId,
     chunkCount,
+    fileSize,
     outputDir,
     outputPath,
     createdAt,
@@ -3645,6 +3658,12 @@ class $PendingDownloadsTable extends PendingDownloads
       );
     } else if (isInserting) {
       context.missing(_chunkCountMeta);
+    }
+    if (data.containsKey('file_size')) {
+      context.handle(
+        _fileSizeMeta,
+        fileSize.isAcceptableOrUnknown(data['file_size']!, _fileSizeMeta),
+      );
     }
     if (data.containsKey('output_dir')) {
       context.handle(
@@ -3689,6 +3708,10 @@ class $PendingDownloadsTable extends PendingDownloads
         DriftSqlType.int,
         data['${effectivePrefix}chunk_count'],
       )!,
+      fileSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}file_size'],
+      )!,
       outputDir: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}output_dir'],
@@ -3724,6 +3747,12 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
   /// from "stopped partway" without asking the server.
   final int chunkCount;
 
+  /// Size of the finished file, so a resumed transfer can show a real
+  /// percentage, speed and ETA rather than a bar stuck at zero. Kept here
+  /// rather than read back off `cached_files`, which only holds what the user
+  /// has browsed to recently.
+  final int fileSize;
+
   /// Where the chunks are being collected, so a resumed transfer writes into
   /// the same place rather than starting a second one alongside it.
   final String outputDir;
@@ -3742,6 +3771,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
     required this.accountId,
     required this.fileId,
     required this.chunkCount,
+    required this.fileSize,
     required this.outputDir,
     this.outputPath,
     required this.createdAt,
@@ -3753,6 +3783,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
     map['account_id'] = Variable<String>(accountId);
     map['file_id'] = Variable<String>(fileId);
     map['chunk_count'] = Variable<int>(chunkCount);
+    map['file_size'] = Variable<int>(fileSize);
     map['output_dir'] = Variable<String>(outputDir);
     if (!nullToAbsent || outputPath != null) {
       map['output_path'] = Variable<String>(
@@ -3769,6 +3800,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
       accountId: Value(accountId),
       fileId: Value(fileId),
       chunkCount: Value(chunkCount),
+      fileSize: Value(fileSize),
       outputDir: Value(outputDir),
       outputPath: outputPath == null && nullToAbsent
           ? const Value.absent()
@@ -3787,6 +3819,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
       accountId: serializer.fromJson<String>(json['accountId']),
       fileId: serializer.fromJson<String>(json['fileId']),
       chunkCount: serializer.fromJson<int>(json['chunkCount']),
+      fileSize: serializer.fromJson<int>(json['fileSize']),
       outputDir: serializer.fromJson<String>(json['outputDir']),
       outputPath: serializer.fromJson<String?>(json['outputPath']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -3800,6 +3833,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
       'accountId': serializer.toJson<String>(accountId),
       'fileId': serializer.toJson<String>(fileId),
       'chunkCount': serializer.toJson<int>(chunkCount),
+      'fileSize': serializer.toJson<int>(fileSize),
       'outputDir': serializer.toJson<String>(outputDir),
       'outputPath': serializer.toJson<String?>(outputPath),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -3811,6 +3845,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
     String? accountId,
     String? fileId,
     int? chunkCount,
+    int? fileSize,
     String? outputDir,
     Value<String?> outputPath = const Value.absent(),
     DateTime? createdAt,
@@ -3819,6 +3854,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
     accountId: accountId ?? this.accountId,
     fileId: fileId ?? this.fileId,
     chunkCount: chunkCount ?? this.chunkCount,
+    fileSize: fileSize ?? this.fileSize,
     outputDir: outputDir ?? this.outputDir,
     outputPath: outputPath.present ? outputPath.value : this.outputPath,
     createdAt: createdAt ?? this.createdAt,
@@ -3831,6 +3867,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
       chunkCount: data.chunkCount.present
           ? data.chunkCount.value
           : this.chunkCount,
+      fileSize: data.fileSize.present ? data.fileSize.value : this.fileSize,
       outputDir: data.outputDir.present ? data.outputDir.value : this.outputDir,
       outputPath: data.outputPath.present
           ? data.outputPath.value
@@ -3846,6 +3883,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
           ..write('accountId: $accountId, ')
           ..write('fileId: $fileId, ')
           ..write('chunkCount: $chunkCount, ')
+          ..write('fileSize: $fileSize, ')
           ..write('outputDir: $outputDir, ')
           ..write('outputPath: $outputPath, ')
           ..write('createdAt: $createdAt')
@@ -3859,6 +3897,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
     accountId,
     fileId,
     chunkCount,
+    fileSize,
     outputDir,
     outputPath,
     createdAt,
@@ -3871,6 +3910,7 @@ class PendingDownload extends DataClass implements Insertable<PendingDownload> {
           other.accountId == this.accountId &&
           other.fileId == this.fileId &&
           other.chunkCount == this.chunkCount &&
+          other.fileSize == this.fileSize &&
           other.outputDir == this.outputDir &&
           other.outputPath == this.outputPath &&
           other.createdAt == this.createdAt);
@@ -3881,6 +3921,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
   final Value<String> accountId;
   final Value<String> fileId;
   final Value<int> chunkCount;
+  final Value<int> fileSize;
   final Value<String> outputDir;
   final Value<String?> outputPath;
   final Value<DateTime> createdAt;
@@ -3889,6 +3930,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
     this.accountId = const Value.absent(),
     this.fileId = const Value.absent(),
     this.chunkCount = const Value.absent(),
+    this.fileSize = const Value.absent(),
     this.outputDir = const Value.absent(),
     this.outputPath = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -3898,6 +3940,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
     required String accountId,
     required String fileId,
     required int chunkCount,
+    this.fileSize = const Value.absent(),
     required String outputDir,
     this.outputPath = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -3910,6 +3953,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
     Expression<String>? accountId,
     Expression<String>? fileId,
     Expression<int>? chunkCount,
+    Expression<int>? fileSize,
     Expression<String>? outputDir,
     Expression<String>? outputPath,
     Expression<DateTime>? createdAt,
@@ -3919,6 +3963,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
       if (accountId != null) 'account_id': accountId,
       if (fileId != null) 'file_id': fileId,
       if (chunkCount != null) 'chunk_count': chunkCount,
+      if (fileSize != null) 'file_size': fileSize,
       if (outputDir != null) 'output_dir': outputDir,
       if (outputPath != null) 'output_path': outputPath,
       if (createdAt != null) 'created_at': createdAt,
@@ -3930,6 +3975,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
     Value<String>? accountId,
     Value<String>? fileId,
     Value<int>? chunkCount,
+    Value<int>? fileSize,
     Value<String>? outputDir,
     Value<String?>? outputPath,
     Value<DateTime>? createdAt,
@@ -3939,6 +3985,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
       accountId: accountId ?? this.accountId,
       fileId: fileId ?? this.fileId,
       chunkCount: chunkCount ?? this.chunkCount,
+      fileSize: fileSize ?? this.fileSize,
       outputDir: outputDir ?? this.outputDir,
       outputPath: outputPath ?? this.outputPath,
       createdAt: createdAt ?? this.createdAt,
@@ -3959,6 +4006,9 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
     }
     if (chunkCount.present) {
       map['chunk_count'] = Variable<int>(chunkCount.value);
+    }
+    if (fileSize.present) {
+      map['file_size'] = Variable<int>(fileSize.value);
     }
     if (outputDir.present) {
       map['output_dir'] = Variable<String>(outputDir.value);
@@ -3981,6 +4031,7 @@ class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
           ..write('accountId: $accountId, ')
           ..write('fileId: $fileId, ')
           ..write('chunkCount: $chunkCount, ')
+          ..write('fileSize: $fileSize, ')
           ..write('outputDir: $outputDir, ')
           ..write('outputPath: $outputPath, ')
           ..write('createdAt: $createdAt')
@@ -7826,6 +7877,7 @@ typedef $$PendingDownloadsTableCreateCompanionBuilder =
       required String accountId,
       required String fileId,
       required int chunkCount,
+      Value<int> fileSize,
       required String outputDir,
       Value<String?> outputPath,
       Value<DateTime> createdAt,
@@ -7836,6 +7888,7 @@ typedef $$PendingDownloadsTableUpdateCompanionBuilder =
       Value<String> accountId,
       Value<String> fileId,
       Value<int> chunkCount,
+      Value<int> fileSize,
       Value<String> outputDir,
       Value<String?> outputPath,
       Value<DateTime> createdAt,
@@ -7867,6 +7920,11 @@ class $$PendingDownloadsTableFilterComposer
 
   ColumnFilters<int> get chunkCount => $composableBuilder(
     column: $table.chunkCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fileSize => $composableBuilder(
+    column: $table.fileSize,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7916,6 +7974,11 @@ class $$PendingDownloadsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get fileSize => $composableBuilder(
+    column: $table.fileSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get outputDir => $composableBuilder(
     column: $table.outputDir,
     builder: (column) => ColumnOrderings(column),
@@ -7954,6 +8017,9 @@ class $$PendingDownloadsTableAnnotationComposer
     column: $table.chunkCount,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get fileSize =>
+      $composableBuilder(column: $table.fileSize, builder: (column) => column);
 
   GeneratedColumn<String> get outputDir =>
       $composableBuilder(column: $table.outputDir, builder: (column) => column);
@@ -8009,6 +8075,7 @@ class $$PendingDownloadsTableTableManager
                 Value<String> accountId = const Value.absent(),
                 Value<String> fileId = const Value.absent(),
                 Value<int> chunkCount = const Value.absent(),
+                Value<int> fileSize = const Value.absent(),
                 Value<String> outputDir = const Value.absent(),
                 Value<String?> outputPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -8017,6 +8084,7 @@ class $$PendingDownloadsTableTableManager
                 accountId: accountId,
                 fileId: fileId,
                 chunkCount: chunkCount,
+                fileSize: fileSize,
                 outputDir: outputDir,
                 outputPath: outputPath,
                 createdAt: createdAt,
@@ -8027,6 +8095,7 @@ class $$PendingDownloadsTableTableManager
                 required String accountId,
                 required String fileId,
                 required int chunkCount,
+                Value<int> fileSize = const Value.absent(),
                 required String outputDir,
                 Value<String?> outputPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -8035,6 +8104,7 @@ class $$PendingDownloadsTableTableManager
                 accountId: accountId,
                 fileId: fileId,
                 chunkCount: chunkCount,
+                fileSize: fileSize,
                 outputDir: outputDir,
                 outputPath: outputPath,
                 createdAt: createdAt,

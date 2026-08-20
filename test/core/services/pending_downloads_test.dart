@@ -37,12 +37,14 @@ void main() {
       accountId: 'a1',
       fileId: 'f1',
       chunkCount: 3,
+      fileSize: 3072,
       outputDir: '/tmp/a1/f1',
     );
     await db.recordPendingDownload(
       accountId: 'a2',
       fileId: 'f2',
       chunkCount: 5,
+      fileSize: 5120,
       outputDir: '/tmp/a2/f2',
     );
 
@@ -50,35 +52,53 @@ void main() {
     expect(mine, hasLength(1));
     expect(mine.single.fileId, 'f1');
     expect(mine.single.chunkCount, 3);
+    // The size travels with the row so a resumed transfer can draw a real
+    // bar without the metadata cache still holding the file.
+    expect(mine.single.fileSize, 3072);
   });
 
   // Tapping download twice on a running transfer must not race two rows into
   // the same output directory.
-  test('recording the same file twice updates rather than duplicates', () async {
-    await db.recordPendingDownload(
-      accountId: 'a1',
-      fileId: 'f1',
-      chunkCount: 3,
-      outputDir: '/tmp/old',
-    );
-    await db.recordPendingDownload(
-      accountId: 'a1',
-      fileId: 'f1',
-      chunkCount: 7,
-      outputDir: '/tmp/new',
-    );
+  test(
+    'recording the same file twice updates rather than duplicates',
+    () async {
+      await db.recordPendingDownload(
+        accountId: 'a1',
+        fileId: 'f1',
+        chunkCount: 3,
+        fileSize: 3072,
+        outputDir: '/tmp/old',
+      );
+      await db.recordPendingDownload(
+        accountId: 'a1',
+        fileId: 'f1',
+        chunkCount: 7,
+        fileSize: 7168,
+        outputDir: '/tmp/new',
+      );
 
-    final rows = await db.getPendingDownloads('a1');
-    expect(rows, hasLength(1));
-    expect(rows.single.chunkCount, 7);
-    expect(rows.single.outputDir, '/tmp/new');
-  });
+      final rows = await db.getPendingDownloads('a1');
+      expect(rows, hasLength(1));
+      expect(rows.single.chunkCount, 7);
+      expect(rows.single.outputDir, '/tmp/new');
+    },
+  );
 
   test('clearing removes only that file', () async {
     await db.recordPendingDownload(
-      accountId: 'a1', fileId: 'f1', chunkCount: 1, outputDir: '/tmp/1');
+      accountId: 'a1',
+      fileId: 'f1',
+      chunkCount: 1,
+      fileSize: 1024,
+      outputDir: '/tmp/1',
+    );
     await db.recordPendingDownload(
-      accountId: 'a1', fileId: 'f2', chunkCount: 1, outputDir: '/tmp/2');
+      accountId: 'a1',
+      fileId: 'f2',
+      chunkCount: 1,
+      fileSize: 1024,
+      outputDir: '/tmp/2',
+    );
 
     await db.clearPendingDownload(accountId: 'a1', fileId: 'f1');
 
@@ -90,9 +110,19 @@ void main() {
   // whoever signs in next.
   test('deleting an account drops its pending downloads', () async {
     await db.recordPendingDownload(
-      accountId: 'a1', fileId: 'f1', chunkCount: 1, outputDir: '/tmp/1');
+      accountId: 'a1',
+      fileId: 'f1',
+      chunkCount: 1,
+      fileSize: 1024,
+      outputDir: '/tmp/1',
+    );
     await db.recordPendingDownload(
-      accountId: 'a2', fileId: 'f2', chunkCount: 1, outputDir: '/tmp/2');
+      accountId: 'a2',
+      fileId: 'f2',
+      chunkCount: 1,
+      fileSize: 1024,
+      outputDir: '/tmp/2',
+    );
 
     await db.deleteAccount('a1');
 
@@ -102,9 +132,19 @@ void main() {
 
   test('other-account rows are cleared wholesale on sign-in', () async {
     await db.recordPendingDownload(
-      accountId: 'a1', fileId: 'f1', chunkCount: 1, outputDir: '/tmp/1');
+      accountId: 'a1',
+      fileId: 'f1',
+      chunkCount: 1,
+      fileSize: 1024,
+      outputDir: '/tmp/1',
+    );
     await db.recordPendingDownload(
-      accountId: 'a2', fileId: 'f2', chunkCount: 1, outputDir: '/tmp/2');
+      accountId: 'a2',
+      fileId: 'f2',
+      chunkCount: 1,
+      fileSize: 1024,
+      outputDir: '/tmp/2',
+    );
 
     await db.clearPendingDownloadsForOtherAccounts('a1');
 

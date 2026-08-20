@@ -71,9 +71,11 @@ class FileDownloader {
 
   /// Pick up the chunk downloads a previous session left unfinished.
   ///
-  /// Called at sign-in with the rows the OS transfer queue is no longer
-  /// carrying. A no-op on a build that cannot run the chunk pipeline, which is
-  /// also the only place those rows are ever written.
+  /// Called at sign-in with every row this account still has, whether or not
+  /// the OS is carrying the transfer: what died with the previous process is
+  /// the owner, and without one nothing draws the progress, decrypts the
+  /// result or clears the row. A no-op on a build that cannot run the chunk
+  /// pipeline, which is also the only place those rows are ever written.
   Future<void> resumeInterruptedDownloads(List<PendingDownload> rows) async {
     if (rows.isEmpty || !_useChunkPipeline) return;
     await _pipeline().resumeInterrupted(rows);

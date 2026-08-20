@@ -78,6 +78,13 @@ class BackgroundTarTransfer {
       allowPause: false,
     );
 
+    // A transfer picked back up after a relaunch may still be in the OS queue
+    // from the previous session. The entry registered above adopts it, and a
+    // second task would only race it into the same archive.
+    if ((await tasksInFlight(downloadGroup)).contains(task.taskId)) {
+      return completer.future;
+    }
+
     final ok = await FileDownloader().enqueue(task);
     if (!ok) {
       _downloads.remove(taskId);

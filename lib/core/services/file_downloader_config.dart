@@ -71,17 +71,13 @@ Future<void> cleanUpFileDownloader() async {
 /// cold start can be holding work from whichever account was last signed in.
 /// Task ids carry their owner (see [transferTaskId]), which is what makes them
 /// separable without asking the server anything.
-///
-/// Returns the file ids this account still has in flight, so the caller can
-/// avoid re-queuing what the OS is already carrying.
-Future<Set<String>> adoptTransfersForAccount(String accountId) async {
+Future<void> adoptTransfersForAccount(String accountId) async {
   await ensureFileDownloaderConfigured();
 
   // Replay whatever the OS buffered while the app was gone, so the sweep
   // below sees finished tasks as finished rather than as still in flight.
   await FileDownloader().resumeFromBackground();
 
-  final mine = <String>{};
   final foreign = <String>[];
 
   for (final group in _managedGroups) {
@@ -89,10 +85,7 @@ Future<Set<String>> adoptTransfersForAccount(String accountId) async {
       group: group,
     )) {
       final owner = accountIdFromTaskId(record.task.taskId);
-      if (owner == accountId) {
-        final fileId = fileIdFromTaskId(record.task.taskId);
-        if (fileId != null) mine.add(fileId);
-      } else if (owner != null) {
+      if (owner != null && owner != accountId) {
         foreign.add(record.task.taskId);
       }
       // An id with no owner in it was written by a version of the app that
@@ -127,8 +120,6 @@ Future<Set<String>> adoptTransfersForAccount(String accountId) async {
       fields: {'rescheduled': rescheduled.length, 'failed': failed.length},
     );
   }
-
-  return mine;
 }
 
 /// Settle the OS transfer queue against the account that just signed in, and
@@ -139,28 +130,42 @@ Future<Set<String>> adoptTransfersForAccount(String accountId) async {
 /// everyone else's are cancelled, and the bookkeeping rows are pruned in the
 /// same pass so the two cannot disagree about what is still expected to
 /// finish.
+///
+/// Every row this account still holds comes back, including the files the OS
+/// is carrying right now. Those need picking back up just as much as the ones
+/// it dropped: the pipeline that was decrypting them and drawing their
+/// progress bar died with the previous process, so without an owner in this
+/// one their chunks land on disk and nothing ever finishes the file or tells
+/// the user it is happening. Re-driving a live transfer costs nothing — chunks
+/// already on disk are skipped and tasks the OS still has are left to run.
 Future<List<PendingDownload>> reconcileTransfersForAccount({
   required AppDatabase db,
   required String accountId,
 }) async {
-  final adopted = await adoptTransfersForAccount(accountId);
+  await adoptTransfersForAccount(accountId);
   await db.clearPendingDownloadsForOtherAccounts(accountId);
 
-  // Rows this account still has, minus whatever the OS is already carrying,
-  // are the transfers that died with the previous process and that
-  // [FileDownloader.rescheduleKilledTasks] could not revive either, their
-  // records having gone with them. The caller picks these back up; the chunks
-  // already on disk mean that only pays for what is missing.
-  final stranded = (await db.getPendingDownloads(
-    accountId,
-  )).where((row) => !adopted.contains(row.fileId)).toList();
-  if (stranded.isNotEmpty) {
+  final unfinished = await db.getPendingDownloads(accountId);
+  if (unfinished.isNotEmpty) {
     _log.info(
-      'downloads interrupted by a previous session',
-      fields: {'count': stranded.length},
+      'downloads left unfinished by a previous session',
+      fields: {'count': unfinished.length},
     );
   }
-  return stranded;
+  return unfinished;
+}
+
+/// Task ids [group] currently has in the OS queue, including any waiting to
+/// retry.
+///
+/// A transfer picked back up after a relaunch is driven by a fresh pipeline
+/// while the OS may still be carrying part of it. Enqueueing a task id the
+/// native queue already holds puts two writers on one output file, so a resume
+/// skips those and lets the task that is already running report into the new
+/// owner instead.
+Future<Set<String>> tasksInFlight(String group) async {
+  final tasks = await FileDownloader().allTasks(group: group);
+  return {for (final task in tasks) task.taskId};
 }
 
 /// Task id encoding: `{prefix}|{accountId}|{fileId}[|{chunk}]`.

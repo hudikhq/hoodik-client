@@ -376,9 +376,11 @@ void main() {
         fileName: 'test.txt',
         type: TransferType.uploadHttp,
         totalBytes: 10 * 1024 * 1024, // 10 MB
-        transferredBytes: 5 * 1024 * 1024, // 5 MB
         startedAt: DateTime.now().subtract(const Duration(seconds: 5)),
       );
+      // Bytes this stage moved, as progress updates would have set them —
+      // what it was constructed with is its starting point, not throughput.
+      item.transferredBytes = 5 * 1024 * 1024; // 5 MB
       // Without speed samples, falls back to average.
       final speed = item.speedString;
       expect(speed.isNotEmpty, true);
@@ -547,9 +549,9 @@ void main() {
         fileName: 'test.txt',
         type: TransferType.downloadHttp,
         totalBytes: 10000,
-        transferredBytes: 5000,
         startedAt: DateTime.now().subtract(const Duration(seconds: 10)),
       );
+      item.transferredBytes = 5000;
 
       // With fewer than 2 samples, bytesPerSecond falls back to overall
       // average: 5000 bytes / 10 seconds = 500 B/s.
@@ -746,6 +748,41 @@ void main() {
       );
 
       expect(manager.transfers, hasLength(2));
+    });
+  });
+
+  // A download picked back up after the app was killed opens with a previous
+  // session's bytes already on disk. Those are progress, but they are not
+  // throughput — counting them as such reads as several GB/s and an ETA of
+  // nothing for the first five seconds of every resume.
+  group('a stage that starts part-way through', () {
+    test('opens at the fraction it was given', () {
+      final item = manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.downloadHttp,
+        totalBytes: 1000,
+        totalChunks: 10,
+        completedChunks: 4,
+        transferredBytes: 400,
+      );
+
+      expect(item.progress, 0.4);
+      expect(item.completedChunks, 4);
+    });
+
+    test('does not read the bytes it opened with as speed', () {
+      final item = manager.startTransfer(
+        fileName: 'holiday.mov',
+        type: TransferType.downloadHttp,
+        totalBytes: 1000,
+        totalChunks: 10,
+        completedChunks: 4,
+        transferredBytes: 400,
+      );
+
+      expect(item.bytesPerSecond, 0);
+      expect(item.speedString, isEmpty);
+      expect(item.etaString, isEmpty);
     });
   });
 }

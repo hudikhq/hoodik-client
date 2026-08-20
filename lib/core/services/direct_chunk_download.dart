@@ -101,6 +101,23 @@ class DirectChunkDownloadService {
     final dir = Directory(outputDir);
     if (!await dir.exists()) await dir.create(recursive: true);
 
+    final state = _FileDownload(
+      accountId: accountId,
+      completer: Completer<void>(),
+      progress: ChunkProgress(
+        chunkCount: urls.length,
+        fileSize: fileSize,
+        completed: {},
+        onProgress: onProgress,
+      ),
+    );
+
+    // Registered before disk is read rather than after: a task the OS is still
+    // carrying can land in between, and an update with nowhere to go is a
+    // chunk this transfer would then wait for forever. Both orders agree
+    // because completion is a set.
+    _active[fileId] = state;
+
     // Disk decides what is missing, not the caller's list. The offline cache
     // only learns about a file once every chunk has landed, so a download
     // picked back up after a kill has chunks on disk that no bookkeeping knows
@@ -108,18 +125,7 @@ class DirectChunkDownloadService {
     // avoid.
     final present = await chunksOnDisk(dir, urls.length);
     present.addAll(alreadyDownloaded.where((i) => i >= 0 && i < urls.length));
-
-    final state = _FileDownload(
-      accountId: accountId,
-      completer: Completer<void>(),
-      progress: ChunkProgress(
-        chunkCount: urls.length,
-        fileSize: fileSize,
-        completed: present,
-        onProgress: onProgress,
-      ),
-    );
-    _active[fileId] = state;
+    state.progress.completed.addAll(present);
     state.progress.report();
 
     if (state.progress.isDone) {
@@ -127,22 +133,31 @@ class DirectChunkDownloadService {
       return;
     }
 
+    final live = await tasksInFlight(group);
+    var adopted = 0;
+
     for (var i = 0; i < urls.length; i++) {
-      if (present.contains(i)) continue;
+      if (state.progress.completed.contains(i)) continue;
       // Cancellation and enqueue failures both drop the entry; stop pushing
       // tasks nobody is waiting for.
       if (_active[fileId] != state) break;
 
-      final ok = await FileDownloader().enqueue(
-        directChunkTask(
-          accountId: accountId,
-          fileId: fileId,
-          chunk: i,
-          url: urls[i],
-          outputDir: outputDir,
-        ),
+      final task = directChunkTask(
+        accountId: accountId,
+        fileId: fileId,
+        chunk: i,
+        url: urls[i],
+        outputDir: outputDir,
       );
-      if (!ok) {
+
+      // Already moving. Its updates reach the state registered above, so the
+      // bar covers it without a second task fighting it for the same file.
+      if (live.contains(task.taskId)) {
+        adopted++;
+        continue;
+      }
+
+      if (!await FileDownloader().enqueue(task)) {
         _stop(fileId, Exception('Failed to enqueue chunk $i of $fileId'));
         break;
       }
@@ -154,6 +169,7 @@ class DirectChunkDownloadService {
         'file_id': fileId,
         'chunks': urls.length,
         'skipped': present.length,
+        'adopted': adopted,
       },
     );
 

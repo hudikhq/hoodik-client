@@ -37,12 +37,14 @@ class OfflineManager extends ChangeNotifier {
     required String accountId,
     required String fileId,
     required int chunkCount,
+    required int fileSize,
     required String outputDir,
     String? outputPath,
   }) => _db.recordPendingDownload(
     accountId: accountId,
     fileId: fileId,
     chunkCount: chunkCount,
+    fileSize: fileSize,
     outputDir: outputDir,
     outputPath: outputPath,
   );

@@ -50,6 +50,11 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
   /// unless the test explicitly clears it.
   Object? perChunkError;
 
+  /// Awaited at the start of every path, so a test can inspect what the
+  /// pipeline set up — the transfer-overlay entry above all — before the
+  /// download is allowed to finish and overwrite it.
+  Future<void>? hold;
+
   @override
   Future<void> downloadAsTar({
     required String baseUrl,
@@ -61,6 +66,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
     required List<int> alreadyDownloaded,
     required String accountId,
   }) async {
+    await hold;
     tarCalls.add(
       ChunkDownloadInvocation(
         baseUrl: baseUrl,
@@ -90,6 +96,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
     required List<int> alreadyDownloaded,
     required String accountId,
   }) async {
+    await hold;
     perChunkCalls.add(
       ChunkDownloadInvocation(
         baseUrl: baseUrl,
@@ -115,6 +122,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
     required String accountId,
     void Function(int completedChunks, int transferredBytes)? onProgress,
   }) async {
+    await hold;
     directCalls.add(
       ChunkDownloadInvocation(
         baseUrl: '',
