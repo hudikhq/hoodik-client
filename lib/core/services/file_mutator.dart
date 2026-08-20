@@ -109,7 +109,11 @@ class FileMutator {
       fileKey: fileKey,
       cipher: cipher,
     );
-    final searchTokens = _fileCrypto.tokenizeForSearch(newName);
+    // An editor holds the file key but not the owner's root key, so it refreshes
+    // only the file-scoped tags it can produce. The root scope and name_hash are
+    // the owner's, keyed under a key this device does not have — sending ours
+    // would overwrite the owner's index with tags they can never match. The
+    // server enforces this too; this just keeps us from sending garbage.
     final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
       fileKey,
       newName,
@@ -119,7 +123,9 @@ class FileMutator {
       fileId: file.id,
       nameHash: nameHash,
       encryptedName: encryptedName,
-      searchTokensRoot: searchTokens,
+      searchTokensRoot: file.isOwner
+          ? _fileCrypto.tokenizeForSearch(newName)
+          : null,
       searchTokensFile: searchTokensFile,
     );
   }

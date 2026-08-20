@@ -74,6 +74,8 @@ class _NoteFilesClient extends Fake implements FilesClient {
   bool? createdEditable;
   String? createdMime;
   String? createdCipher;
+  List<String>? createdTokensRoot;
+  List<String>? createdTokensFile;
   final List<String> chunkFileIds = [];
   String? hashedFileId;
 
@@ -136,6 +138,8 @@ class _NoteFilesClient extends Fake implements FilesClient {
     createdEditable = editable;
     createdMime = mime;
     createdCipher = cipher;
+    createdTokensRoot = searchTokensRoot;
+    createdTokensFile = searchTokensFile;
     return {'id': 'owner-note-id'};
   }
 
@@ -347,6 +351,36 @@ void main() {
         );
       },
     );
+
+    test('a new note is indexed by its body, not just its title', () async {
+      final files = _NoteFilesClient();
+      final uploader = build(
+        files: files,
+        shared: false,
+        upload: _MockSharedFolderUpload(),
+      );
+
+      // The word appears only in the body. Indexing the title alone left it
+      // unsearchable until something happened to re-index the note.
+      await uploader.createNote(
+        'note.md',
+        '# Renewal\nThe insurance policy renews in March.\n',
+        parentDirId: 'folder-id',
+      );
+
+      final expected = fileCrypto
+          .tokenizeForSearch('insurance')
+          .map((e) => e.split(':').first)
+          .toSet();
+
+      final written = files.createdTokensRoot!
+          .map((e) => e.split(':').first)
+          .toSet();
+
+      expect(expected, isNotEmpty);
+      expect(written, containsAll(expected));
+      expect(files.createdTokensFile, isNotEmpty);
+    });
 
     test('a server that will not sign the URLs still gets the note', () async {
       final files = _NoteFilesClient();

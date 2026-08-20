@@ -161,10 +161,13 @@ class FileUploader {
       fileKey: fileKey,
       cipher: cipher,
     );
-    final searchTokens = _fileCrypto.tokenizeForSearch(name);
+    // Indexed by body, the way web creates one and the way every later save
+    // re-indexes it. A note created here with only its title tagged would go
+    // missing from body search until something happened to re-index it.
+    final searchTokens = _fileCrypto.tokenizeForSearch(content);
     final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
       fileKey,
-      name,
+      content,
     );
 
     var fileId = await multiKeyCreateOrNull(
@@ -239,20 +242,26 @@ class FileUploader {
     final totalChunks = (fileSize / kUploadChunkSize).ceil().clamp(1, 1 << 30);
 
     String? encryptedName;
-    List<String>? searchTokens;
-    List<String>? searchTokensFile;
     if (name != null) {
       encryptedName = _fileCrypto.encryptFileName(
         name: name,
         fileKey: fileKey,
         cipher: cipher,
       );
-      searchTokens = _fileCrypto.tokenizeForSearch(name);
-      searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
-        fileKey,
-        name,
-      );
     }
+
+    // A note is indexed by its whole body, not its title, and on every save
+    // rather than only on rename — tagging the name alone left body search
+    // broken outright, and a rename then replaced the body's tags with the
+    // title's. The root scope is the owner's, keyed under a key an editor does
+    // not hold, so an editor refreshes only the file scope.
+    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
+      fileKey,
+      content,
+    );
+    final searchTokens = file.isOwner
+        ? _fileCrypto.tokenizeForSearch(content)
+        : null;
 
     try {
       await _client.storage.replaceContent(
