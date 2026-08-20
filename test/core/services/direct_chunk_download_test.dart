@@ -137,4 +137,31 @@ void main() {
       expect(await chunksOnDisk(dir, 4), {0});
     });
   });
+
+  // Tapping a file that a resume is already downloading used to overwrite the
+  // in-memory state for it, orphaning the first driver's completer: its future
+  // never finished, so the sequential resume loop behind it stalled for the
+  // rest of the session.
+  group('a second download of the same file', () {
+    test('joins the one already running instead of replacing it', () async {
+      final service = DirectChunkDownloadService();
+      final first = service.seedInFlight('file-9');
+
+      final second = service.download(
+        accountId: 'acct-1',
+        fileId: 'file-9',
+        urls: const ['https://bucket.example.com/obj/000000.enc'],
+        outputDir: '/var/chunks/file-9',
+        fileSize: 1024,
+        alreadyDownloaded: const [],
+      );
+
+      // Both callers now wait on one transfer: completing it finishes both,
+      // and no platform channel was touched to find that out.
+      service.cancel('file-9');
+
+      await expectLater(first, throwsA(isA<Exception>()));
+      await expectLater(second, throwsA(isA<Exception>()));
+    });
+  });
 }

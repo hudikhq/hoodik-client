@@ -52,6 +52,12 @@ class BackgroundTarTransfer {
   }) async {
     await _configure();
 
+    // Same file already downloading: join it rather than replace it. One entry
+    // exists per task id, so registering a second left the first caller
+    // holding a completer nothing would ever complete.
+    final running = _downloads[taskId];
+    if (running != null) return running.completer.future;
+
     final completer = Completer<void>();
     _downloads[taskId] = _PendingDownload(
       totalBytes: totalBytes,

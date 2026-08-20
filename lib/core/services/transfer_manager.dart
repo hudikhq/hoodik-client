@@ -358,9 +358,16 @@ class TransferManager extends ChangeNotifier {
   }
 
   /// Mark a transfer as failed.
+  ///
+  /// A cancelled transfer stays cancelled. The pipelines report every way a
+  /// transfer can end here, cancellation included — it reaches them as a
+  /// thrown [TransferCancelledException] like any other error — and flipping
+  /// it to failed told the user their deliberate cancel had gone wrong, with
+  /// a retry button beside it.
   void failTransfer(String transferId, String error) {
     final item = _findById(transferId);
     if (item == null) return;
+    if (item.status == TransferStatus.cancelled) return;
     item.status = TransferStatus.failed;
     item.errorMessage = error;
     item.lastChunkAt = DateTime.now();

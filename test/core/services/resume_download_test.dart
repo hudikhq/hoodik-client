@@ -10,6 +10,7 @@ import 'package:hoodik_app/core/crypto/file_crypto.dart';
 import 'package:hoodik_app/core/services/chunk_download_pipeline.dart';
 import 'package:hoodik_app/core/services/offline_manager.dart';
 import 'package:hoodik_app/core/services/tar_fallback.dart';
+import 'package:hoodik_app/core/services/transfer_errors.dart';
 import 'package:hoodik_app/core/services/transfer_manager.dart';
 import 'package:hoodik_app/core/storage/database.dart';
 import 'package:hoodik_app/core/storage/pending_downloads_dao.dart';
@@ -289,6 +290,50 @@ void main() {
       final item = await resumeAndHold(row);
 
       expect(item.fileName, 'file-000');
+    });
+  });
+
+  // Cancelling is a decision, not a fault. The row is what makes the next
+  // launch pick a download back up, so leaving it there resurrected the
+  // transfer the user had just stopped — gigabytes to a path they abandoned.
+  group('a cancelled download', () {
+    test('clears its pending row so a relaunch leaves it alone', () async {
+      final row = await strand(chunkCount: 3);
+      writeChunk(0);
+      transport.tarError = const TransferCancelledException('file-0001');
+      transport.perChunkError = const TransferCancelledException('file-0001');
+
+      await build().resumeInterrupted([row]);
+
+      expect(await db.getPendingDownloads('acct'), isEmpty);
+    });
+
+    test('stays cancelled rather than being reported as failed', () async {
+      final item = transfers.startTransfer(
+        fileName: 'big.iso',
+        type: TransferType.downloadHttp,
+        totalBytes: 4096,
+        totalChunks: 4,
+        fileId: 'file-0001',
+      );
+
+      transfers.cancelTransfer(item.id);
+      // The pipelines report every ending through failTransfer, cancellation
+      // included — it reaches them as a thrown exception like any other.
+      transfers.failTransfer(item.id, 'Transfer cancelled');
+
+      expect(item.status, TransferStatus.cancelled);
+    });
+
+    test('a failure keeps its row, which is what resumes next time', () async {
+      final row = await strand(chunkCount: 3);
+      writeChunk(0);
+      transport.tarError = Exception('server down');
+      transport.perChunkError = Exception('server down');
+
+      await build().resumeInterrupted([row]);
+
+      expect(await db.getPendingDownloads('acct'), hasLength(1));
     });
   });
 }

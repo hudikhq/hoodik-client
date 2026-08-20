@@ -96,6 +96,15 @@ class DirectChunkDownloadService {
     required List<int> alreadyDownloaded,
     void Function(int completedChunks, int transferredBytes)? onProgress,
   }) async {
+    // Already downloading. Wait on the driver that is running rather than
+    // registering a second one: the map holds one state per file, so the
+    // overwrite orphaned the first caller's completer and its future never
+    // finished — hanging whatever was waiting on it, the sequential resume
+    // loop included, for the rest of the session. Checked before anything
+    // else because joining costs nothing.
+    final running = _active[fileId];
+    if (running != null) return running.completer.future;
+
     await _configure();
 
     final dir = Directory(outputDir);
@@ -180,6 +189,23 @@ class DirectChunkDownloadService {
   /// Safe to call for a file that is not downloading.
   void cancel(String fileId) {
     _stop(fileId, Exception(ambientL10n.serviceDownloadCancelled));
+  }
+
+  /// Register a download as running without touching the OS queue, so a test
+  /// can drive the "already downloading" path without a platform channel.
+  @visibleForTesting
+  Future<void> seedInFlight(String fileId, {int chunkCount = 2}) {
+    final completer = Completer<void>();
+    _active[fileId] = _FileDownload(
+      accountId: 'test',
+      completer: completer,
+      progress: ChunkProgress(
+        chunkCount: chunkCount,
+        fileSize: chunkCount * 1024,
+        completed: {},
+      ),
+    );
+    return completer.future;
   }
 
   /// Cancel everything this service owns and release its update handler.

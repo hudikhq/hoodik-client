@@ -11,6 +11,7 @@ import '../utils/log_redact.dart';
 import '../utils/logger.dart';
 import 'chunk_download_runner.dart';
 import 'chunk_download_transport.dart';
+import 'transfer_errors.dart';
 import 'direct_chunk_download.dart';
 import 'offline_manager.dart';
 import 'tar_fallback.dart';
@@ -438,20 +439,32 @@ class ChunkDownloadPipeline {
       outputPath: outputPath,
     );
 
-    await _runner.run(
-      baseUrl: _client.baseUrl,
-      cookie: cookie,
-      fileId: fileId,
-      fileSize: fileSize,
-      chunkCount: chunkCount,
-      outputDir: chunksPath,
-      alreadyDownloaded: alreadyDownloaded,
-      accountId: _accountId,
-      directUrls: manifest?.urls ?? const [],
-      refreshDirectUrls: () async =>
-          (await _client.files.fetchChunkUrls(fileId))?.urls,
-      onProgress: onProgress,
-    );
+    try {
+      await _runner.run(
+        baseUrl: _client.baseUrl,
+        cookie: cookie,
+        fileId: fileId,
+        fileSize: fileSize,
+        chunkCount: chunkCount,
+        outputDir: chunksPath,
+        alreadyDownloaded: alreadyDownloaded,
+        accountId: _accountId,
+        directUrls: manifest?.urls ?? const [],
+        refreshDirectUrls: () async =>
+            (await _client.files.fetchChunkUrls(fileId))?.urls,
+        onProgress: onProgress,
+      );
+    } on TransferCancelledException {
+      // The row is what makes the next launch pick a download back up, so a
+      // cancelled one has to go: leaving it there resurrected the transfer the
+      // user had just stopped, writing gigabytes to a path they abandoned.
+      // A failure keeps its row — that one is meant to resume.
+      await _offlineManager.clearPendingDownload(
+        accountId: _accountId,
+        fileId: fileId,
+      );
+      rethrow;
+    }
 
     // Every chunk is on disk; there is nothing left for a later launch to
     // resume.
