@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -69,6 +70,12 @@ class ReindexService {
   final FileDownloader? _downloader;
 
   bool _cancelled = false;
+
+  final _progress = StreamController<ReindexProgress>.broadcast();
+  StreamSubscription<ReindexProgress>? _driver;
+  Completer<void>? _completion;
+  ReindexProgress _current = const ReindexProgress();
+  bool _completedFully = false;
 
   /// Files that threw, by id. A file that fails stays pending and is tried
   /// again on the next round, so counting attempts would report "2 files
@@ -197,11 +204,14 @@ class ReindexService {
         return;
       }
 
-      // The server hands back at most one page at a time, so keep asking until
-      // it reports nothing left. Files that failed come back around; if only
-      // failures remain, stop rather than spin on them.
+      // The server hands back at most one page at a time (500), so keep asking
+      // until nothing fresh comes back. Stopping when the next page is no
+      // smaller than this one broke after a single page on any account past
+      // that limit: page two is also full, so it read as "no progress" and the
+      // sweep quit with most of the account still unindexed. Stop instead only
+      // when every id left is one this run already tried and failed.
       final next = await _client.storage.pendingReindex();
-      if (next.length >= pending.length) break;
+      if (next.every((f) => _failedIds.contains(f.id))) break;
 
       _seenIds.addAll(next.map((f) => f.id));
       state = state.copyWith(total: _seenIds.length);
@@ -209,5 +219,60 @@ class ReindexService {
     }
 
     yield state.copyWith(running: false);
+  }
+
+  /// The latest progress, so a dialog that attaches after the sweep has
+  /// started opens on the real state rather than an empty bar.
+  ReindexProgress get current => _current;
+
+  /// Progress updates for observers. Broadcast on purpose: the dialog can
+  /// attach and detach — the user tapping "continue in background" — without
+  /// the sweep itself, which is driven below, ever noticing.
+  Stream<ReindexProgress> get progress => _progress.stream;
+
+  /// True once the sweep has run to its end without being cancelled. The
+  /// give-up bookkeeping keys off this: a cancelled sweep condemns nothing.
+  bool get completedFully => _completedFully;
+
+  /// Start the sweep, once. The work is driven here inside the service rather
+  /// than by whoever happens to be listening, which is what lets the dialog
+  /// close while it keeps running. Returns a future that completes when the
+  /// sweep finishes or is cancelled; calling it again while one is in flight
+  /// returns that same future.
+  Future<void> start() {
+    final existing = _completion;
+    if (existing != null) return existing.future;
+
+    final completion = Completer<void>();
+    _completion = completion;
+    _completedFully = false;
+
+    void finish() {
+      _driver = null;
+      _completion = null;
+      if (!completion.isCompleted) completion.complete();
+    }
+
+    _driver = run().listen(
+      (progress) {
+        _current = progress;
+        if (!_progress.isClosed) _progress.add(progress);
+      },
+      onError: (_) => finish(),
+      onDone: () {
+        _completedFully = !_cancelled;
+        finish();
+      },
+    );
+
+    return completion.future;
+  }
+
+  /// Detach observers and stop driving. The broadcast stream stays open for
+  /// the service's lifetime; nothing holds it once the sweep is done, so it
+  /// goes with the service.
+  void dispose() {
+    _driver?.cancel();
+    _progress.close();
   }
 }

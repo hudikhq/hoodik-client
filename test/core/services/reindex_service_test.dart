@@ -17,9 +17,14 @@ late FileItem Function(String id, {bool editable}) _item;
 /// is re-indexed — the way the server does, where "pending" is derived from
 /// the absence of tags rather than tracked.
 class _FakeStorageClient extends Fake implements StorageClient {
-  _FakeStorageClient(this._pending);
+  _FakeStorageClient(this._pending, {this.pageSize});
 
   final List<FileItem> _pending;
+
+  /// Mirrors the server's paging: a poll returns at most this many rows, so a
+  /// sweep that trusts one page is caught out. Null returns everything.
+  final int? pageSize;
+
   final List<String> reindexed = [];
   final Set<String> failFor = {};
   int pendingCalls = 0;
@@ -27,7 +32,8 @@ class _FakeStorageClient extends Fake implements StorageClient {
   @override
   Future<List<FileItem>> pendingReindex() async {
     pendingCalls += 1;
-    return List<FileItem>.from(_pending);
+    final take = pageSize ?? _pending.length;
+    return List<FileItem>.from(_pending.take(take));
   }
 
   @override
@@ -174,6 +180,58 @@ void main() {
 
     expect(storage.reindexed.length, 30);
     expect(await storage.pendingReindex(), isEmpty);
+  });
+
+  test(
+    'sweeps past the first page on an account larger than one page',
+    () async {
+      // The server pages at 500; a small page here forces several rounds. A
+      // sweep that stops when a page is no smaller than the last quits after
+      // page one — every later page is also full.
+      final storage = _FakeStorageClient(
+        List.generate(12, (i) => _item('f$i')),
+        pageSize: 5,
+      );
+
+      final states = await serviceFor(storage).run().toList();
+
+      expect(storage.reindexed.length, 12);
+      expect(states.last.done, 12);
+      expect(states.last.total, 12);
+      expect(states.last.running, isFalse);
+    },
+  );
+
+  test('the sweep keeps running after its only observer detaches', () async {
+    final storage = _FakeStorageClient(List.generate(30, (i) => _item('f$i')));
+    final service = serviceFor(storage);
+
+    final sweep = service.start();
+    // Attach an observer and drop it almost at once — closing the dialog with
+    // "continue in background" does exactly this.
+    final sub = service.progress.listen((_) {});
+    await sub.cancel();
+
+    await sweep;
+
+    expect(storage.reindexed.length, 30);
+    expect(service.completedFully, isTrue);
+  });
+
+  test('a cancelled background sweep is not marked complete', () async {
+    final storage = _FakeStorageClient(List.generate(40, (i) => _item('f$i')));
+    final service = serviceFor(storage);
+
+    final sweep = service.start();
+    service.progress.listen((p) {
+      if (p.done > 0) service.cancel();
+    });
+    await sweep;
+
+    // The give-up bookkeeping keys off completedFully; a cancelled sweep must
+    // not condemn the files it never reached.
+    expect(service.completedFully, isFalse);
+    expect(storage.reindexed.length, lessThan(40));
   });
 
   test('reports a fraction that never exceeds one', () async {

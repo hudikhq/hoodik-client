@@ -25,13 +25,17 @@ class ReindexDialog extends ConsumerStatefulWidget {
 }
 
 class _ReindexDialogState extends ConsumerState<ReindexDialog> {
-  ReindexProgress _progress = const ReindexProgress(running: true);
+  late ReindexProgress _progress = widget.service.current;
   StreamSubscription<ReindexProgress>? _sub;
 
   @override
   void initState() {
     super.initState();
-    _sub = widget.service.run().listen(
+    // The service owns the sweep; this only watches it. Ensuring it is running
+    // here is idempotent — the caller already started it — and the dialog
+    // seeds from `current` so it opens on real progress, not an empty bar.
+    widget.service.start();
+    _sub = widget.service.progress.listen(
       (progress) {
         if (!mounted) return;
         setState(() => _progress = progress);
@@ -47,6 +51,8 @@ class _ReindexDialogState extends ConsumerState<ReindexDialog> {
 
   @override
   void dispose() {
+    // Cancels only this observer. The sweep keeps running in the service,
+    // which is exactly what "continue in background" means.
     _sub?.cancel();
     super.dispose();
   }
@@ -95,8 +101,8 @@ class _ReindexDialogState extends ConsumerState<ReindexDialog> {
           child: Text(l10n.reindexCancel),
         ),
         TextButton(
-          // Closes the dialog and lets the sweep finish: the subscription
-          // lives on the service, not on this widget.
+          // Closes the dialog and lets the sweep finish: the service drives
+          // it, not this widget, so closing here detaches only the observer.
           onPressed: () => Navigator.of(context).maybePop(),
           child: Text(l10n.reindexBackground),
         ),
@@ -132,6 +138,21 @@ Future<void> maybeShowReindexDialog(BuildContext context, WidgetRef ref) async {
     return;
   }
 
+  // Records the files a completed sweep still could not index, so the dialog
+  // stops returning for them. Attached to the sweep's completion rather than
+  // the dialog's — "continue in background" closes the dialog while the sweep
+  // runs on, and reading pending then would condemn files still being worked.
+  // A cancelled sweep condemns nothing.
+  Future<void> rememberGiveUps() async {
+    if (!service.completedFully) return;
+    try {
+      final left = (await client.storage.pendingReindex()).map((f) => f.id);
+      await prefs.setReindexGaveUpFileIds({...gaveUp, ...left});
+    } catch (_) {
+      // Not worth failing over; the next run reaches the same state.
+    }
+  }
+
   // Only interrupt the user for work that might actually finish. Files the
   // sweep has already failed on stay pending forever, and without this the
   // dialog returns on every launch with no way to stop it.
@@ -139,10 +160,12 @@ Future<void> maybeShowReindexDialog(BuildContext context, WidgetRef ref) async {
     if (pending.isNotEmpty) {
       // Still worth retrying quietly: a file that becomes readable again
       // recovers without the user ever seeing this.
-      unawaited(service.run().drain<void>());
+      unawaited(service.start().whenComplete(rememberGiveUps));
     }
     return;
   }
+
+  unawaited(service.start().whenComplete(rememberGiveUps));
 
   if (!context.mounted) return;
 
@@ -151,13 +174,4 @@ Future<void> maybeShowReindexDialog(BuildContext context, WidgetRef ref) async {
     barrierDismissible: false,
     builder: (_) => ReindexDialog(service: service),
   );
-
-  // Whatever is still pending after a full sweep could not be indexed, so
-  // remember it rather than asking again next launch.
-  try {
-    final left = (await client.storage.pendingReindex()).map((f) => f.id);
-    await prefs.setReindexGaveUpFileIds({...gaveUp, ...left});
-  } catch (_) {
-    // Not worth failing the flow over; the next run reaches the same state.
-  }
 }
