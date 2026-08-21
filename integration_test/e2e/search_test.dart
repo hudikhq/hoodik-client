@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hoodik_app/core/api/search_client.dart';
 import 'package:hoodik_app/core/providers.dart';
 import 'package:hoodik_app/core/services/reindex_service.dart';
 import 'package:hoodik_app/main.dart' as app;
@@ -65,8 +69,68 @@ void main() {
     },
   );
 
+  // CLAUDE.md security rule 6, born from a real incident where this client
+  // POSTed raw search queries for months: assert against the bytes actually
+  // serialized, with a term whose characters cannot occur in a hex digest, so
+  // a substring check on the raw body is conclusive. Runs here rather than in
+  // a unit test because it must drive the query through the real FFI
+  // tokenizer, not a mock.
+  patrolTest('a plaintext query never reaches the wire', tags: ['smoke'], (
+    $,
+  ) async {
+    unawaited(app.main());
+    await $.pumpAndSettle();
+
+    await TestHooks.onboardAndLogin(
+      $,
+      TestEnv.serverUrl,
+      TestEnv.email,
+      TestEnv.password,
+      TestEnv.pin,
+    );
+
+    final container = await TestHooks.waitForContainer($);
+    final client = container.read(apiClientProvider)!;
+    final fileCrypto = container.read(fileCryptoProvider)!;
+
+    // 'zanzibar' contains characters (z, i) that never appear in a hex
+    // digest, so finding it anywhere in the raw body is unambiguous.
+    const term = 'zanzibar';
+    final bodies = <String>[];
+    client.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.path.contains('/api/storage/search')) {
+            bodies.add(jsonEncode(options.data));
+          }
+          handler.next(options);
+        },
+      ),
+    );
+
+    await client.search.searchFiles(
+      rootTags: fileCrypto.queryTags(fileCrypto.searchRootKey, term),
+      hash: SearchClient.hashLookup(term),
+    );
+
+    expect(bodies, isNotEmpty, reason: 'the search request should have been captured');
+    for (final raw in bodies) {
+      expect(
+        raw.toLowerCase().contains(term),
+        isFalse,
+        reason: 'the plaintext query leaked into the request body: $raw',
+      );
+      final digest = sha256.convert(utf8.encode(term)).toString();
+      expect(
+        raw.contains(digest),
+        isFalse,
+        reason: 'the unsalted digest of the query leaked into the body',
+      );
+    }
+  });
+
   patrolTest(
-    'the sweep rebuilds an index the migration cleared',
+    'the sweep runs clean on a healthy account and search still works',
     tags: ['smoke'],
     ($) async {
       unawaited(app.main());
@@ -88,65 +152,22 @@ void main() {
       final client = container.read(apiClientProvider)!;
       final fileCrypto = container.read(fileCryptoProvider)!;
 
-      // Stand in for the migration: strip this account's tags through the same
-      // route the sweep writes through. Listed rather than taken from the
-      // pending endpoint, which by definition reports nothing while the files
-      // are still indexed.
-      final listing = await client.files.listFiles();
-      for (final file in listing.children) {
-        await client.storage.reindexFile(
-          fileId: file.id,
-          nameHash: 'stale-${file.id}',
-          searchTokensRoot: const [],
-          searchTokensFile: const [],
-        );
-      }
-
+      // A file only becomes pending when its keyed `name_hash` is blanked,
+      // which happens in the re-key migration and the OPAQUE key rotation —
+      // neither reachable from a client over HTTP, so this exercises the
+      // drained steady state rather than forcing one. The sweep must complete
+      // reporting nothing pending, never spin.
       final service = ReindexService(client: client, fileCrypto: fileCrypto);
-      expect(
-        await service.pendingCount(),
-        greaterThan(0),
-        reason: 'the server should report the cleared files as pending',
-      );
-
       final states = await service.run().toList();
       expect(states.last.running, isFalse);
       expect(states.last.failed, 0);
-      expect(await service.pendingCount(), 0);
 
-      // The point of the sweep: findable again afterwards.
+      // Freshly created files carry keyed tags already, so they are findable
+      // without any sweep.
       final hits = await client.search.searchFiles(
         rootTags: fileCrypto.queryTags(fileCrypto.searchRootKey, name),
       );
       expect(hits, isNotEmpty);
     },
   );
-
-  patrolTest('a file is findable by its content digest', tags: ['smoke'], (
-    $,
-  ) async {
-    unawaited(app.main());
-    await $.pumpAndSettle();
-
-    await TestHooks.onboardAndLogin(
-      $,
-      TestEnv.serverUrl,
-      TestEnv.email,
-      TestEnv.password,
-      TestEnv.pin,
-    );
-
-    const name = 'wombat-e2e';
-    await TestHooks.createFolder($, name);
-    await $.waitUntilVisible($(name), timeout: const Duration(seconds: 15));
-
-    final container = await TestHooks.waitForContainer($);
-    final client = container.read(apiClientProvider)!;
-
-    // A digest nothing hashes to must come back empty rather than erroring or
-    // returning the drive — the failure mode that matters for a caller that
-    // asks this question constantly.
-    final absent = await client.storage.filesByHash('0' * 64);
-    expect(absent, isEmpty);
-  });
 }

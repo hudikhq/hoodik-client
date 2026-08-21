@@ -101,12 +101,6 @@ void main() {
   ReindexService serviceFor(_FakeStorageClient storage) =>
       ReindexService(client: _FakeApiClient(storage), fileCrypto: fileCrypto);
 
-  test('pendingCount reports what the server still owes', () async {
-    final storage = _FakeStorageClient([_item('a'), _item('b')]);
-
-    expect(await serviceFor(storage).pendingCount(), 2);
-  });
-
   test('walks every pending file and finishes empty', () async {
     final storage = _FakeStorageClient(List.generate(23, (i) => _item('f$i')));
 
@@ -161,7 +155,6 @@ void main() {
     }
 
     expect(storage.reindexed.length, lessThan(40));
-    expect(await service.pendingCount(), greaterThan(0));
   });
 
   test('a cancelled sweep resumes from what is still pending', () async {

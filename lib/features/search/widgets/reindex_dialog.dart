@@ -144,12 +144,16 @@ Future<void> maybeShowReindexDialog(BuildContext context, WidgetRef ref) async {
   // runs on, and reading pending then would condemn files still being worked.
   // A cancelled sweep condemns nothing.
   Future<void> rememberGiveUps() async {
-    if (!service.completedFully) return;
     try {
+      if (!service.completedFully) return;
       final left = (await client.storage.pendingReindex()).map((f) => f.id);
       await prefs.setReindexGaveUpFileIds({...gaveUp, ...left});
     } catch (_) {
       // Not worth failing over; the next run reaches the same state.
+    } finally {
+      // The service is built fresh per launch and nothing else holds it, so
+      // its broadcast stream controller is this flow's to close.
+      service.dispose();
     }
   }
 

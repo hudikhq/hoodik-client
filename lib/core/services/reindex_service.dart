@@ -77,9 +77,9 @@ class ReindexService {
   ReindexProgress _current = const ReindexProgress();
   bool _completedFully = false;
 
-  /// Files that threw, by id. A file that fails stays pending and is tried
-  /// again on the next round, so counting attempts would report "2 files
-  /// couldn't be re-indexed" when one file failed twice.
+  /// Files that threw, by id. A file that fails stays pending for the next
+  /// run; this run does not retry it, so the count reads "1 file couldn't be
+  /// re-indexed" however often it would have failed.
   final Set<String> _failedIds = {};
 
   /// Every file this run has attempted, and every file it has ever seen
@@ -92,11 +92,6 @@ class ReindexService {
   /// Stop after the batch in flight. Whatever is left is still pending
   /// server-side, so the next session picks it up from there.
   void cancel() => _cancelled = true;
-
-  /// How many files still need doing. Cheap enough to call on unlock to decide
-  /// whether the sweep is worth showing at all.
-  Future<int> pendingCount() async =>
-      (await _client.storage.pendingReindex()).length;
 
   /// A note's body is indexed word for word, which is why the old scheme
   /// leaked note contents and not just names. Rebuilding that means fetching
@@ -167,7 +162,6 @@ class ReindexService {
         for (final file in batch) {
           try {
             await _reindexOne(file);
-            _failedIds.remove(file.id);
           } catch (e) {
             // Swallowing this silently is how a systematic failure looks like
             // a handful of unlucky files: the counter goes up and nothing says
@@ -208,10 +202,15 @@ class ReindexService {
       // until nothing fresh comes back. Stopping when the next page is no
       // smaller than this one broke after a single page on any account past
       // that limit: page two is also full, so it read as "no progress" and the
-      // sweep quit with most of the account still unindexed. Stop instead only
-      // when every id left is one this run already tried and failed.
-      final next = await _client.storage.pendingReindex();
-      if (next.every((f) => _failedIds.contains(f.id))) break;
+      // sweep quit with most of the account still unindexed. Only what this
+      // run has not attempted counts as fresh: retrying an id the server
+      // already answered changes nothing the second time — and if a server
+      // ever kept reporting a successfully re-indexed file as pending,
+      // retrying it would spin this sweep for the life of the app.
+      final next = (await _client.storage.pendingReindex())
+          .where((f) => !_attemptedIds.contains(f.id))
+          .toList();
+      if (next.isEmpty) break;
 
       _seenIds.addAll(next.map((f) => f.id));
       state = state.copyWith(total: _seenIds.length);

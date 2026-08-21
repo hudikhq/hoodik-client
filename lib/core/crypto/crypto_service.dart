@@ -505,6 +505,12 @@ class CryptoService {
       rust.searchTag(keyHex: key, value: value);
 
   /// Tokenize and tag text, in the `"{tag}:{weight}"` form the index accepts.
+  ///
+  /// Folds case here so a capitalized note is findable by a lowercased query.
+  /// cryptfns lowercases too, but the loaded tokenizer does not reliably fold
+  /// on its own, so this fold is load-bearing rather than redundant — every
+  /// client (Dart here, JS on web) folds the same way before tagging. See the
+  /// cross-client vector in `search_tagging_test.dart`.
   List<String> searchTags(String key, String text) {
     final raw = rust.searchTagTokens(keyHex: key, text: text.toLowerCase());
     if (raw.isEmpty) return [];
