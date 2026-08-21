@@ -26,7 +26,13 @@ void main() {
     }
   }
 
-  Future<void> writeManifest({Uint8List? withKey, int chunks = 3}) {
+  const modifiedAt = 1700000000000;
+
+  Future<void> writeManifest({
+    Uint8List? withKey,
+    int chunks = 3,
+    int sourceModifiedAt = modifiedAt,
+  }) {
     return StagingManifest.write(
       stagingDir: dir.path,
       fileKey: withKey ?? key,
@@ -34,6 +40,7 @@ void main() {
       checksums: {0: 'aa', 1: 'bb', 2: 'cc'},
       totalChunks: chunks,
       fileSize: 300,
+      sourceModifiedAt: sourceModifiedAt,
     );
   }
 
@@ -46,6 +53,7 @@ void main() {
       fileKey: key,
       totalChunks: 3,
       fileSize: 300,
+      sourceModifiedAt: modifiedAt,
     );
 
     expect(reused, isNotNull);
@@ -62,6 +70,27 @@ void main() {
         fileKey: key,
         totalChunks: 3,
         fileSize: 300,
+        sourceModifiedAt: modifiedAt,
+      ),
+      isNull,
+    );
+  });
+
+  // The bug this guards: an in-place edit that leaves the byte count the same.
+  // Size and chunk count still match, so without the mtime check the stale
+  // ciphertext would ride along and the server would end up with the previous
+  // content while the queue reports success.
+  test('a same-size edit with a newer mtime voids the manifest', () async {
+    await writeChunks(3);
+    await writeManifest();
+
+    expect(
+      await StagingManifest.tryReuse(
+        stagingDir: dir.path,
+        fileKey: key,
+        totalChunks: 3,
+        fileSize: 300,
+        sourceModifiedAt: modifiedAt + 1,
       ),
       isNull,
     );
@@ -81,6 +110,7 @@ void main() {
         fileKey: key,
         totalChunks: 3,
         fileSize: 300,
+        sourceModifiedAt: modifiedAt,
       ),
       isNull,
     );
@@ -99,6 +129,7 @@ void main() {
         fileKey: Uint8List.fromList(List.filled(32, 9)),
         totalChunks: 3,
         fileSize: 300,
+        sourceModifiedAt: modifiedAt,
       ),
       isNull,
     );
@@ -114,6 +145,7 @@ void main() {
         fileKey: key,
         totalChunks: 3,
         fileSize: 999,
+        sourceModifiedAt: modifiedAt,
       ),
       isNull,
     );
@@ -129,6 +161,7 @@ void main() {
         fileKey: key,
         totalChunks: 3,
         fileSize: 300,
+        sourceModifiedAt: modifiedAt,
       ),
       isNull,
     );

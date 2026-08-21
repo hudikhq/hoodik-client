@@ -134,11 +134,13 @@ class BinaryUploadPipeline {
     final resolvedStagingId = stagingId ?? const Uuid().v4();
     final stagingDir = await _staging.stagingDir(resolvedStagingId);
 
+    final sourceModifiedAt = (await file.stat()).modified.millisecondsSinceEpoch;
     final reusable = await StagingManifest.tryReuse(
       stagingDir: stagingDir,
       fileKey: fileKey,
       totalChunks: totalChunks,
       fileSize: fileSize,
+      sourceModifiedAt: sourceModifiedAt,
     );
 
     final _EncryptStageResult encryptResult;
@@ -169,6 +171,7 @@ class BinaryUploadPipeline {
         checksums: encryptResult.checksums,
         totalChunks: totalChunks,
         fileSize: fileSize,
+        sourceModifiedAt: sourceModifiedAt,
       );
     }
 

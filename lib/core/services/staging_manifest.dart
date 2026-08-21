@@ -35,12 +35,14 @@ class StagingManifest {
     required Map<int, String> checksums,
     required int totalChunks,
     required int fileSize,
+    required int sourceModifiedAt,
   }) async {
     final payload = jsonEncode({
       'key_fingerprint': keyFingerprint(fileKey),
       'sha256': sha256,
       'total_chunks': totalChunks,
       'file_size': fileSize,
+      'source_modified_at': sourceModifiedAt,
       'checksums': checksums.map((k, v) => MapEntry('$k', v)),
     });
     await File(p.join(stagingDir, _fileName)).writeAsString(payload, flush: true);
@@ -50,11 +52,17 @@ class StagingManifest {
   /// were encrypted with [fileKey] for exactly this plaintext; null means
   /// "encrypt again". A manifest that fails any check is deleted so a
   /// half-valid one cannot survive to mislead the next attempt.
+  ///
+  /// [sourceModifiedAt] is what ties the stage to the plaintext: size and
+  /// chunk count cannot tell an in-place edit apart from the original, and
+  /// reusing the stage then ships the previous attempt's bytes — reporting
+  /// the old sha256 as this upload's hash — while the queue reports success.
   static Future<StagingManifest?> tryReuse({
     required String stagingDir,
     required Uint8List fileKey,
     required int totalChunks,
     required int fileSize,
+    required int sourceModifiedAt,
   }) async {
     final file = File(p.join(stagingDir, _fileName));
     if (!await file.exists()) return null;
@@ -70,6 +78,7 @@ class StagingManifest {
         data['key_fingerprint'] != keyFingerprint(fileKey) ||
         data['total_chunks'] != totalChunks ||
         data['file_size'] != fileSize ||
+        data['source_modified_at'] != sourceModifiedAt ||
         !await _chunksComplete(stagingDir, totalChunks)) {
       try {
         await file.delete();

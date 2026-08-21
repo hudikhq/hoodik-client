@@ -64,8 +64,16 @@ class UploadResume {
 
   /// Guard against resuming a row whose content is not the file on disk.
   /// Chunk counts can collide; the content hash cannot.
+  ///
+  /// A row that already stores chunks but carries no hash is refused
+  /// outright: chunks are write-once, so whatever the first attempt stored
+  /// stays in place no matter what this run uploads, and without a hash
+  /// nothing can prove the two attempts read the same bytes. Skipping the
+  /// stored indexes anyway could commit a file that decrypts to a silent
+  /// splice of two different contents.
   void ensureSameContent(String sha256) {
-    if (_sha256 != null && _sha256 != sha256) {
+    final unprovable = _sha256 == null && uploadedChunks.isNotEmpty;
+    if (unprovable || (_sha256 != null && _sha256 != sha256)) {
       throw Exception(ambientL10n.serviceUploadPartialConflict);
     }
   }
