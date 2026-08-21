@@ -19,22 +19,35 @@ class MigrationRunner {
   /// Marks every migration as applied without running one, for a database
   /// drift has just built whole from the current definitions.
   Future<void> adoptFresh(DatabaseConnectionUser db) async {
-    await _createLedger(db);
-    await _record(db, migrations);
+    await db.transaction(() async {
+      await _createLedger(db);
+      await _record(db, migrations);
+    });
   }
 
   /// Runs what [db] is missing, where [installedVersion] is the schema version
   /// it last completed an upgrade at.
   Future<void> upgrade(DatabaseConnectionUser db, int installedVersion) async {
-    final hadLedger = await _ledgerExists(db);
-    await _createLedger(db);
+    // One transaction for the ledger and its adoption rows. Every pre-ledger
+    // device passes through here exactly once; a kill between "table exists"
+    // and "rows recorded" would leave an empty ledger that the next launch
+    // reads as "nothing ever ran" — and replaying from the start rebuilds
+    // tables that carry state, wiping MCP settings and offline pins on a
+    // database that was perfectly healthy.
+    await db.transaction(() async {
+      final hadLedger = await _ledgerExists(db);
+      await _createLedger(db);
 
-    if (!hadLedger) {
-      // Adopting the ledger onto a database that predates it. Everything the
-      // installed version implies has run, whether or not anything recorded
-      // it at the time.
-      await _record(db, migrations.where((m) => m.version <= installedVersion));
-    }
+      if (!hadLedger) {
+        // Adopting the ledger onto a database that predates it. Everything
+        // the installed version implies has run, whether or not anything
+        // recorded it at the time.
+        await _record(
+          db,
+          migrations.where((m) => m.version <= installedVersion),
+        );
+      }
+    });
 
     final applied = await _appliedNames(db);
     final context = MigrationContext(db);

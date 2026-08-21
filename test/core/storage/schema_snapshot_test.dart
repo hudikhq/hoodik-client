@@ -122,8 +122,31 @@ void main() {
       );
 
       await db.validateDatabaseSchema();
+
+      // `validateDatabaseSchema` only checks that every expected table and
+      // column exists — with drift's default it never faults a table the
+      // upgrade left behind. A migration that forgets a DROP (a retired or
+      // staging table) would pass it. Compare the walked-up table set against
+      // a database drift builds whole, so a leftover fails loudly.
+      final fresh = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(fresh.close);
+      await fresh.customSelect('SELECT 1').get();
+
+      expect(await _userTables(db), await _userTables(fresh));
     },
   );
+}
+
+/// Names of the user tables in [db], excluding sqlite internals and the
+/// raw-SQL migration ledger that lives outside drift's model.
+Future<Set<String>> _userTables(AppDatabase db) async {
+  final rows = await db
+      .customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table' "
+        "AND name NOT LIKE 'sqlite_%' AND name != 'schema_migrations'",
+      )
+      .get();
+  return rows.map((r) => r.read<String>('name')).toSet();
 }
 
 /// v1–v20 shipped before snapshots were exported and cannot be recovered.
