@@ -2,6 +2,7 @@ import '../utils/log_redact.dart';
 import '../utils/logger.dart';
 import 'chunk_download_transport.dart';
 import 'tar_fallback.dart';
+import 'transfer_errors.dart';
 
 const _log = Logger('ChunkDownloadRunner');
 
@@ -52,6 +53,10 @@ class ChunkDownloadRunner {
 
       try {
         await fetch(directUrls);
+      } on TransferCancelledException {
+        // A cancel is an answer, not a failure — retrying it with a fresh
+        // manifest would restart the transfer the user just stopped.
+        rethrow;
       } catch (e) {
         // Signed URLs are long-lived but not eternal, and a transfer the OS
         // carried across several launches can outlive them. One fresh manifest

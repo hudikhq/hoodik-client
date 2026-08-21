@@ -5,10 +5,10 @@ import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as p;
 
-import '../utils/l10n_lookup.dart';
 import '../utils/logger.dart';
 import 'background_tar_transfer.dart' show TransferFailure;
 import 'file_downloader_config.dart';
+import 'transfer_errors.dart';
 
 const _log = Logger('DirectChunkDownload');
 
@@ -100,15 +100,9 @@ class DirectChunkDownloadService {
     // registering a second one: the map holds one state per file, so the
     // overwrite orphaned the first caller's completer and its future never
     // finished — hanging whatever was waiting on it, the sequential resume
-    // loop included, for the rest of the session. Checked before anything
-    // else because joining costs nothing.
+    // loop included, for the rest of the session.
     final running = _active[fileId];
     if (running != null) return running.completer.future;
-
-    await _configure();
-
-    final dir = Directory(outputDir);
-    if (!await dir.exists()) await dir.create(recursive: true);
 
     final state = _FileDownload(
       accountId: accountId,
@@ -121,66 +115,84 @@ class DirectChunkDownloadService {
       ),
     );
 
-    // Registered before disk is read rather than after: a task the OS is still
-    // carrying can land in between, and an update with nowhere to go is a
-    // chunk this transfer would then wait for forever. Both orders agree
-    // because completion is a set.
+    // Registered synchronously, in the same turn as the check above — an
+    // await in between would open a window where two drivers both pass the
+    // null check and the second overwrite orphans the first completer, the
+    // exact hang the guard exists to prevent. Registering before disk is
+    // read also matters on its own: a task the OS is still carrying can land
+    // in between, and an update with nowhere to go is a chunk this transfer
+    // would then wait for forever.
     _active[fileId] = state;
 
-    // Disk decides what is missing, not the caller's list. The offline cache
-    // only learns about a file once every chunk has landed, so a download
-    // picked back up after a kill has chunks on disk that no bookkeeping knows
-    // about yet — and refetching those is the one cost this feature exists to
-    // avoid.
-    final present = await chunksOnDisk(dir, urls.length);
-    present.addAll(alreadyDownloaded.where((i) => i >= 0 && i < urls.length));
-    state.progress.completed.addAll(present);
-    state.progress.report();
+    try {
+      await _configure();
 
-    if (state.progress.isDone) {
-      _active.remove(fileId);
-      return;
-    }
+      final dir = Directory(outputDir);
+      if (!await dir.exists()) await dir.create(recursive: true);
 
-    final live = await tasksInFlight(group);
-    var adopted = 0;
+      // Disk decides what is missing, not the caller's list. The offline
+      // cache only learns about a file once every chunk has landed, so a
+      // download picked back up after a kill has chunks on disk that no
+      // bookkeeping knows about yet — and refetching those is the one cost
+      // this feature exists to avoid.
+      final present = await chunksOnDisk(dir, urls.length);
+      present.addAll(alreadyDownloaded.where((i) => i >= 0 && i < urls.length));
+      state.progress.completed.addAll(present);
+      state.progress.report();
 
-    for (var i = 0; i < urls.length; i++) {
-      if (state.progress.completed.contains(i)) continue;
-      // Cancellation and enqueue failures both drop the entry; stop pushing
-      // tasks nobody is waiting for.
-      if (_active[fileId] != state) break;
+      if (state.progress.isDone) {
+        // Joiners picked up during the awaits above hold this completer, so
+        // it has to resolve — a bare return would leave them waiting on a
+        // download that already happened.
+        _active.remove(fileId);
+        if (!state.completer.isCompleted) state.completer.complete();
+        return state.completer.future;
+      }
 
-      final task = directChunkTask(
-        accountId: accountId,
-        fileId: fileId,
-        chunk: i,
-        url: urls[i],
-        outputDir: outputDir,
+      final live = await tasksInFlight(group);
+      var adopted = 0;
+
+      for (var i = 0; i < urls.length; i++) {
+        if (state.progress.completed.contains(i)) continue;
+        // Cancellation and enqueue failures both drop the entry; stop pushing
+        // tasks nobody is waiting for.
+        if (_active[fileId] != state) break;
+
+        final task = directChunkTask(
+          accountId: accountId,
+          fileId: fileId,
+          chunk: i,
+          url: urls[i],
+          outputDir: outputDir,
+        );
+
+        // Already moving. Its updates reach the state registered above, so
+        // the bar covers it without a second task fighting it for the same
+        // file.
+        if (live.contains(task.taskId)) {
+          adopted++;
+          continue;
+        }
+
+        if (!await FileDownloader().enqueue(task)) {
+          _stop(fileId, Exception('Failed to enqueue chunk $i of $fileId'));
+          break;
+        }
+      }
+
+      _log.debug(
+        'direct chunks enqueued',
+        fields: {
+          'file_id': fileId,
+          'chunks': urls.length,
+          'skipped': present.length,
+          'adopted': adopted,
+        },
       );
-
-      // Already moving. Its updates reach the state registered above, so the
-      // bar covers it without a second task fighting it for the same file.
-      if (live.contains(task.taskId)) {
-        adopted++;
-        continue;
-      }
-
-      if (!await FileDownloader().enqueue(task)) {
-        _stop(fileId, Exception('Failed to enqueue chunk $i of $fileId'));
-        break;
-      }
+    } catch (e) {
+      _stop(fileId, e);
+      rethrow;
     }
-
-    _log.debug(
-      'direct chunks enqueued',
-      fields: {
-        'file_id': fileId,
-        'chunks': urls.length,
-        'skipped': present.length,
-        'adopted': adopted,
-      },
-    );
 
     return state.completer.future;
   }
@@ -188,7 +200,13 @@ class DirectChunkDownloadService {
   /// Cancel every outstanding chunk task for [fileId] and fail its future.
   /// Safe to call for a file that is not downloading.
   void cancel(String fileId) {
-    _stop(fileId, Exception(ambientL10n.serviceDownloadCancelled));
+    // The typed exception is load-bearing: the pipeline's cancel handler
+    // clears the pending-download row only for this type, and the runner's
+    // manifest-refresh retry rethrows it instead of restarting the transfer
+    // the user just stopped. A plain Exception here once did both — the
+    // cancel restarted the download and the row resurrected it at next
+    // launch.
+    _stop(fileId, TransferCancelledException(fileId));
   }
 
   /// Register a download as running without touching the OS queue, so a test
@@ -261,7 +279,12 @@ class DirectChunkDownloadService {
         _stop(fileId, Exception(failure.message));
 
       case TaskStatus.canceled:
-        break;
+        // A cancel this service issued removes the state first, so its own
+        // updates never reach here. One that does belongs to a task someone
+        // else cancelled — a stale cancel racing a restarted download, the
+        // OS reclaiming the queue — and swallowing it would leave the state
+        // active and the completer waiting on a chunk that is never coming.
+        _stop(fileId, TransferCancelledException(fileId));
 
       default:
         break;
@@ -312,6 +335,11 @@ class DirectChunkDownloadService {
 /// only after it completes — a name here means those bytes are done.
 Future<Set<int>> chunksOnDisk(Directory dir, int chunkCount) async {
   final present = <int>{};
+  // The tar leg only creates the chunk directory at unpack time, so a
+  // transfer killed mid-fetch legitimately has no directory yet. That is
+  // zero chunks on disk, not an error — throwing here made every resume of
+  // such a row fail forever.
+  if (!await dir.exists()) return present;
   await for (final entity in dir.list()) {
     if (entity is! File || !entity.path.endsWith('.enc')) continue;
     final index = int.tryParse(p.basenameWithoutExtension(entity.path));

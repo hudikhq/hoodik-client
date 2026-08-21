@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../utils/logger.dart';
 import 'file_downloader_config.dart';
+import 'transfer_errors.dart';
 
 const _log = Logger('BackgroundTarTransfer');
 
@@ -148,25 +149,34 @@ class BackgroundTarTransfer {
     return completer.future;
   }
 
-  /// Cancel an in-flight tar transfer previously started with [taskId].
+  /// Cancel the in-flight tar transfers that belong to [fileId].
   ///
-  /// Cancels the OS-native task and fails the awaited future so the caller
-  /// can propagate the cancellation. Safe to call when no transfer with the
-  /// given ID is active.
-  Future<void> cancel(String taskId) async {
-    final download = _downloads.remove(taskId);
-    final upload = _uploads.remove(taskId);
+  /// The legs register under different encodings — the download leg carries a
+  /// composite `prefix|account|file` id, the upload leg the bare file id — so
+  /// cancellation matches on the file rather than trusting the caller to know
+  /// which encoding a leg used. Cancelling with the bare id used to find no
+  /// download entry at all: the OS kept fetching and the "cancelled" transfer
+  /// later reported itself complete. Fails the awaited future with the typed
+  /// cancellation so callers treat it as an answer, not a failure to retry.
+  /// Safe to call when nothing for the file is active.
+  Future<void> cancel(String fileId) async {
+    bool mine(String taskId) =>
+        taskId == fileId || fileIdFromTaskId(taskId) == fileId;
 
-    if (download != null) {
+    for (final taskId in _downloads.keys.where(mine).toList()) {
+      final download = _downloads.remove(taskId);
+      if (download == null) continue;
       await FileDownloader().cancelTaskWithId('$_downloadTaskPrefix$taskId');
       if (!download.completer.isCompleted) {
-        download.completer.completeError(Exception('Tar download cancelled'));
+        download.completer.completeError(TransferCancelledException(fileId));
       }
     }
-    if (upload != null) {
+    for (final taskId in _uploads.keys.where(mine).toList()) {
+      final upload = _uploads.remove(taskId);
+      if (upload == null) continue;
       await FileDownloader().cancelTaskWithId('$_uploadTaskPrefix$taskId');
       if (!upload.completer.isCompleted) {
-        upload.completer.completeError(Exception('Tar upload cancelled'));
+        upload.completer.completeError(TransferCancelledException(fileId));
       }
     }
   }

@@ -307,6 +307,11 @@ class ChunkDownloadPipeline {
         fileSize: row.fileSize,
         chunkCount: row.chunkCount,
         chunksPath: row.outputDir,
+        // Carried through so the re-record inside keeps the destination the
+        // user chose. Dropping it here meant a second interruption stored
+        // NULL over it, and the next resume cached the chunks but never
+        // wrote the file the user actually asked for.
+        outputPath: row.outputPath,
         onProgress: item == null
             ? null
             : (completedChunks, transferredBytes) =>

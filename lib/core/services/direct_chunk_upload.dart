@@ -92,7 +92,14 @@ class DirectChunkUploadService {
     required int fileSize,
     void Function(int completedChunks, int transferredBytes)? onProgress,
   }) async {
-    await _configure();
+    // Same join guard as the download twin, for the same class of hang: the
+    // sync queue can retry a row while the picker path adopts the same
+    // interrupted upload, and the name-hash resume converges both on one
+    // server fileId. A second registration would orphan the first driver's
+    // completer and hang its awaiting pipeline — join the running driver
+    // instead.
+    final running = _active[fileId];
+    if (running != null) return running.completer.future;
 
     final state = _FileUpload(
       accountId: accountId,
@@ -104,6 +111,8 @@ class DirectChunkUploadService {
         onProgress: onProgress,
       ),
     );
+    // In the same turn as the check above — an await in between would let two
+    // drivers both pass the null check.
     _active[fileId] = state;
 
     // An empty slot is a chunk this upload deliberately leaves alone — a
@@ -120,25 +129,32 @@ class DirectChunkUploadService {
       return state.completer.future;
     }
 
-    for (var i = 0; i < urls.length; i++) {
-      if (urls[i].isEmpty) continue;
-      // Cancellation and enqueue failures both drop the entry; stop pushing
-      // tasks nobody is waiting for.
-      if (_active[fileId] != state) break;
+    try {
+      await _configure();
 
-      final ok = await FileDownloader().enqueue(
-        directChunkUploadTask(
-          accountId: accountId,
-          fileId: fileId,
-          chunk: i,
-          url: urls[i],
-          stagingDir: stagingDir,
-        ),
-      );
-      if (!ok) {
-        _stop(fileId, Exception('Failed to enqueue chunk $i of $fileId'));
-        break;
+      for (var i = 0; i < urls.length; i++) {
+        if (urls[i].isEmpty) continue;
+        // Cancellation and enqueue failures both drop the entry; stop pushing
+        // tasks nobody is waiting for.
+        if (_active[fileId] != state) break;
+
+        final ok = await FileDownloader().enqueue(
+          directChunkUploadTask(
+            accountId: accountId,
+            fileId: fileId,
+            chunk: i,
+            url: urls[i],
+            stagingDir: stagingDir,
+          ),
+        );
+        if (!ok) {
+          _stop(fileId, Exception('Failed to enqueue chunk $i of $fileId'));
+          break;
+        }
       }
+    } catch (e) {
+      _stop(fileId, e);
+      rethrow;
     }
 
     _log.debug(
@@ -208,7 +224,11 @@ class DirectChunkUploadService {
         _stop(fileId, Exception(failure.message));
 
       case TaskStatus.canceled:
-        break;
+        // A cancel this service issued removes the state first, so its own
+        // updates never reach here. One that does was cancelled from outside;
+        // swallowing it would leave the completer waiting on a chunk that is
+        // never coming.
+        _stop(fileId, TransferCancelledException(fileId));
 
       default:
         break;
