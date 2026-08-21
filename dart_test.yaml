@@ -1,0 +1,10 @@
+# Declares the tags used across the suite so `--tags` / `--exclude-tags` are
+# recognized and an unknown-tag warning never turns into noise.
+#
+# `live` marks tests that reach a real server and bucket; they gate themselves
+# on --dart-define=HOODIK_LIVE=1 and skip otherwise, so declaring the tag here
+# does not run them. `migration` marks the schema-walk tests, which do run in
+# the normal unit suite.
+tags:
+  live:
+  migration:

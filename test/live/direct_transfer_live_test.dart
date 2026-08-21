@@ -19,10 +19,16 @@ import 'package:hoodik_app/src/rust/frb_generated.dart';
 
 /// End to end against a real server and a real bucket.
 ///
-/// Held out of `flutter test` by its tag, because it needs both. Run it against
-/// a direct-transfer server (default `http://localhost:5443`) with:
+/// Two things keep it out of an ordinary run: `test/live/` is outside the
+/// paths `scripts/release-check/unit.sh` collects, and the body below refuses
+/// to touch the network unless `HOODIK_LIVE=1` is defined — so a bare
+/// `flutter test` on a dev box that happens to have a direct-transfer server
+/// on :5443 still cannot register a throwaway account or write to the bucket.
+/// The `live` tag only names it for `--tags`; a tag alone excludes nothing.
+/// Run it against a direct-transfer server (default `http://localhost:5443`):
 ///
-///     flutter test --tags live test/live/direct_transfer_live_test.dart
+///     flutter test --dart-define=HOODIK_LIVE=1 --tags live \
+///       test/live/direct_transfer_live_test.dart
 ///
 /// What it proves that the unit tests cannot: that the length the client
 /// declares is the one the bucket will accept, that a presigned PUT sent with
@@ -34,6 +40,10 @@ const _serverUrl = String.fromEnvironment(
   'HOODIK_LIVE_URL',
   defaultValue: 'http://localhost:5443',
 );
+
+/// Explicit opt-in. Without it the test skips before it ever reaches the
+/// network, so no accidental run can register an account or write to a bucket.
+const _optedIn = bool.fromEnvironment('HOODIK_LIVE');
 
 class _FakePinStorage extends SecurePinStorage {
   _FakePinStorage() : super.forTesting(const FlutterSecureStorage());
@@ -108,6 +118,10 @@ void main() {
   test(
     'a file written straight to the bucket comes back byte for byte',
     () async {
+      if (!_optedIn) {
+        markTestSkipped('set --dart-define=HOODIK_LIVE=1 to run the live test');
+        return;
+      }
       if (!await _directTransferServerIsUp()) {
         markTestSkipped('no direct-transfer server at $_serverUrl');
         return;

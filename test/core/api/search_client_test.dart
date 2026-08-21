@@ -1,43 +1,71 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hoodik_app/core/api/search_client.dart';
 
-class _FakeDio extends Fake implements Dio {
-  Object? postResponse = <dynamic>[];
-  String? lastPostPath;
-  Object? lastPostData;
+/// Records each request's raw serialized body — the bytes that actually go on
+/// the wire — rather than the Dart object handed to Dio. A wire-privacy
+/// assertion is only worth anything against what was serialized.
+class _RecordingAdapter implements HttpClientAdapter {
+  final List<RequestOptions> requests = [];
+  Uint8List lastBody = Uint8List(0);
+  Object? nextResponse = <dynamic>[];
 
   @override
-  Future<Response<T>> post<T>(
-    String path, {
-    Object? data,
-    Map<String, dynamic>? queryParameters,
-    Options? options,
-    CancelToken? cancelToken,
-    ProgressCallback? onSendProgress,
-    ProgressCallback? onReceiveProgress,
-  }) async {
-    lastPostPath = path;
-    lastPostData = data;
-    return Response<T>(
-      requestOptions: RequestOptions(path: path),
-      data: postResponse as T?,
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+    if (requestStream != null) {
+      final chunks = <int>[];
+      await for (final c in requestStream) {
+        chunks.addAll(c);
+      }
+      lastBody = Uint8List.fromList(chunks);
+    }
+    return ResponseBody.fromBytes(
+      utf8.encode(jsonEncode(nextResponse)),
+      200,
+      headers: {
+        'content-type': ['application/json'],
+      },
     );
   }
+
+  @override
+  void close({bool force = false}) {}
+
+  Map<String, dynamic> get lastJson =>
+      jsonDecode(utf8.decode(lastBody)) as Map<String, dynamic>;
+}
+
+({Dio dio, _RecordingAdapter adapter}) _buildDio() {
+  final adapter = _RecordingAdapter();
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: 'https://example.test',
+      headers: {'Content-Type': 'application/json'},
+    ),
+  )..httpClientAdapter = adapter;
+  return (dio: dio, adapter: adapter);
 }
 
 void main() {
   group('SearchClient wire privacy', () {
-    test('sends keyed tags only — the body has no plaintext field', () async {
-      final dio = _FakeDio();
-      final client = SearchClient(dio);
+    test('sends keyed tags only — the raw body has no plaintext field', () async {
+      final env = _buildDio();
+      final client = SearchClient(env.dio);
 
       final tags = ['a' * 32, 'b' * 32];
       await client.searchFiles(rootTags: tags);
 
-      expect(dio.lastPostPath, '/api/storage/search');
-      final body = dio.lastPostData as Map<String, dynamic>;
+      expect(env.adapter.requests.single.path, '/api/storage/search');
+      final body = env.adapter.lastJson;
       expect(body['root_tags'], tags);
       expect(body['file_tags'], isEmpty);
       // The legacy shapes are refused by the server with 426; this build
@@ -51,8 +79,8 @@ void main() {
     });
 
     test('forwards content hash, dir scope and editable filter', () async {
-      final dio = _FakeDio();
-      final client = SearchClient(dio);
+      final env = _buildDio();
+      final client = SearchClient(env.dio);
 
       final sha256 = 'c' * 64;
       await client.searchFiles(
@@ -64,7 +92,7 @@ void main() {
         skip: 5,
       );
 
-      final body = dio.lastPostData as Map<String, dynamic>;
+      final body = env.adapter.lastJson;
       expect(body['hash'], sha256);
       expect(body['dir_id'], 'dir-1');
       expect(body['editable'], true);
@@ -74,8 +102,8 @@ void main() {
     });
 
     test('returns an empty list when the response is not a list', () async {
-      final dio = _FakeDio()..postResponse = {'unexpected': true};
-      final client = SearchClient(dio);
+      final env = _buildDio()..adapter.nextResponse = {'unexpected': true};
+      final client = SearchClient(env.dio);
 
       final results = await client.searchFiles(rootTags: const []);
 
@@ -113,15 +141,15 @@ void main() {
     // only what the user owns and reports everything shared with them as
     // absent, which looks identical to the files not existing.
     test('carries both scopes when the caller has incoming shares', () async {
-      final dio = _FakeDio();
-      final client = SearchClient(dio);
+      final env = _buildDio();
+      final client = SearchClient(env.dio);
 
       await client.searchFiles(
         rootTags: ['a' * 32],
         fileTags: ['b' * 32, 'c' * 32],
       );
 
-      final body = dio.lastPostData as Map<String, dynamic>;
+      final body = env.adapter.lastJson;
       expect(body['root_tags'], ['a' * 32]);
       expect(body['file_tags'], ['b' * 32, 'c' * 32]);
     });
@@ -130,12 +158,12 @@ void main() {
       // The server treats a missing list and an empty one the same, but an
       // explicit empty makes "this caller has no incoming shares" visible on
       // the wire instead of ambiguous with "this client forgot to send them".
-      final dio = _FakeDio();
-      final client = SearchClient(dio);
+      final env = _buildDio();
+      final client = SearchClient(env.dio);
 
       await client.searchFiles(rootTags: ['a' * 32]);
 
-      final body = dio.lastPostData as Map<String, dynamic>;
+      final body = env.adapter.lastJson;
       expect(body.containsKey('file_tags'), isTrue);
       expect(body['file_tags'], isEmpty);
     });
