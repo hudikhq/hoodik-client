@@ -220,20 +220,18 @@ class _AddServerScreenState extends ConsumerState<AddServerScreen> {
                           ),
                           title: Text(server.name),
                           subtitle: Text(server.url),
-                          trailing: isApplePlatform
-                              ? const CupertinoListTileChevron()
-                              : IconButton(
-                                  icon: Icon(
-                                    AppIcons.delete,
-                                    color: theme.colorScheme.error,
-                                    size: 20,
-                                  ),
-                                  // The only icon-only control in the app
-                                  // without one: a screen reader announces
-                                  // "button" and nothing else without it.
-                                  tooltip: l10n.commonDelete,
-                                  onPressed: () => _deleteServer(server),
-                                ),
+                          trailing: IconButton(
+                            icon: Icon(
+                              AppIcons.delete,
+                              color: theme.colorScheme.error,
+                              size: 20,
+                            ),
+                            // The only icon-only control in the app
+                            // without one: a screen reader announces
+                            // "button" and nothing else without it.
+                            tooltip: l10n.commonDelete,
+                            onPressed: () => _deleteServer(server),
+                          ),
                           onTap: () => _selectServer(server),
                         );
                       }).toList(),
