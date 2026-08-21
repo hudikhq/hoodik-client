@@ -156,10 +156,12 @@ class FileOperations {
     String localPath, {
     String? parentDirId,
     void Function(double progress)? onProgress,
+    String? stagingId,
   }) => _uploader.uploadFile(
     localPath,
     parentDirId: parentDirId,
     onProgress: onProgress,
+    stagingId: stagingId,
   );
 
   Future<String> createNote(

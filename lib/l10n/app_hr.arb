@@ -707,6 +707,8 @@
   "serviceDownloadCancelled": "Download je otkazan",
   "serviceDownloadFailed": "Download nije uspio",
   "serviceFileAlreadyExists": "Datoteka već postoji",
+  "serviceTransferSelectionName": "Odabrane stavke",
+  "serviceUploadPartialConflict": "Prekinuto prenošenje s ovim imenom sadrži drugačiji sadržaj. Obriši ga da bi prenio ovu datoteku.",
   "serviceFileNoEncryptionKey": "Datoteka nema enkripcijski ključ",
   "serviceLandingBranchFiles": "Datoteke",
   "serviceLandingBranchNotes": "Bilješke",

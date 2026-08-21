@@ -707,6 +707,8 @@
   "serviceDownloadCancelled": "Download abgebrochen",
   "serviceDownloadFailed": "Download fehlgeschlagen",
   "serviceFileAlreadyExists": "Datei existiert bereits",
+  "serviceTransferSelectionName": "Ausgewählte Elemente",
+  "serviceUploadPartialConflict": "Ein unterbrochener Upload mit diesem Namen enthält anderen Inhalt. Lösche ihn, um diese Datei hochzuladen.",
   "serviceFileNoEncryptionKey": "Datei hat keinen Verschlüsselungsschlüssel",
   "serviceLandingBranchFiles": "Dateien",
   "serviceLandingBranchNotes": "Notizen",

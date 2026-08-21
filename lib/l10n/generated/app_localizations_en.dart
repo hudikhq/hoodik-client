@@ -2501,6 +2501,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serviceFileAlreadyExists => 'File already exists';
 
   @override
+  String get serviceTransferSelectionName => 'Selected items';
+
+  @override
+  String get serviceUploadPartialConflict =>
+      'An interrupted upload with this name holds different content. Delete it to upload this file.';
+
+  @override
   String get serviceFileNoEncryptionKey => 'File has no encryption key';
 
   @override

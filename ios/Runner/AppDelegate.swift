@@ -48,6 +48,7 @@ private let suppressWebViewInputAccessoryOnce: Void = {
     if let messenger = engineBridge.pluginRegistry
       .registrar(forPlugin: "HoodikBackupGuard")?.messenger() {
       registerBackupChannel(messenger: messenger)
+      MediaPickerChannel.register(messenger: messenger)
     }
   }
 

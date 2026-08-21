@@ -6,6 +6,7 @@ import '../utils/l10n_lookup.dart';
 import '../utils/logger.dart';
 import '../workers/worker_messages.dart';
 import 'file_downloader_config.dart';
+import 'transfer_errors.dart';
 import 'transfer_manager.dart';
 
 const _log = Logger('BackgroundUploadService');
@@ -80,7 +81,7 @@ class BackgroundUploadService {
 
     final completer = _completers.remove(fileId);
     if (completer != null && !completer.isCompleted) {
-      completer.completeError(Exception(ambientL10n.serviceUploadCancelled));
+      completer.completeError(TransferCancelledException(fileId));
     }
 
     _cleanup(fileId);
@@ -122,10 +123,20 @@ class BackgroundUploadService {
           fileSize: cmd.fileSize,
           chunksDir: cmd.chunksDir,
         );
+        // Chunks the server already holds count as done from the start, so
+        // a resume's completion math and progress bar line up with reality.
+        info.completedChunks.addAll(cmd.alreadyUploaded);
         _active[cmd.fileId] = info;
+
+        if (info.completedChunks.length == cmd.totalChunks) {
+          _completers.remove(cmd.fileId)?.complete();
+          _cleanup(cmd.fileId);
+          return;
+        }
 
         for (var i = 0; i < cmd.totalChunks; i++) {
           if (_cancelledFileIds.contains(cmd.fileId)) break;
+          if (info.completedChunks.contains(i)) continue;
 
           final checksum = cmd.checksums[i] ?? '';
           final chunkFilename = '${i.toString().padLeft(6, '0')}.enc';

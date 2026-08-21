@@ -2533,6 +2533,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get serviceFileAlreadyExists => 'Le fichier existe déjà';
 
   @override
+  String get serviceTransferSelectionName => 'Éléments sélectionnés';
+
+  @override
+  String get serviceUploadPartialConflict =>
+      'Un envoi interrompu portant ce nom contient un contenu différent. Supprimez-le pour envoyer ce fichier.';
+
+  @override
   String get serviceFileNoEncryptionKey =>
       'Le fichier n’a pas de clé de chiffrement';
 

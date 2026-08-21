@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/services/media_picker_channel.dart';
+import '../../../core/services/transfer_manager.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../helpers/file_helpers.dart';
 import '../providers/files_notifier.dart';
@@ -26,6 +28,11 @@ final uploadPreparingProvider = StateProvider<bool>((ref) => false);
 class FilesUploadController {
   final Ref _ref;
   final String? _dirId;
+
+  /// Live placeholder row for the picker's load phase, when one is up.
+  String? _preparingTransferId;
+
+  static const _preparingRowKey = 'picker-selection';
 
   FilesUploadController(this._ref, this._dirId);
 
@@ -52,6 +59,10 @@ class FilesUploadController {
       return FilesActionResult.error(ambientL10n.filesOpsUnavailableNoKey);
     }
 
+    if (MediaPickerChannel.isSupported) {
+      return _pickAndUploadMediaNative();
+    }
+
     final result = await _pickFiles(type: FileType.media);
     if (result == null || result.files.isEmpty) return null;
 
@@ -61,6 +72,73 @@ class FilesUploadController {
     }
 
     return uploadPaths(paths);
+  }
+
+  /// Media picking through the native channel: the sheet closes as soon as
+  /// the user confirms, every selected asset gets its own transfer row with
+  /// the export's real progress, and each file starts uploading the moment
+  /// its bytes land — while later items are still exporting.
+  Future<FilesActionResult?> _pickAndUploadMediaNative() async {
+    final tm = _ref.read(transferManagerProvider);
+    final syncService = _ref.read(syncServiceProvider);
+    final rowIds = <int, String>{};
+    FilesActionResult? failure;
+    var anyPicked = false;
+
+    await for (final event in _ref.read(mediaPickerChannelProvider).pickMedia()) {
+      switch (event) {
+        case MediaPickSelection(:final items):
+          anyPicked = items.isNotEmpty;
+          for (final item in items) {
+            rowIds[item.index] = tm
+                .startTransfer(
+                  fileName: item.name,
+                  type: TransferType.uploadPrepare,
+                  totalBytes: 100,
+                  totalChunks: 1,
+                  fileId: 'pick-${item.index}',
+                )
+                .id;
+          }
+        case MediaPickProgress(:final index, :final fraction):
+          final id = rowIds[index];
+          if (id != null) {
+            tm.updateProgress(
+              id,
+              completedChunks: 0,
+              transferredBytes: (fraction * 100).round(),
+            );
+          }
+        case MediaPickReady(:final index, :final path):
+          final id = rowIds.remove(index);
+          if (id != null) {
+            tm.completeTransfer(id);
+            tm.dismissTransfer(id);
+          }
+          try {
+            await syncService.uploadFileOrQueue(
+              localPath: path,
+              parentDirId: _dirId,
+            );
+          } catch (e) {
+            failure = FilesActionResult.error(
+              ambientL10n.filesUploadFailed(formatErrorMessage(e)),
+            );
+          }
+        case MediaPickFailed(:final index, :final message):
+          final id = rowIds.remove(index);
+          if (id != null) {
+            tm.failTransfer(id, message);
+          }
+          failure = FilesActionResult.error(
+            ambientL10n.filesUploadFailed(message),
+          );
+      }
+    }
+
+    if (!anyPicked) return null;
+    await _ref.read(filesNotifierProvider(_dirId).notifier).load();
+    return failure;
   }
 
   Future<FilesActionResult?> captureAndUploadPhoto() async {
@@ -99,9 +177,10 @@ class FilesUploadController {
   }
 
   /// Picks files while mirroring the picker's load phase into
-  /// [uploadPreparingProvider] so the UI can show a "Preparing…" overlay.
-  /// The `finally` clears the flag even when the picker throws, so the
-  /// overlay can never get stuck.
+  /// [uploadPreparingProvider] and a transfer row, so the wait between
+  /// confirming a selection and the paths arriving is visible without
+  /// blocking the screen. The `finally` clears both even when the picker
+  /// throws, so neither can get stuck.
   Future<FilePickerResult?> _pickFiles({FileType type = FileType.any}) async {
     try {
       return await FilePicker.platform.pickFiles(
@@ -119,6 +198,30 @@ class FilesUploadController {
 
   void _setPreparing(bool active) {
     _ref.read(uploadPreparingProvider.notifier).state = active;
+
+    // The platform picker gives no per-file signal while it materializes
+    // the selection, so one placeholder row stands in for all of it. It
+    // completes and dismisses in the same breath: a "prepared" entry in
+    // the done list would just echo every upload that follows it.
+    final tm = _ref.read(transferManagerProvider);
+    if (active) {
+      _preparingTransferId ??= tm
+          .startTransfer(
+            fileName: ambientL10n.serviceTransferSelectionName,
+            type: TransferType.uploadPrepare,
+            totalBytes: 1,
+            totalChunks: 1,
+            fileId: _preparingRowKey,
+          )
+          .id;
+    } else {
+      final id = _preparingTransferId;
+      if (id != null) {
+        _preparingTransferId = null;
+        tm.completeTransfer(id);
+        tm.dismissTransfer(id);
+      }
+    }
   }
 
   List<String> _extractPaths(FilePickerResult result) {

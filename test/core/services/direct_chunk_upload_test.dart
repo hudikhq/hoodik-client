@@ -2,10 +2,12 @@ import 'dart:io';
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hoodik_app/core/api/chunk_urls_models.dart';
 import 'package:hoodik_app/core/services/direct_chunk_upload.dart';
 import 'package:hoodik_app/core/services/file_downloader_config.dart';
 
 void main() {
+  resumeUrlPlanTests();
   group('directChunkUploadTask', () {
     UploadTask build({int chunk = 4}) => directChunkUploadTask(
       accountId: 'acct-1',
@@ -73,6 +75,59 @@ void main() {
 
       expect(sizes.keys, [0]);
       expect(sizes.length, isNot(3));
+    });
+  });
+}
+
+/// The resume plan is what lets a resumed upload keep the direct transport:
+/// signed URLs at the missing indexes, deliberate gaps at the stored ones —
+/// and a hard refusal when the server failed to sign even one missing chunk,
+/// because mixing transports mid-file is how corrupt uploads happen.
+void resumeUrlPlanTests() {
+  ChunkUrlsResponse manifest(Map<int, String> urls) => ChunkUrlsResponse(
+    urls: List<String>.generate(
+      urls.keys.fold(-1, (a, b) => a > b ? a : b) + 1,
+      (i) => urls[i] ?? '',
+    ),
+    expiresAt: 4102444800,
+  );
+
+  group('resumeUrlPlan', () {
+    test('fills missing indexes and leaves stored ones empty', () {
+      final plan = resumeUrlPlan(
+        manifest: manifest({1: 'https://b/1', 3: 'https://b/3'}),
+        totalChunks: 4,
+        skipChunks: {0, 2},
+      );
+
+      expect(plan, ['', 'https://b/1', '', 'https://b/3']);
+    });
+
+    test('a fresh upload requires every index signed', () {
+      final plan = resumeUrlPlan(
+        manifest: manifest({0: 'https://b/0', 2: 'https://b/2'}),
+        totalChunks: 3,
+        skipChunks: const {},
+      );
+
+      expect(plan, isNull);
+    });
+
+    test('one unsigned missing chunk fails the whole plan', () {
+      final plan = resumeUrlPlan(
+        manifest: manifest({1: 'https://b/1'}),
+        totalChunks: 4,
+        skipChunks: {0, 2},
+      );
+
+      expect(plan, isNull);
+    });
+
+    test('no manifest means no plan', () {
+      expect(
+        resumeUrlPlan(manifest: null, totalChunks: 2, skipChunks: {0}),
+        isNull,
+      );
     });
   });
 }

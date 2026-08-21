@@ -11,19 +11,22 @@ import '../utils/l10n_lookup.dart';
 /// HTTP transfers (the long-running part) are delegated to OS-native
 /// background workers, while encrypt/decrypt run in Dart isolates or Rust FFI.
 enum TransferType {
+  uploadPrepare,
   uploadEncrypt,
   uploadHttp,
   downloadHttp,
   downloadDecrypt;
 
   String get label => switch (this) {
+    uploadPrepare => ambientL10n.filesPreparing,
     uploadEncrypt => ambientL10n.serviceTransferEncrypting,
     uploadHttp => ambientL10n.serviceTransferUploading,
     downloadHttp => ambientL10n.serviceTransferDownloading,
     downloadDecrypt => ambientL10n.serviceTransferDecrypting,
   };
 
-  bool get isUpload => this == uploadEncrypt || this == uploadHttp;
+  bool get isUpload =>
+      this == uploadPrepare || this == uploadEncrypt || this == uploadHttp;
 
   /// Whether this is a network transfer (meaningful speed/ETA).
   bool get isNetworkTransfer => this == uploadHttp || this == downloadHttp;
@@ -231,6 +234,12 @@ class TransferManager extends ChangeNotifier {
   /// Receives the server-side fileId so the caller can propagate to workers/Rust.
   void Function(String fileId)? onCancelRequested;
 
+  /// Invoked with the cancelled item itself, for state that must not depend
+  /// on the in-flight transfer surviving to observe [onCancelRequested] —
+  /// the pending-queue row and the server-side partial upload. Wired by the
+  /// sync layer.
+  void Function(TransferItem item)? onCancelPersist;
+
   /// Start tracking a new transfer. Returns the created [TransferItem].
   /// Begin a stage, and retire the finished stage it follows.
   ///
@@ -386,6 +395,7 @@ class TransferManager extends ChangeNotifier {
     if (item.fileId != null) {
       onCancelRequested?.call(item.fileId!);
     }
+    onCancelPersist?.call(item);
 
     item.status = TransferStatus.cancelled;
     item.errorMessage = ambientL10n.serviceTransferCancelled;

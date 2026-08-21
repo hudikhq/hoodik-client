@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,15 +24,21 @@ class _ObservingFileOperations extends Fake implements FileOperations {
   final AppDatabase _db;
 
   List<PendingUpload> rowsDuringUpload = [];
+  List<String?> stagingIds = [];
   bool fail = false;
+  Object? failWith;
 
   @override
   Future<void> uploadFile(
     String localPath, {
     String? parentDirId,
     void Function(double progress)? onProgress,
+    String? stagingId,
   }) async {
     rowsDuringUpload = await _db.getPendingUploads('acct');
+    stagingIds.add(stagingId);
+    final typed = failWith;
+    if (typed != null) throw typed;
     if (fail) throw Exception('upload blew up');
   }
 }
@@ -76,6 +84,75 @@ void main() {
       await sync.uploadFileOrQueue(localPath: '/tmp/a.jpg');
 
       expect(await db.getPendingUploads('acct'), isEmpty);
+    });
+
+    // Every attempt at a row must reuse the same staging directory, or the
+    // retry re-encrypts the whole file just to land in fresh ciphertext the
+    // first attempt never uploaded.
+    test('each attempt carries the row-stable staging id', () async {
+      File('/tmp/a.jpg').writeAsBytesSync([1]);
+      addTearDown(() => File('/tmp/a.jpg').deleteSync());
+      ops.fail = true;
+      await sync.uploadFileOrQueue(localPath: '/tmp/a.jpg');
+
+      final row = (await db.getPendingUploads('acct')).single;
+      await db.scheduleNextUploadRetry(
+        row.id,
+        retryCount: 1,
+        nextRetryAt: DateTime(2026, 8, 18, 11),
+      );
+      ops.fail = false;
+      await sync.processPendingUploads();
+
+      expect(ops.stagingIds, hasLength(2));
+      expect(ops.stagingIds.toSet().single, 'pending-${row.id}');
+    });
+
+    // A cancel is the user saying stop. Requeueing it used to resurrect
+    // files the user had just dismissed — or deleted from the drive.
+    test('a cancelled upload leaves the queue instead of retrying', () async {
+      ops.failWith = const TransferCancelledException('file-x');
+
+      await sync.uploadFileOrQueue(localPath: '/tmp/a.jpg');
+
+      expect(await db.getPendingUploads('acct'), isEmpty);
+    });
+
+    // The tap itself must kill the row — the in-flight exception only
+    // arrives if the process survives to the next chunk boundary, and a
+    // cancel-then-kill used to resurrect the upload on relaunch.
+    test('cancelUploadArtifacts drops the row at tap time', () async {
+      ops.fail = true;
+      await sync.uploadFileOrQueue(localPath: '/tmp/a.jpg');
+      final row = (await db.getPendingUploads('acct')).single;
+
+      await sync.cancelUploadArtifacts(stagingGroup: 'pending-${row.id}');
+
+      expect(await db.getPendingUploads('acct'), isEmpty);
+    });
+
+    test('cancelUploadArtifacts ignores non-queue transfer groups', () async {
+      ops.fail = true;
+      await sync.uploadFileOrQueue(localPath: '/tmp/a.jpg');
+
+      await sync.cancelUploadArtifacts(stagingGroup: 'pick-3');
+
+      expect(await db.getPendingUploads('acct'), hasLength(1));
+    });
+
+    test('a retry whose source file vanished drops the row', () async {
+      final row = await db.insertPendingUpload(
+        PendingUploadsCompanion.insert(
+          accountId: 'acct',
+          localPath: '/tmp/never-existed.jpg',
+        ),
+      );
+
+      await sync.processPendingUploads();
+
+      expect(await db.getPendingUploads('acct'), isEmpty);
+      expect(ops.stagingIds, isEmpty, reason: 'the pipeline must not run');
+      expect(row.id, isNotNull);
     });
 
     // The failure path used to insert a second row. With the row already

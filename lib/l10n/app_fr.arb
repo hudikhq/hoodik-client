@@ -707,6 +707,8 @@
   "serviceDownloadCancelled": "Téléchargement annulé",
   "serviceDownloadFailed": "Échec du téléchargement",
   "serviceFileAlreadyExists": "Le fichier existe déjà",
+  "serviceTransferSelectionName": "Éléments sélectionnés",
+  "serviceUploadPartialConflict": "Un envoi interrompu portant ce nom contient un contenu différent. Supprimez-le pour envoyer ce fichier.",
   "serviceFileNoEncryptionKey": "Le fichier n’a pas de clé de chiffrement",
   "serviceLandingBranchFiles": "Fichiers",
   "serviceLandingBranchNotes": "Notes",

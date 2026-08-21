@@ -5,11 +5,12 @@ import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as p;
 
-import '../utils/l10n_lookup.dart';
+import '../api/chunk_urls_models.dart';
 import '../utils/logger.dart';
 import 'background_tar_transfer.dart' show TransferFailure;
 import 'direct_chunk_download.dart' show ChunkProgress;
 import 'file_downloader_config.dart';
+import 'transfer_errors.dart';
 
 const _log = Logger('DirectChunkUpload');
 
@@ -105,6 +106,20 @@ class DirectChunkUploadService {
     );
     _active[fileId] = state;
 
+    // An empty slot is a chunk this upload deliberately leaves alone — a
+    // resume's already-stored indexes. They count as done from the start or
+    // the completion math would wait forever on tasks that never exist.
+    // (A manifest the server failed to sign never reaches here; the caller
+    // falls back to relaying before building the list.)
+    for (var i = 0; i < urls.length; i++) {
+      if (urls[i].isEmpty) state.progress.complete(i);
+    }
+    if (state.progress.isDone) {
+      _active.remove(fileId);
+      state.completer.complete();
+      return state.completer.future;
+    }
+
     for (var i = 0; i < urls.length; i++) {
       if (urls[i].isEmpty) continue;
       // Cancellation and enqueue failures both drop the entry; stop pushing
@@ -137,7 +152,7 @@ class DirectChunkUploadService {
   /// Cancel every outstanding chunk task for [fileId] and fail its future.
   /// Safe to call for a file that is not uploading.
   void cancel(String fileId) {
-    _stop(fileId, Exception(ambientL10n.serviceUploadCancelled));
+    _stop(fileId, TransferCancelledException(fileId));
   }
 
   /// Cancel everything this service owns and release its update handler.
@@ -234,6 +249,27 @@ class DirectChunkUploadService {
 
 /// Ciphertext sizes of the staged chunks, keyed by chunk index.
 ///
+/// Full-length URL list for a resume: signed URLs at the missing indexes,
+/// empty slots at the ones the bucket already holds. Null when the manifest
+/// fails to cover even one missing chunk — a partial direct resume would
+/// have to interleave transports mid-file, so the caller relays instead.
+List<String>? resumeUrlPlan({
+  required ChunkUrlsResponse? manifest,
+  required int totalChunks,
+  required Set<int> skipChunks,
+}) {
+  if (manifest == null || manifest.isEmpty) return null;
+
+  final plan = List<String>.filled(totalChunks, '');
+  for (var i = 0; i < totalChunks; i++) {
+    if (skipChunks.contains(i)) continue;
+    final url = i < manifest.urls.length ? manifest.urls[i] : '';
+    if (url.isEmpty) return null;
+    plan[i] = url;
+  }
+  return plan;
+}
+
 /// The server signs each declared length into its URL, so these have to be the
 /// exact on-disk sizes rather than the plaintext chunk size: every chunk
 /// carries its AEAD tag on top of the payload.

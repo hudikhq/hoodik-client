@@ -1,46 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../l10n/generated/app_localizations.dart';
-import '../controllers/files_upload_controller.dart';
-
-/// Dimmed backdrop that blocks input while a blocking operation runs.
+/// Dimmed backdrop that blocks input while a mutation is in flight.
 ///
-/// Shown while a mutation is in flight ([busy]) or while the platform
-/// picker is still materializing picked files ([uploadPreparingProvider]) —
-/// the gap between confirming a selection and the upload actually starting,
-/// which for videos from the iOS Photos library can take many seconds.
-class FilesBusyOverlay extends ConsumerWidget {
+/// The picker's load phase used to render here too; it shows as a row in
+/// the transfer overlay now, so a slow iCloud export no longer locks the
+/// screen.
+class FilesBusyOverlay extends StatelessWidget {
   final bool busy;
 
   const FilesBusyOverlay({super.key, this.busy = false});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final preparing = ref.watch(uploadPreparingProvider);
-    if (!busy && !preparing) return const SizedBox.shrink();
+  Widget build(BuildContext context) {
+    if (!busy) return const SizedBox.shrink();
 
     return Container(
       color: Colors.black54,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            if (preparing) ...[
-              const SizedBox(height: 16),
-              Text(
-                AppLocalizations.of(context).filesPreparing,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+      child: const Center(child: CircularProgressIndicator()),
     );
   }
 }

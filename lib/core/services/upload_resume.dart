@@ -1,0 +1,72 @@
+import 'dart:typed_data';
+
+import '../api/file_item.dart';
+import '../crypto/file_crypto.dart';
+import '../utils/l10n_lookup.dart';
+
+/// What to do about an upload whose name hash already exists in the target
+/// directory.
+///
+/// The server refuses a second create for the same name, so an interrupted
+/// upload can only ever complete by adopting the row the first attempt made:
+/// same file id, same key, and only the chunks the server cannot prove it
+/// holds. The name-hash route lists stored chunks live from the storage
+/// provider, which makes [uploadedChunks] trustworthy even for a direct
+/// upload the server never relayed.
+class UploadResume {
+  UploadResume._({
+    required this.fileId,
+    required this.cipher,
+    required this.fileKey,
+    required this.uploadedChunks,
+    required String? sha256,
+  }) : _sha256 = sha256;
+
+  final String fileId;
+  final String cipher;
+  final Uint8List fileKey;
+  final Set<int> uploadedChunks;
+  final String? _sha256;
+
+  /// Decide between a fresh upload (`null`) and adopting [existing].
+  ///
+  /// Throws when neither is possible: the row is already complete, it is a
+  /// directory, the caller holds no key for it, or it expects a different
+  /// number of chunks than the local file produces — each of those means
+  /// "this name is taken by something this upload cannot finish".
+  static UploadResume? of(
+    FileItem? existing, {
+    required int totalChunks,
+    required FileCrypto fileCrypto,
+  }) {
+    if (existing == null) return null;
+
+    final total = existing.chunks ?? 0;
+    final stored = existing.chunksStored ?? 0;
+    final complete =
+        existing.finishedUploadAt != null || (total > 0 && stored >= total);
+    if (existing.isDir || complete) {
+      throw Exception(ambientL10n.serviceFileAlreadyExists);
+    }
+
+    if (existing.encryptedKey == null || total != totalChunks) {
+      throw Exception(ambientL10n.serviceUploadPartialConflict);
+    }
+
+    return UploadResume._(
+      fileId: existing.id,
+      cipher: existing.cipher,
+      fileKey: fileCrypto.decryptFileKey(existing.encryptedKey!),
+      uploadedChunks: {...?existing.uploadedChunks},
+      sha256: existing.sha256,
+    );
+  }
+
+  /// Guard against resuming a row whose content is not the file on disk.
+  /// Chunk counts can collide; the content hash cannot.
+  void ensureSameContent(String sha256) {
+    if (_sha256 != null && _sha256 != sha256) {
+      throw Exception(ambientL10n.serviceUploadPartialConflict);
+    }
+  }
+}

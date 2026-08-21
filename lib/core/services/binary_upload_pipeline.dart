@@ -6,7 +6,6 @@ import 'package:uuid/uuid.dart';
 
 import '../api/api_client.dart';
 import '../crypto/file_crypto.dart';
-import '../utils/l10n_lookup.dart';
 import '../utils/log_redact.dart';
 import '../utils/logger.dart';
 import '../utils/mime.dart';
@@ -19,9 +18,11 @@ import 'binary_upload_transport.dart';
 import 'offline_manager.dart';
 import 'shared_folder_target.dart';
 import 'shared_folder_upload.dart';
+import 'staging_manifest.dart';
 import 'transfer_errors.dart';
 import 'transfer_manager.dart';
 import 'direct_chunk_upload.dart';
+import 'upload_resume.dart';
 import 'upload_staging.dart';
 
 const _log = Logger('BinaryUploadPipeline');
@@ -110,7 +111,6 @@ class BinaryUploadPipeline {
     String? stagingId,
   }) async {
     await _client.ensureFreshSession();
-    final cipher = _defaultCipher;
 
     final file = File(localPath);
     final fileName = file.uri.pathSegments.last;
@@ -118,48 +118,98 @@ class BinaryUploadPipeline {
     final totalChunks = (fileSize / kUploadChunkSize).ceil().clamp(1, 1 << 30);
     final mime = guessMimeFromFileName(fileName);
 
-    final fileKey = _fileCrypto.generateFileKey(cipher: cipher);
     final nameHash = _fileCrypto.hashFileName(fileName);
 
-    await _assertNotFullyUploaded(nameHash, parentDirId);
+    // The server refuses a duplicate create, so a name-hash hit on a partial
+    // row is adopted — its id, its key, its cipher — and only the chunks the
+    // server cannot prove it holds go over the wire.
+    final resume = UploadResume.of(
+      await _existingByName(nameHash, parentDirId),
+      totalChunks: totalChunks,
+      fileCrypto: _fileCrypto,
+    );
+    final cipher = resume?.cipher ?? _defaultCipher;
+    final fileKey = resume?.fileKey ?? _fileCrypto.generateFileKey(cipher: cipher);
 
     final resolvedStagingId = stagingId ?? const Uuid().v4();
     final stagingDir = await _staging.stagingDir(resolvedStagingId);
 
-    final encryptResult = await _encryptToStaging(
-      localPath: localPath,
-      fileName: fileName,
-      fileSize: fileSize,
-      totalChunks: totalChunks,
-      cipher: cipher,
-      fileKey: fileKey,
+    final reusable = await StagingManifest.tryReuse(
       stagingDir: stagingDir,
-      tempId: resolvedStagingId,
-    );
-
-    final entry = await _metadata.createEntry(
-      fileName: fileName,
-      fileSize: fileSize,
-      totalChunks: totalChunks,
-      mime: mime,
-      cipher: cipher,
       fileKey: fileKey,
-      nameHash: nameHash,
-      parentDirId: parentDirId,
-      localPath: localPath,
-      sha256: encryptResult.sha256,
+      totalChunks: totalChunks,
+      fileSize: fileSize,
     );
-    final fileId = entry['id'] as String;
 
-    _log.info(
-      'file entry created — starting upload',
-      fields: {
-        'file_id': fileId,
-        'sha256': encryptResult.sha256,
-        'total_chunks': totalChunks,
-        'chunk_mb': kUploadChunkSize ~/ 1024 ~/ 1024,
-      },
-    );
+    final _EncryptStageResult encryptResult;
+    if (reusable != null) {
+      _log.info(
+        'reusing staged ciphertext — skipping encrypt',
+        fields: {'staging_id': resolvedStagingId, 'chunks': totalChunks},
+      );
+      encryptResult = _EncryptStageResult(
+        sha256: reusable.sha256,
+        checksums: reusable.checksums,
+      );
+    } else {
+      encryptResult = await _encryptToStaging(
+        localPath: localPath,
+        fileName: fileName,
+        fileSize: fileSize,
+        totalChunks: totalChunks,
+        cipher: cipher,
+        fileKey: fileKey,
+        stagingDir: stagingDir,
+        tempId: resolvedStagingId,
+      );
+      await StagingManifest.write(
+        stagingDir: stagingDir,
+        fileKey: fileKey,
+        sha256: encryptResult.sha256,
+        checksums: encryptResult.checksums,
+        totalChunks: totalChunks,
+        fileSize: fileSize,
+      );
+    }
+
+    resume?.ensureSameContent(encryptResult.sha256);
+
+    final String fileId;
+    if (resume != null) {
+      fileId = resume.fileId;
+      _log.info(
+        'adopting interrupted upload',
+        fields: {
+          'file_id': fileId,
+          'stored_chunks': resume.uploadedChunks.length,
+          'total_chunks': totalChunks,
+        },
+      );
+    } else {
+      final entry = await _metadata.createEntry(
+        fileName: fileName,
+        fileSize: fileSize,
+        totalChunks: totalChunks,
+        mime: mime,
+        cipher: cipher,
+        fileKey: fileKey,
+        nameHash: nameHash,
+        parentDirId: parentDirId,
+        localPath: localPath,
+        sha256: encryptResult.sha256,
+      );
+      fileId = entry['id'] as String;
+
+      _log.info(
+        'file entry created — starting upload',
+        fields: {
+          'file_id': fileId,
+          'sha256': encryptResult.sha256,
+          'total_chunks': totalChunks,
+          'chunk_mb': kUploadChunkSize ~/ 1024 ~/ 1024,
+        },
+      );
+    }
 
     final token = await _client.auth.requestTransferToken(
       fileId: fileId,
@@ -176,6 +226,7 @@ class BinaryUploadPipeline {
         stagingDir: stagingDir,
         transferToken: token.token,
         checksums: encryptResult.checksums,
+        skipChunks: resume?.uploadedChunks ?? const <int>{},
       );
     } on TransferCancelledException {
       rethrow;
@@ -197,22 +248,12 @@ class BinaryUploadPipeline {
     _log.info('upload complete', fields: {'file_id': fileId});
   }
 
-  Future<void> _assertNotFullyUploaded(
-    String nameHash,
-    String? parentDirId,
-  ) async {
+  Future<FileItem?> _existingByName(String nameHash, String? parentDirId) async {
     final existing = await _client.files.checkNameHash(
       nameHash,
       parentId: parentDirId,
     );
-    if (existing == null) return;
-
-    final existingItem = FileItem.fromJson(existing);
-    final storedChunks = existingItem.chunksStored ?? 0;
-    final totalExisting = existingItem.chunks ?? 0;
-    if (totalExisting > 0 && storedChunks >= totalExisting) {
-      throw Exception(ambientL10n.serviceFileAlreadyExists);
-    }
+    return existing == null ? null : FileItem.fromJson(existing);
   }
 
   Future<_EncryptStageResult> _encryptToStaging({
@@ -277,6 +318,7 @@ class BinaryUploadPipeline {
     required String stagingDir,
     required String transferToken,
     required Map<int, String> checksums,
+    Set<int> skipChunks = const <int>{},
   }) async {
     final useBgUploader = _backgroundUploadService != null;
     final uploadItem = _transferManager?.startTransfer(
@@ -290,9 +332,12 @@ class BinaryUploadPipeline {
     );
 
     try {
-      // Straight into the bucket when the server can sign for it. Tar exists
-      // to spare the server N requests; when the bytes never touch the server
-      // there is nothing left for it to spare.
+      // Straight into the bucket when the server can sign for it — resumes
+      // included: they request URLs for the missing chunks only, so a resumed
+      // upload runs at the same speed as a fresh one instead of crawling
+      // through the relay. Tar exists to spare the server N requests; when
+      // the bytes never touch the server there is nothing left for it to
+      // spare, and it cannot resume anyway (it ships the whole archive).
       //
       // Falls through rather than returning: the transfer is marked complete at
       // the end of this method, and a direct upload that returned early from
@@ -304,9 +349,21 @@ class BinaryUploadPipeline {
         stagingDir: stagingDir,
         transferToken: transferToken,
         uploadItem: uploadItem,
+        skipChunks: skipChunks,
       );
 
-      if (!wentDirect) {
+      if (!wentDirect && skipChunks.isNotEmpty) {
+        await _uploadPerChunk(
+          fileId: fileId,
+          fileSize: fileSize,
+          totalChunks: totalChunks,
+          stagingDir: stagingDir,
+          transferToken: transferToken,
+          checksums: checksums,
+          uploadItem: uploadItem,
+          skipChunks: skipChunks,
+        );
+      } else if (!wentDirect) {
         await _runner.run(
           baseUrl: _client.baseUrl,
           transferToken: transferToken,
@@ -382,6 +439,7 @@ class BinaryUploadPipeline {
     required String stagingDir,
     required String transferToken,
     required TransferItem? uploadItem,
+    Set<int> skipChunks = const <int>{},
   }) async {
     final direct = _directUpload;
     if (direct == null) return false;
@@ -393,32 +451,42 @@ class BinaryUploadPipeline {
     final sizes = await stagedChunkSizes(stagingDir, totalChunks);
     if (sizes.length != totalChunks) return false;
 
-    final manifest = await _client.files.fetchUploadUrls(
-      fileId: fileId,
-      transferToken: transferToken,
-      chunkSizes: sizes,
-    );
-    if (manifest == null ||
-        manifest.urls.length != totalChunks ||
-        manifest.urls.any((url) => url.isEmpty)) {
-      return false;
-    }
+    // A resume declares (and is charged for) only what it still has to
+    // write; the bucket already holds the rest.
+    final requestSizes = {
+      for (final entry in sizes.entries)
+        if (!skipChunks.contains(entry.key)) entry.key: entry.value,
+    };
 
-    await direct.upload(
-      accountId: _accountId,
-      fileId: fileId,
-      urls: manifest.urls,
-      stagingDir: stagingDir,
-      fileSize: fileSize,
-      onProgress: uploadItem == null
-          ? null
-          : (completedChunks, transferredBytes) =>
-                _transferManager?.updateProgress(
-                  uploadItem.id,
-                  completedChunks: completedChunks,
-                  transferredBytes: transferredBytes,
-                ),
-    );
+    if (requestSizes.isNotEmpty) {
+      final manifest = await _client.files.fetchUploadUrls(
+        fileId: fileId,
+        transferToken: transferToken,
+        chunkSizes: requestSizes,
+      );
+      final urls = resumeUrlPlan(
+        manifest: manifest,
+        totalChunks: totalChunks,
+        skipChunks: skipChunks,
+      );
+      if (urls == null) return false;
+
+      await direct.upload(
+        accountId: _accountId,
+        fileId: fileId,
+        urls: urls,
+        stagingDir: stagingDir,
+        fileSize: fileSize,
+        onProgress: uploadItem == null
+            ? null
+            : (completedChunks, transferredBytes) =>
+                  _transferManager?.updateProgress(
+                    uploadItem.id,
+                    completedChunks: completedChunks,
+                    transferredBytes: transferredBytes,
+                  ),
+      );
+    }
 
     // Nothing tells the server that a direct write landed, so the client says
     // so. It does not take our word for it: the bucket is listed and every
@@ -430,7 +498,7 @@ class BinaryUploadPipeline {
 
     _log.info(
       'direct upload committed',
-      fields: {'file_id': fileId, 'chunks': totalChunks},
+      fields: {'file_id': fileId, 'chunks': requestSizes.length},
     );
     return true;
   }
@@ -443,6 +511,7 @@ class BinaryUploadPipeline {
     required String transferToken,
     required Map<int, String> checksums,
     required TransferItem? uploadItem,
+    Set<int> skipChunks = const <int>{},
   }) async {
     final useBg = _backgroundUploadService != null;
     if (useBg) {
@@ -454,6 +523,7 @@ class BinaryUploadPipeline {
           fileSize: fileSize,
           transferToken: transferToken,
           checksums: checksums,
+          alreadyUploaded: skipChunks.toList(),
         ),
         transferId: uploadItem?.id,
       );
@@ -467,6 +537,7 @@ class BinaryUploadPipeline {
       fileSize: fileSize,
       checksums: checksums,
       transferItem: uploadItem,
+      skipChunks: skipChunks,
     );
   }
 
@@ -479,6 +550,7 @@ class BinaryUploadPipeline {
     required int fileSize,
     required Map<int, String> checksums,
     TransferItem? transferItem,
+    Set<int> skipChunks = const <int>{},
   }) async {
     for (var i = 0; i < totalChunks; i++) {
       if (_cancelledFileIds.remove(fileId)) {
@@ -488,17 +560,19 @@ class BinaryUploadPipeline {
         throw TransferCancelledException(fileId);
       }
 
-      final chunkFile = File(
-        p.join(stagingDir, '${i.toString().padLeft(6, '0')}.enc'),
-      );
-      final data = await chunkFile.readAsBytes();
-      await _client.files.uploadChunk(
-        fileId: fileId,
-        chunk: i,
-        data: data,
-        checksum: checksums[i],
-        checksumFunction: checksums[i] != null ? 'crc16' : null,
-      );
+      if (!skipChunks.contains(i)) {
+        final chunkFile = File(
+          p.join(stagingDir, '${i.toString().padLeft(6, '0')}.enc'),
+        );
+        final data = await chunkFile.readAsBytes();
+        await _client.files.uploadChunk(
+          fileId: fileId,
+          chunk: i,
+          data: data,
+          checksum: checksums[i],
+          checksumFunction: checksums[i] != null ? 'crc16' : null,
+        );
+      }
 
       if (transferItem != null) {
         final transferred = (fileSize * (i + 1) / totalChunks).round();

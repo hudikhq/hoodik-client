@@ -99,6 +99,7 @@ class FileUploader {
     String localPath, {
     String? parentDirId,
     void Function(double progress)? onProgress,
+    String? stagingId,
   }) async {
     final wm = _workerManager;
     final offline = _offlineManager;
@@ -132,6 +133,7 @@ class FileUploader {
       localPath,
       parentDirId: parentDirId,
       onProgress: onProgress,
+      stagingId: stagingId,
     );
   }
 

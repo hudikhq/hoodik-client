@@ -2526,6 +2526,13 @@ class AppLocalizationsHr extends AppLocalizations {
   String get serviceFileAlreadyExists => 'Datoteka već postoji';
 
   @override
+  String get serviceTransferSelectionName => 'Odabrane stavke';
+
+  @override
+  String get serviceUploadPartialConflict =>
+      'Prekinuto prenošenje s ovim imenom sadrži drugačiji sadržaj. Obriši ga da bi prenio ovu datoteku.';
+
+  @override
   String get serviceFileNoEncryptionKey => 'Datoteka nema enkripcijski ključ';
 
   @override

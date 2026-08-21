@@ -4248,6 +4248,18 @@ abstract class AppLocalizations {
   /// **'File already exists'**
   String get serviceFileAlreadyExists;
 
+  /// No description provided for @serviceTransferSelectionName.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected items'**
+  String get serviceTransferSelectionName;
+
+  /// No description provided for @serviceUploadPartialConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'An interrupted upload with this name holds different content. Delete it to upload this file.'**
+  String get serviceUploadPartialConflict;
+
   /// No description provided for @serviceFileNoEncryptionKey.
   ///
   /// In en, this message translates to:

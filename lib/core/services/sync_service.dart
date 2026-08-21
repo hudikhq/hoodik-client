@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
@@ -11,6 +12,7 @@ import '../utils/logger.dart';
 import 'connectivity_service.dart';
 import 'file_operations.dart';
 import 'pending_upload_status.dart';
+import 'upload_staging.dart';
 
 const _log = Logger('SyncService');
 
@@ -261,7 +263,11 @@ class SyncService extends ChangeNotifier {
     await _refreshPendingCount();
 
     try {
-      await fileOperations!.uploadFile(localPath, parentDirId: parentDirId);
+      await fileOperations!.uploadFile(
+        localPath,
+        parentDirId: parentDirId,
+        stagingId: _stagingIdFor(row),
+      );
       await _db.deletePendingUpload(row.id);
     } catch (e) {
       _log.warn(
@@ -307,13 +313,27 @@ class SyncService extends ChangeNotifier {
   }
 
   Future<void> _attemptUpload(PendingUpload upload, FileOperations ops) async {
+    if (!File(upload.localPath).existsSync()) {
+      await _db.deletePendingUpload(upload.id);
+      _log.warn(
+        'pending upload source file is gone — dropped from queue',
+        fields: {'upload_id': upload.id},
+      );
+      await _refreshPendingCount();
+      return;
+    }
+
     _liveUploadRows.add(upload.id);
     try {
       await _db.updatePendingUploadStatus(
         upload.id,
         PendingUploadStatus.uploading,
       );
-      await ops.uploadFile(upload.localPath, parentDirId: upload.targetDirId);
+      await ops.uploadFile(
+        upload.localPath,
+        parentDirId: upload.targetDirId,
+        stagingId: _stagingIdFor(upload),
+      );
       await _db.deletePendingUpload(upload.id);
 
       _log.info('pending upload completed', fields: {'upload_id': upload.id});
@@ -324,7 +344,77 @@ class SyncService extends ChangeNotifier {
     }
   }
 
+  /// Stable per-row staging id, so every attempt at a row reuses the chunks
+  /// the previous one already encrypted instead of re-encrypting the file.
+  String _stagingIdFor(PendingUpload row) => 'pending-${row.id}';
+
+  /// Make a cancel stick the moment the user taps it.
+  ///
+  /// The in-flight transfer also observes the cancel and dies with
+  /// [TransferCancelledException], but only if the process lives to the next
+  /// chunk boundary — a kill right after the tap used to leave the row
+  /// behind, and the revived queue re-ran an upload the user had already
+  /// refused. So the tap itself drops the row, purges the staged ciphertext,
+  /// and deletes the partial server-side file when one exists.
+  Future<void> cancelUploadArtifacts({
+    String? stagingGroup,
+    String? serverFileId,
+  }) async {
+    final match = stagingGroup == null
+        ? null
+        : RegExp(r'^pending-(\d+)$').firstMatch(stagingGroup);
+    if (match != null) {
+      final rowId = int.parse(match.group(1)!);
+      await _db.deletePendingUpload(rowId);
+      final acct = accountId;
+      if (acct != null) {
+        try {
+          await UploadStaging(accountId: acct).clear(stagingGroup!);
+        } catch (_) {
+          // Staging that outlives a cancel is disk noise, not a failure.
+        }
+      }
+      await _refreshPendingCount();
+      _log.info(
+        'upload cancelled — dropped row and staging',
+        fields: {'upload_id': rowId},
+      );
+    }
+
+    if (serverFileId != null) {
+      try {
+        await apiClient?.files.deleteFile(serverFileId);
+      } catch (e) {
+        _log.warn(
+          'could not delete cancelled partial upload',
+          fields: {'file_id': serverFileId, 'error': describeError(e)},
+        );
+      }
+    }
+  }
+
   Future<void> _recordUploadFailure(PendingUpload upload, Object error) async {
+    // Neither of these is a transient failure a retry can outwait: a cancel
+    // is the user saying stop — retrying it resurrects a file they just
+    // dismissed or deleted — and a missing source file will be exactly as
+    // missing on every later attempt.
+    if (error is TransferCancelledException) {
+      await _db.deletePendingUpload(upload.id);
+      _log.info(
+        'pending upload cancelled — dropped from queue',
+        fields: {'upload_id': upload.id},
+      );
+      return;
+    }
+    if (error is PathNotFoundException) {
+      await _db.deletePendingUpload(upload.id);
+      _log.warn(
+        'pending upload source file is gone — dropped from queue',
+        fields: {'upload_id': upload.id},
+      );
+      return;
+    }
+
     final newRetryCount = upload.retryCount + 1;
 
     if (newRetryCount >= _maxUploadRetries) {

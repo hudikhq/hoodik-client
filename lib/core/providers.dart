@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'dart:io';
@@ -35,6 +36,7 @@ import 'services/file_uploader.dart';
 import 'services/shared_folder_target.dart';
 import 'services/shared_folder_upload.dart';
 import 'services/connectivity_service.dart';
+import 'services/media_picker_channel.dart';
 import 'services/offline_manager.dart';
 import 'services/preferences.dart';
 import 'services/app_update.dart';
@@ -176,6 +178,13 @@ final shareCryptoProvider = Provider<ShareCrypto?>((ref) {
 /// Singleton transfer manager for tracking upload/download progress.
 final transferManagerProvider = ChangeNotifierProvider<TransferManager>((ref) {
   return TransferManager();
+});
+
+/// Native Photos picker with per-item load progress (iOS only — see
+/// [MediaPickerChannel.isSupported]). A provider so tests can script the
+/// event stream.
+final mediaPickerChannelProvider = Provider<MediaPickerChannel>((ref) {
+  return MediaPickerChannel();
 });
 
 /// Memoizes whether each server base URL supports `?format=tar` so the
@@ -617,6 +626,19 @@ final syncServiceProvider = ChangeNotifierProvider<SyncService>((ref) {
   } else {
     service.deactivate();
   }
+
+  // Cancels must outlive the transfer that observes them: the tap itself
+  // drops the queue row and the server-side partial, whatever the in-flight
+  // upload manages to notice before a kill. The upload-phase row's fileId is
+  // the server id; the encrypt phase has no server file yet.
+  ref.read(transferManagerProvider).onCancelPersist = (item) {
+    unawaited(
+      service.cancelUploadArtifacts(
+        stagingGroup: item.groupId,
+        serverFileId: item.type == TransferType.uploadHttp ? item.fileId : null,
+      ),
+    );
+  };
 
   return service;
 });

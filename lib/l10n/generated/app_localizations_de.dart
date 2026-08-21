@@ -2537,6 +2537,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get serviceFileAlreadyExists => 'Datei existiert bereits';
 
   @override
+  String get serviceTransferSelectionName => 'Ausgewählte Elemente';
+
+  @override
+  String get serviceUploadPartialConflict =>
+      'Ein unterbrochener Upload mit diesem Namen enthält anderen Inhalt. Lösche ihn, um diese Datei hochzuladen.';
+
+  @override
   String get serviceFileNoEncryptionKey =>
       'Datei hat keinen Verschlüsselungsschlüssel';
 

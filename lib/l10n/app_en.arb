@@ -1622,6 +1622,8 @@
   "serviceDownloadCancelled": "Download cancelled",
   "serviceDownloadFailed": "Download failed",
   "serviceFileAlreadyExists": "File already exists",
+  "serviceTransferSelectionName": "Selected items",
+  "serviceUploadPartialConflict": "An interrupted upload with this name holds different content. Delete it to upload this file.",
   "serviceFileNoEncryptionKey": "File has no encryption key",
   "serviceLandingBranchFiles": "Files",
   "serviceLandingBranchNotes": "Notes",
