@@ -226,3 +226,57 @@ e2e-compat-matrix:
 # Safe to run anytime — does not touch the release-check E2E container.
 e2e-compat-clean:
     @./scripts/compat/teardown.sh
+
+# Prove the direct-transfer path against a real bucket protocol: the paired
+# hoodik server built from ../hoodik with presigned URLs on, and the live
+# round-trip test (register → direct upload → finalize → direct download →
+# byte-for-byte compare). Defaults to a MinIO the hoodik compose file
+# provides; export S3_* first (e.g. `set -a; source ../secrets/r2-testing.env;
+# set +a; S3_PREFIX=ci-live/ just e2e-direct`) to run the same thing against
+# a real bucket. Requires docker for the MinIO default and the ../hoodik
+# checkout either way. Refuses to start while something else holds :5443.
+e2e-direct:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    HOODIK=../hoodik
+
+    if lsof -ti tcp:5443 >/dev/null 2>&1; then
+        echo "something is already listening on :5443 — stop it first" >&2
+        exit 69
+    fi
+
+    if [ -z "${S3_ENDPOINT:-}" ]; then
+        docker compose -f "$HOODIK/docker-compose.yml" up -d minio minio-init
+        export S3_ENDPOINT=http://127.0.0.1:9000
+        export S3_BUCKET="${S3_BUCKET:-hoodik}"
+        export S3_ACCESS_KEY="${S3_ACCESS_KEY:-minioadmin}"
+        export S3_SECRET_KEY="${S3_SECRET_KEY:-minioadmin}"
+        export S3_REGION="${S3_REGION:-us-east-1}"
+    fi
+    export S3_PATH_STYLE="${S3_PATH_STYLE:-true}"
+    export S3_PREFIX="${S3_PREFIX:-app-e2e/}"
+
+    (cd "$HOODIK" && cargo build --bin hoodik --release)
+
+    DATA=$(mktemp -d)
+    STORAGE_PROVIDER=s3 S3_DIRECT_TRANSFER=true S3_DIRECT_ALLOW_INSECURE=true \
+    DATA_DIR="$DATA" DATABASE_URL="sqlite:$DATA/sqlite.db?mode=rwc" \
+    SSL_DISABLED=true APP_URL=http://localhost:5443 APP_CLIENT_URL=http://localhost:5443 \
+    MAILER_TYPE=none RUST_LOG=error \
+    "$HOODIK/target/release/hoodik" &
+    SERVER_PID=$!
+    cleanup() { kill -9 $SERVER_PID 2>/dev/null; rm -rf "$DATA"; }
+    trap cleanup EXIT
+
+    for i in $(seq 1 60); do
+        curl -fsS http://127.0.0.1:5443/api/liveness >/dev/null 2>&1 && break
+        sleep 1
+    done
+    if ! curl -fsS http://127.0.0.1:5443/api/readiness | grep -q '"direct_transfer":true'; then
+        echo "server does not advertise direct transfer:" >&2
+        curl -s http://127.0.0.1:5443/api/readiness >&2 || true
+        exit 1
+    fi
+
+    (cd rust && cargo build --release)
+    flutter test --dart-define=HOODIK_LIVE=1 --tags live test/live/direct_transfer_live_test.dart

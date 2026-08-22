@@ -5,6 +5,9 @@ on:
         branches: [main]
     pull_request:
         branches: [main]
+    # For live-direct-r2: an on-demand run of the direct-transfer round trip
+    # against the real R2 testing bucket instead of MinIO.
+    workflow_dispatch:
 
 jobs:
     analyze-and-test:
@@ -53,7 +56,14 @@ jobs:
             # libhoodik_mobile.so. Build it from the shared crates in the hoodik
             # repo — the fast path can no longer stub hoodik.
             - name: Clone hoodik (shared Rust crates)
-              run: git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+              # Paired branches build against each other: a client branch that
+              # changes the FFI ships with a hoodik branch of the same name, and
+              # building it against master would fail on symbols that are not
+              # there yet. Solitary branches fall back to master.
+              run: |
+                  BRANCH="${{ github.head_ref || github.ref_name }}"
+                  git clone --depth 1 --branch "$BRANCH" https://github.com/hudikhq/hoodik.git ../hoodik \
+                    || git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
 
             - uses: dtolnay/rust-toolchain@stable
 
@@ -81,7 +91,11 @@ jobs:
             - uses: actions/checkout@v4
 
             - name: Clone hoodik (for shared Rust crates)
-              run: git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+              # Same paired-branch rule as release-check-fast above.
+              run: |
+                  BRANCH="${{ github.head_ref || github.ref_name }}"
+                  git clone --depth 1 --branch "$BRANCH" https://github.com/hudikhq/hoodik.git ../hoodik \
+                    || git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
 
             - uses: dtolnay/rust-toolchain@stable
               with:
@@ -117,3 +131,112 @@ jobs:
                     pod cache clean --all || true
                     sleep 20
                   done
+
+    live-direct:
+        name: Direct transfer against MinIO
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Free disk space
+              run: |
+                  sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                    /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+                  df -h /
+
+            - name: Clone hoodik (server + shared Rust crates)
+              # Same paired-branch rule as release-check-fast above.
+              run: |
+                  BRANCH="${{ github.head_ref || github.ref_name }}"
+                  git clone --depth 1 --branch "$BRANCH" https://github.com/hudikhq/hoodik.git ../hoodik \
+                    || git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+
+            - uses: dtolnay/rust-toolchain@stable
+
+            - uses: Swatinem/rust-cache@v2
+              with:
+                  # Two workspaces: the FFI library the test loads, and the
+                  # server binary the recipe boots.
+                  workspaces: |
+                      rust -> target
+                      ../hoodik -> target
+                  key: live-direct
+
+            - uses: awalsh128/cache-apt-pkgs-action@latest
+              with:
+                  packages: clang llvm pkg-config nettle-dev libpq-dev libc6-dev
+                  version: 1.0
+
+            - uses: subosito/flutter-action@v2
+              with:
+                  flutter-version: "3.41.x"
+                  channel: stable
+
+            - uses: taiki-e/install-action@just
+
+            - run: flutter pub get
+
+            # The whole point of this job: the live round-trip test used to be
+            # manual-only, which left the app's presigned upload/download path
+            # with zero automated end-to-end coverage. `just e2e-direct` boots
+            # MinIO + the paired server with direct transfer on and runs it.
+            - name: Live direct-transfer round trip
+              run: just e2e-direct
+
+    live-direct-r2:
+        name: Direct transfer against R2 (manual)
+        # On demand only: it spends real R2 operations and needs the repo's
+        # secrets, which forked PRs never see. The MinIO job above is the
+        # hermetic per-PR gate; this one proves the same round trip against
+        # the bucket implementation production actually runs on.
+        if: github.event_name == 'workflow_dispatch'
+        runs-on: ubuntu-latest
+        env:
+            S3_ENDPOINT: ${{ secrets.R2_TEST_ENDPOINT }}
+            S3_BUCKET: ${{ secrets.R2_TEST_BUCKET }}
+            S3_ACCESS_KEY: ${{ secrets.R2_TEST_ACCESS_KEY }}
+            S3_SECRET_KEY: ${{ secrets.R2_TEST_SECRET_KEY }}
+            S3_REGION: auto
+            # Its own prefix, so CI runs never collide with the phone rig's
+            # r2clean/ data in the same bucket.
+            S3_PREFIX: ci-live/
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Free disk space
+              run: |
+                  sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                    /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+                  df -h /
+
+            - name: Clone hoodik (server + shared Rust crates)
+              run: |
+                  BRANCH="${{ github.head_ref || github.ref_name }}"
+                  git clone --depth 1 --branch "$BRANCH" https://github.com/hudikhq/hoodik.git ../hoodik \
+                    || git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+
+            - uses: dtolnay/rust-toolchain@stable
+
+            - uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: |
+                      rust -> target
+                      ../hoodik -> target
+                  key: live-direct
+
+            - uses: awalsh128/cache-apt-pkgs-action@latest
+              with:
+                  packages: clang llvm pkg-config nettle-dev libpq-dev libc6-dev
+                  version: 1.0
+
+            - uses: subosito/flutter-action@v2
+              with:
+                  flutter-version: "3.41.x"
+                  channel: stable
+
+            - uses: taiki-e/install-action@just
+
+            - run: flutter pub get
+
+            - name: Live direct-transfer round trip against R2
+              run: just e2e-direct
