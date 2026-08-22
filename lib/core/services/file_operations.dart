@@ -117,6 +117,7 @@ class FileOperations {
         offlineManager: offlineManager,
         backgroundUploadService: backgroundUploadService,
         directUpload: directUpload,
+        directTransfer: directTransfer,
         uploadTarTransport: uploadTarTransport,
         accountId: accountId,
         sharedTarget: sharedTarget,

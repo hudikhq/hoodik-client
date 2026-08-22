@@ -46,6 +46,11 @@ class FileUploader {
   final OfflineManager? _offlineManager;
   final BackgroundUploadService? _backgroundUploadService;
   final DirectChunkUploadService? _directUpload;
+
+  /// Whether the server advertises bucket URLs. The binary pipeline learns
+  /// this from [_directUpload] being present; a note is written here instead,
+  /// so it needs the flag itself.
+  final bool _directTransfer;
   final UploadTarTransport? _uploadTarTransport;
   final String? _accountId;
   final SharedFolderTargetResolver? _sharedTarget;
@@ -65,6 +70,7 @@ class FileUploader {
     OfflineManager? offlineManager,
     BackgroundUploadService? backgroundUploadService,
     DirectChunkUploadService? directUpload,
+    bool directTransfer = true,
     UploadTarTransport? uploadTarTransport,
     String? accountId,
     SharedFolderTargetResolver? sharedTarget,
@@ -78,6 +84,7 @@ class FileUploader {
        _offlineManager = offlineManager,
        _backgroundUploadService = backgroundUploadService,
        _directUpload = directUpload,
+       _directTransfer = directTransfer,
        _uploadTarTransport = uploadTarTransport,
        _accountId = accountId,
        _sharedTarget = sharedTarget,
@@ -349,13 +356,20 @@ class FileUploader {
         ),
     };
 
-    final manifest = await _client.files.fetchUploadUrls(
-      fileId: fileId,
-      transferToken: token.token,
-      chunkSizes: {
-        for (final entry in encrypted.entries) entry.key: entry.value.length,
-      },
-    );
+    // Not asked for at all on a server that does not serve bucket URLs: the
+    // request is refused every time, and a note save is frequent enough that
+    // one dead round trip per keystroke-batch is worth skipping. The refusal
+    // still decides it whenever the flag says yes.
+    final manifest = !_directTransfer
+        ? null
+        : await _client.files.fetchUploadUrls(
+            fileId: fileId,
+            transferToken: token.token,
+            chunkSizes: {
+              for (final entry in encrypted.entries)
+                entry.key: entry.value.length,
+            },
+          );
 
     // Covers every chunk or none of them: a note is written in one shot, and a
     // half-direct write would need the same commit either way for no gain.

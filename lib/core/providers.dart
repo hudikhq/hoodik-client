@@ -7,6 +7,7 @@ import 'dart:ui' show Locale;
 import 'package:flutter/material.dart' show ThemeMode;
 
 import 'package:drift/drift.dart' as drift show Value;
+import 'package:dio/dio.dart' show DioException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'storage/database.dart';
@@ -205,16 +206,29 @@ final serverLivenessProvider = FutureProvider<LivenessInfo>((ref) async {
   return client.auth.checkLiveness();
 });
 
-/// The active server's sharing capability advertisement. Re-evaluates whenever
-/// the active ApiClient changes (login, logout, server switch). A null client
-/// or any probe failure collapses to [Capabilities.disabled] — the client's
-/// own `getCapabilities()` already swallows errors to the same sentinel — so
-/// every sharing surface that gates on this stays hidden against a server that
-/// doesn't speak the protocol instead of surfacing an error.
+/// The active server's capability advertisement. Re-evaluates whenever the
+/// active ApiClient changes (login, logout, server switch). A null client or
+/// any probe failure collapses to [Capabilities.disabled], so every surface
+/// gated on this stays hidden against a server that doesn't speak the
+/// protocol instead of surfacing an error.
+///
+/// A request that never reached the server is retried, because this provider
+/// outlives the session: one probe lost to a phone changing networks at
+/// launch would otherwise hide sharing and pin every chunk to the relaying
+/// routes until the next login, with nothing to show for it.
 final shareCapabilitiesProvider = FutureProvider<Capabilities>((ref) async {
   final client = ref.watch(apiClientProvider);
   if (client == null) return const Capabilities.disabled();
-  return client.shares.getCapabilities();
+
+  try {
+    return await client.shares.getCapabilities();
+  } catch (e) {
+    if (e is DioException && e.response == null) {
+      Future.delayed(const Duration(seconds: 15), ref.invalidateSelf);
+    }
+
+    return const Capabilities.disabled();
+  }
 });
 
 /// Server base URLs for which the user dismissed the outdated-server
