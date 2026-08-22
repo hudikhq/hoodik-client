@@ -42,8 +42,11 @@ const _serverUrl = String.fromEnvironment(
 );
 
 /// Explicit opt-in. Without it the test skips before it ever reaches the
-/// network, so no accidental run can register an account or write to a bucket.
-const _optedIn = bool.fromEnvironment('HOODIK_LIVE');
+/// network, so no accidental run can register an account or write to a
+/// bucket. Compared as a string: `bool.fromEnvironment` only parses the
+/// literal `true`, which made `HOODIK_LIVE=1` skip silently — green by skip,
+/// the exact failure mode this suite exists to prevent.
+const _optedIn = String.fromEnvironment('HOODIK_LIVE') == '1';
 
 class _FakePinStorage extends SecurePinStorage {
   _FakePinStorage() : super.forTesting(const FlutterSecureStorage());

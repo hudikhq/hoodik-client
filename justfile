@@ -279,4 +279,12 @@ e2e-direct:
     fi
 
     (cd rust && cargo build --release)
-    flutter test --dart-define=HOODIK_LIVE=1 --tags live test/live/direct_transfer_live_test.dart
+    # `tee` + grep: `flutter test` exits 0 when every test SKIPS, and a
+    # skipped run here means the round trip proved nothing. Require at least
+    # one pass.
+    flutter test --dart-define=HOODIK_LIVE=1 --tags live \
+        test/live/direct_transfer_live_test.dart | tee /tmp/e2e-direct-app.log
+    grep -qE "\+[1-9][0-9]*" /tmp/e2e-direct-app.log || {
+        echo "the live test did not actually run — check the skip reasons above" >&2
+        exit 1
+    }
