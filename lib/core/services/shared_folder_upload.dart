@@ -66,6 +66,8 @@ class SharedFolderUpload {
     bool? editable,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? encryptedThumbnail,
     int? fileModifiedAt,
   }) async {
@@ -115,6 +117,8 @@ class SharedFolderUpload {
         'file_modified_at': ?fileModifiedAt,
         'search_tokens_root': ?searchTokensRoot,
         'search_tokens_file': ?searchTokensFile,
+        'digest_tokens_root': ?digestTokensRoot,
+        'digest_tokens_file': ?digestTokensFile,
         'member_keys': memberKeys.map((k) => k.toJson()).toList(),
         'members_list_snapshot': MembersListSnapshot(
           membersSignedAt: snapshot.membersSignedAt,

@@ -208,7 +208,16 @@ class FileUploader {
       );
       fileId = entry['id'] as String;
     }
-    await _encryptAndUploadContent(fileId, bytes, fileKey, cipher, totalChunks);
+    // The creator of a note owns it on every create path, shared folders
+    // included.
+    await _encryptAndUploadContent(
+      fileId,
+      bytes,
+      fileKey,
+      cipher,
+      totalChunks,
+      isOwner: true,
+    );
 
     return fileId;
   }
@@ -282,20 +291,32 @@ class FileUploader {
       rethrow;
     }
 
-    await _encryptAndUploadContent(fileId, bytes, fileKey, cipher, totalChunks);
+    await _encryptAndUploadContent(
+      fileId,
+      bytes,
+      fileKey,
+      cipher,
+      totalChunks,
+      isOwner: file.isOwner,
+    );
   }
 
   /// Encrypt [plaintext] and upload it as chunks on the main thread, then
   /// finalize the server entry with its SHA-256. Used by both note-create
   /// and note-update flows — the server-side pending-version dance
   /// happens upstream in [updateNoteContent].
+  ///
+  /// [isOwner] gates the digest's root-scope tag the same way the word
+  /// tokens are gated upstream: an editor does not hold the owner's root
+  /// key, so a tag produced here would sit in the owner's scope unmatchable.
   Future<void> _encryptAndUploadContent(
     String fileId,
     Uint8List plaintext,
     Uint8List fileKey,
     String cipher,
-    int totalChunks,
-  ) async {
+    int totalChunks, {
+    required bool isOwner,
+  }) async {
     final token = await _client.auth.requestTransferToken(
       fileId: fileId,
       action: 'upload',
@@ -368,9 +389,9 @@ class FileUploader {
       fileId: fileId,
       transferToken: token.token,
       sha256: keyed,
-      searchTokensRoot: [
-        '${_fileCrypto.exactTag(_fileCrypto.searchRootKey, sha256)}:1',
-      ],
+      searchTokensRoot: isOwner
+          ? ['${_fileCrypto.exactTag(_fileCrypto.searchRootKey, sha256)}:1']
+          : null,
       searchTokensFile: ['$keyed:1'],
     );
   }

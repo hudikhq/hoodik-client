@@ -45,7 +45,9 @@ class StagingManifest {
       'source_modified_at': sourceModifiedAt,
       'checksums': checksums.map((k, v) => MapEntry('$k', v)),
     });
-    await File(p.join(stagingDir, _fileName)).writeAsString(payload, flush: true);
+    await File(
+      p.join(stagingDir, _fileName),
+    ).writeAsString(payload, flush: true);
   }
 
   /// Load the manifest when it proves the staged chunks are complete and
@@ -95,7 +97,10 @@ class StagingManifest {
     );
   }
 
-  static Future<bool> _chunksComplete(String stagingDir, int totalChunks) async {
+  static Future<bool> _chunksComplete(
+    String stagingDir,
+    int totalChunks,
+  ) async {
     for (var i = 0; i < totalChunks; i++) {
       final chunk = File(
         p.join(stagingDir, '${i.toString().padLeft(6, '0')}.enc'),

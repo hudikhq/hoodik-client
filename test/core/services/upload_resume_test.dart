@@ -159,21 +159,37 @@ void main() {
         fileCrypto: crypto,
       );
 
-      expect(() => resume!.ensureSameContent('other'), throwsA(isA<Exception>()));
+      expect(
+        () => resume!.ensureSameContent('other'),
+        throwsA(isA<Exception>()),
+      );
     });
 
-    test('a bare pre-keying digest can never match, so the row is refused', () {
-      // Transitional rows store the plaintext digest; the keyed form of the
-      // same content differs, and refusing is the safe answer — chunks are
-      // write-once, so an unprovable mix must not be committed.
+    test('a bare pre-keying digest proves equality bare-to-bare', () {
+      // A row from before the app keyed its digests stores the plaintext
+      // digest — recognisable by its length, twice a tag's. The local bare
+      // digest proves equality for it just as well, and refusing would
+      // strand every upload interrupted before the update in a conflict no
+      // retry ever clears.
+      final bare = 'a' * 64;
       final resume = UploadResume.of(
-        _partialRow(sha256: 'abc123', uploadedChunks: [0]),
+        _partialRow(sha256: bare, uploadedChunks: [0]),
+        totalChunks: 169,
+        fileCrypto: crypto,
+      );
+
+      resume!.ensureSameContent(bare);
+    });
+
+    test('a bare pre-keying digest that differs still refuses the row', () {
+      final resume = UploadResume.of(
+        _partialRow(sha256: 'a' * 64, uploadedChunks: [0]),
         totalChunks: 169,
         fileCrypto: crypto,
       );
 
       expect(
-        () => resume!.ensureSameContent('abc123'),
+        () => resume!.ensureSameContent('b' * 64),
         throwsA(isA<Exception>()),
       );
     });

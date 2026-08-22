@@ -50,5 +50,4 @@ class SearchClient {
         .map((json) => FileItem.fromJson(json))
         .toList();
   }
-
 }

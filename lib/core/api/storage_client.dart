@@ -34,9 +34,10 @@ class StorageClient {
   /// `GET /api/storage/reindex` — files that still need re-indexing against
   /// the keyed search scheme.
   ///
-  /// Membership is derived, not tracked: a file is pending exactly while it
-  /// has no root-scope tags, so writing its tags removes it from this list and
-  /// an interrupted sweep resumes just by asking again.
+  /// Membership is derived, not tracked: a file is pending exactly while its
+  /// `name_hash` is not yet a keyed tag, so the keyed hash every re-index
+  /// writes removes it from this list and an interrupted sweep resumes just
+  /// by asking again.
   Future<List<FileItem>> pendingReindex() async {
     final resp = await _dio.get('/api/storage/reindex');
     final rows = resp.data is List ? resp.data as List : const [];
@@ -59,6 +60,8 @@ class StorageClient {
     String? sha1,
     String? sha256,
     String? blake2b,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
   }) async {
     final data = <String, dynamic>{
       'name_hash': nameHash,
@@ -69,6 +72,8 @@ class StorageClient {
     if (sha1 != null) data['sha1'] = sha1;
     if (sha256 != null) data['sha256'] = sha256;
     if (blake2b != null) data['blake2b'] = blake2b;
+    if (digestTokensRoot != null) data['digest_tokens_root'] = digestTokensRoot;
+    if (digestTokensFile != null) data['digest_tokens_file'] = digestTokensFile;
     await _dio.put('/api/storage/$fileId/reindex', data: data);
   }
 

@@ -236,6 +236,11 @@ void main() {
           ),
           equals(plaintext),
         );
+
+        // Leave nothing behind: against a real bucket every run would
+        // otherwise strand one object forever. The delete goes through the
+        // server, which removes what the presigned PUT wrote.
+        await client.files.deleteFile(fileId);
       } on DioException catch (e) {
         // A live failure is a remote contract failure, and Dio's default
         // message says only that a status code was unexpected. Which call,

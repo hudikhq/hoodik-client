@@ -60,8 +60,12 @@ jobs:
               # changes the FFI ships with a hoodik branch of the same name, and
               # building it against master would fail on symbols that are not
               # there yet. Solitary branches fall back to master.
+              env:
+                  # Through env rather than interpolated into the script:
+                  # a branch name is attacker-chosen text on a public repo,
+                  # and interpolation would paste it into the shell as code.
+                  BRANCH: ${{ github.head_ref || github.ref_name }}
               run: |
-                  BRANCH="${{ github.head_ref || github.ref_name }}"
                   git clone --depth 1 --branch "$BRANCH" https://github.com/hudikhq/hoodik.git ../hoodik \
                     || git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
 
@@ -92,8 +96,12 @@ jobs:
 
             - name: Clone hoodik (for shared Rust crates)
               # Same paired-branch rule as release-check-fast above.
+              env:
+                  # Through env rather than interpolated into the script:
+                  # a branch name is attacker-chosen text on a public repo,
+                  # and interpolation would paste it into the shell as code.
+                  BRANCH: ${{ github.head_ref || github.ref_name }}
               run: |
-                  BRANCH="${{ github.head_ref || github.ref_name }}"
                   git clone --depth 1 --branch "$BRANCH" https://github.com/hudikhq/hoodik.git ../hoodik \
                     || git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
 
@@ -146,8 +154,12 @@ jobs:
 
             - name: Clone hoodik (server + shared Rust crates)
               # Same paired-branch rule as release-check-fast above.
+              env:
+                  # Through env rather than interpolated into the script:
+                  # a branch name is attacker-chosen text on a public repo,
+                  # and interpolation would paste it into the shell as code.
+                  BRANCH: ${{ github.head_ref || github.ref_name }}
               run: |
-                  BRANCH="${{ github.head_ref || github.ref_name }}"
                   git clone --depth 1 --branch "$BRANCH" https://github.com/hudikhq/hoodik.git ../hoodik \
                     || git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
 
@@ -203,6 +215,19 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            # The recipe falls back to MinIO defaults for any S3 variable
+            # that is empty, which is right for local runs and wrong here: a
+            # dispatch on a repo without the secrets would go green against
+            # MinIO while claiming R2 coverage.
+            - name: Require the R2 secrets
+              run: |
+                  for var in S3_ENDPOINT S3_BUCKET S3_ACCESS_KEY S3_SECRET_KEY; do
+                    if [ -z "${!var}" ]; then
+                      echo "$var is empty — configure the R2_TEST_* secrets; this job proves R2, not MinIO" >&2
+                      exit 1
+                    fi
+                  done
+
             - name: Free disk space
               run: |
                   sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
@@ -210,8 +235,12 @@ jobs:
                   df -h /
 
             - name: Clone hoodik (server + shared Rust crates)
+              env:
+                  # Through env rather than interpolated into the script:
+                  # a branch name is attacker-chosen text on a public repo,
+                  # and interpolation would paste it into the shell as code.
+                  BRANCH: ${{ github.head_ref || github.ref_name }}
               run: |
-                  BRANCH="${{ github.head_ref || github.ref_name }}"
                   git clone --depth 1 --branch "$BRANCH" https://github.com/hudikhq/hoodik.git ../hoodik \
                     || git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
 

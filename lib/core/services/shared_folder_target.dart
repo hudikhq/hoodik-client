@@ -96,6 +96,8 @@ Future<String?> multiKeyCreateOrNull({
   bool? editable,
   List<String>? searchTokensRoot,
   List<String>? searchTokensFile,
+  List<String>? digestTokensRoot,
+  List<String>? digestTokensFile,
   String? encryptedThumbnail,
 }) async {
   if (resolver == null ||
@@ -122,6 +124,8 @@ Future<String?> multiKeyCreateOrNull({
     editable: editable,
     searchTokensRoot: searchTokensRoot,
     searchTokensFile: searchTokensFile,
+    digestTokensRoot: digestTokensRoot,
+    digestTokensFile: digestTokensFile,
     encryptedThumbnail: encryptedThumbnail,
   );
 }

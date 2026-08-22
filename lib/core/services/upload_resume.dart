@@ -78,14 +78,17 @@ class UploadResume {
   void ensureSameContent(String sha256) {
     // The row stores the digest keyed under the file's search key, so the
     // local plaintext digest is keyed the same way before comparing. A row
-    // from before the keying — a bare digest — can never equal the keyed
-    // form and is refused with the rest of the unprovable cases.
-    final keyed = _fileCrypto.exactTag(
-      _fileCrypto.searchFileKeyHex(fileKey),
-      sha256,
-    );
-    final unprovable = _sha256 == null && uploadedChunks.isNotEmpty;
-    if (unprovable || (_sha256 != null && _sha256 != keyed)) {
+    // from before the keying stores the bare digest instead — recognisable
+    // by its length, twice a tag's — and the local bare digest proves
+    // equality for it just as well. Refusing those rows would strand every
+    // upload interrupted before the app updated in a conflict no retry ever
+    // clears.
+    final stored = _sha256;
+    final expected = stored != null && stored.length == sha256.length
+        ? sha256
+        : _fileCrypto.exactTag(_fileCrypto.searchFileKeyHex(fileKey), sha256);
+    final unprovable = stored == null && uploadedChunks.isNotEmpty;
+    if (unprovable || (stored != null && stored != expected)) {
       throw Exception(ambientL10n.serviceUploadPartialConflict);
     }
   }

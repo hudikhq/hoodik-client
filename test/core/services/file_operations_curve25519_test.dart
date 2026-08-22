@@ -33,6 +33,8 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     String? cipher,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
   }) async {
     dirEncryptedKey = encryptedKey;
     return {'id': 'dir-id'};
@@ -51,6 +53,8 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     String? encryptedThumbnail,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? fileModifiedAt,
     String? sha256,
     bool? editable,

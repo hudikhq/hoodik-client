@@ -129,12 +129,14 @@ class BinaryUploadPipeline {
       fileCrypto: _fileCrypto,
     );
     final cipher = resume?.cipher ?? _defaultCipher;
-    final fileKey = resume?.fileKey ?? _fileCrypto.generateFileKey(cipher: cipher);
+    final fileKey =
+        resume?.fileKey ?? _fileCrypto.generateFileKey(cipher: cipher);
 
     final resolvedStagingId = stagingId ?? const Uuid().v4();
     final stagingDir = await _staging.stagingDir(resolvedStagingId);
 
-    final sourceModifiedAt = (await file.stat()).modified.millisecondsSinceEpoch;
+    final sourceModifiedAt =
+        (await file.stat()).modified.millisecondsSinceEpoch;
     final reusable = await StagingManifest.tryReuse(
       stagingDir: stagingDir,
       fileKey: fileKey,
@@ -207,7 +209,6 @@ class BinaryUploadPipeline {
         'file entry created — starting upload',
         fields: {
           'file_id': fileId,
-          'sha256': encryptResult.sha256,
           'total_chunks': totalChunks,
           'chunk_mb': kUploadChunkSize ~/ 1024 ~/ 1024,
         },
@@ -251,7 +252,10 @@ class BinaryUploadPipeline {
     _log.info('upload complete', fields: {'file_id': fileId});
   }
 
-  Future<FileItem?> _existingByName(String nameHash, String? parentDirId) async {
+  Future<FileItem?> _existingByName(
+    String nameHash,
+    String? parentDirId,
+  ) async {
     final existing = await _client.files.checkNameHash(
       nameHash,
       parentId: parentDirId,

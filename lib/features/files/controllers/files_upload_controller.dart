@@ -85,7 +85,8 @@ class FilesUploadController {
     FilesActionResult? failure;
     var anyPicked = false;
 
-    await for (final event in _ref.read(mediaPickerChannelProvider).pickMedia()) {
+    await for (final event
+        in _ref.read(mediaPickerChannelProvider).pickMedia()) {
       switch (event) {
         case MediaPickSelection(:final items):
           anyPicked = items.isNotEmpty;

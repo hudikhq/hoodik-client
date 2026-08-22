@@ -53,9 +53,10 @@ class ReindexProgress {
 /// walks its own files once.
 ///
 /// Progress needs no bookkeeping of its own. The server reports a file as
-/// pending exactly while it has no root-scope tags, so writing them is what
-/// marks it done. Closing the app, cancelling, or losing connectivity all
-/// resume from the same place, which is simply "whatever is still pending".
+/// pending exactly while its `name_hash` is not yet a keyed tag, so the keyed
+/// hash every re-index writes is what marks it done. Closing the app,
+/// cancelling, or losing connectivity all resume from the same place, which
+/// is simply "whatever is still pending".
 class ReindexService {
   ReindexService({
     required ApiClient client,
@@ -128,13 +129,45 @@ class ReindexService {
     // same leak. Re-key each from the stored value (no re-download needed)
     // and index it in both scopes, which is what makes pasting a digest into
     // search find the file.
+    //
+    // Only values still in the bare shape are re-keyed. A file can pass
+    // through here twice — a note edited before the sweep already got a keyed
+    // sha256 from its save, and a failed crypto-migration ceremony can run
+    // the whole sweep once on the old key — and keying a keyed value corrupts
+    // the column beyond repair. Shape decides for sha1/sha256/blake2b; bare
+    // MD5 is 32 hex chars like a tag, so it goes by its siblings: every
+    // writer that stored an MD5 stored a SHA-256 next to it, so a row keying
+    // any sibling is a bare row and one keying none is already done.
+    const bareLengths = {'md5': 32, 'sha1': 40, 'sha256': 64, 'blake2b': 128};
+    final hexShape = RegExp(r'^[0-9a-fA-F]+$');
+    String? bare(String name, String? digest) {
+      if (digest == null || digest.length != bareLengths[name]) return null;
+      return hexShape.hasMatch(digest) ? digest : null;
+    }
+
+    final bareDigests = <String, String>{};
+    for (final entry in {
+      'sha1': bare('sha1', file.sha1),
+      'sha256': bare('sha256', file.sha256),
+      'blake2b': bare('blake2b', file.blake2b),
+    }.entries) {
+      if (entry.value != null) bareDigests[entry.key] = entry.value!;
+    }
+    if (bareDigests.isNotEmpty) {
+      final md5 = bare('md5', file.md5);
+      if (md5 != null) bareDigests['md5'] = md5;
+    }
+
     final fileSearchKey = _fileCrypto.searchFileKeyHex(fileKey);
     final rootKey = _fileCrypto.searchRootKey;
-    String? rekey(String? digest) {
-      if (digest == null || digest.isEmpty) return null;
-      rootTags.add('${_fileCrypto.exactTag(rootKey, digest)}:1');
+    final digestTokensRoot = <String>[];
+    final digestTokensFile = <String>[];
+    String? rekey(String name) {
+      final digest = bareDigests[name];
+      if (digest == null) return null;
+      digestTokensRoot.add('${_fileCrypto.exactTag(rootKey, digest)}:1');
       final keyed = _fileCrypto.exactTag(fileSearchKey, digest);
-      fileTags.add('$keyed:1');
+      digestTokensFile.add('$keyed:1');
       return keyed;
     }
 
@@ -143,10 +176,12 @@ class ReindexService {
       nameHash: _fileCrypto.hashFileName(name),
       searchTokensRoot: rootTags,
       searchTokensFile: fileTags,
-      md5: rekey(file.md5),
-      sha1: rekey(file.sha1),
-      sha256: rekey(file.sha256),
-      blake2b: rekey(file.blake2b),
+      md5: rekey('md5'),
+      sha1: rekey('sha1'),
+      sha256: rekey('sha256'),
+      blake2b: rekey('blake2b'),
+      digestTokensRoot: digestTokensRoot.isEmpty ? null : digestTokensRoot,
+      digestTokensFile: digestTokensFile.isEmpty ? null : digestTokensFile,
     );
   }
 

@@ -54,6 +54,8 @@ class _MockSharedFolderUpload extends Fake implements SharedFolderUpload {
     bool? editable,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? encryptedThumbnail,
     int? fileModifiedAt,
   }) async {
@@ -87,6 +89,8 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     String? encryptedThumbnail,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? fileModifiedAt,
     String? sha256,
     bool? editable,
@@ -101,6 +105,8 @@ class _CapturingFilesClient extends Fake implements FilesClient {
       'sha256': sha256,
       'search_tokens_root': searchTokensRoot,
       'search_tokens_file': searchTokensFile,
+      'digest_tokens_root': digestTokensRoot,
+      'digest_tokens_file': digestTokensFile,
     };
     return {'id': 'owner-only-id'};
   }
@@ -199,18 +205,22 @@ void main() {
       'deadbeef',
     );
     expect(files.captured!['sha256'], keyed);
-    // And the digest joined the index in both scopes alongside the name
-    // tokens, which is what answers a pasted-digest search.
+    // The digest joined the index in both scopes — but through the digest
+    // fields, not the word lists: digest tags land in scopes a later rename
+    // leaves alone, which is what keeps a renamed file findable by digest.
     expect(
-      files.captured!['search_tokens_root'],
-      contains('${fileCrypto.exactTag(fileCrypto.searchRootKey, 'deadbeef')}:1'),
+      files.captured!['digest_tokens_root'],
+      contains(
+        '${fileCrypto.exactTag(fileCrypto.searchRootKey, 'deadbeef')}:1',
+      ),
     );
-    expect(
-      files.captured!['search_tokens_file'],
-      contains('$keyed:1'),
-    );
+    expect(files.captured!['digest_tokens_file'], contains('$keyed:1'));
     expect(
       (files.captured!['search_tokens_root'] as List).join(),
+      isNot(contains('deadbeef')),
+    );
+    expect(
+      (files.captured!['digest_tokens_root'] as List).join(),
       isNot(contains('deadbeef')),
     );
     expect((files.captured!['encrypted_key'] as String), isNotEmpty);

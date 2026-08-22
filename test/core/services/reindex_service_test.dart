@@ -11,7 +11,8 @@ const _cipher = 'aegis128l';
 /// Real ciphertext, not placeholders: the sweep decrypts each file's key and
 /// name before it can tag anything, so a fixture with empty fields would only
 /// ever exercise the error path.
-late FileItem Function(String id, {bool editable}) _item;
+late FileItem Function(String id, {bool editable, Map<String, dynamic> extra})
+_item;
 
 /// Serves pending pages, and drops a file from the pending set the moment it
 /// is re-indexed — the way the server does, where "pending" is derived from
@@ -27,6 +28,7 @@ class _FakeStorageClient extends Fake implements StorageClient {
 
   final List<String> reindexed = [];
   final Set<String> failFor = {};
+  final Map<String, Map<String, dynamic>> written = {};
   int pendingCalls = 0;
 
   @override
@@ -42,6 +44,8 @@ class _FakeStorageClient extends Fake implements StorageClient {
     required String nameHash,
     required List<String> searchTokensRoot,
     required List<String> searchTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? md5,
     String? sha1,
     String? sha256,
@@ -52,6 +56,16 @@ class _FakeStorageClient extends Fake implements StorageClient {
     }
 
     reindexed.add(fileId);
+    written[fileId] = {
+      'search_tokens_root': searchTokensRoot,
+      'search_tokens_file': searchTokensFile,
+      'digest_tokens_root': digestTokensRoot,
+      'digest_tokens_file': digestTokensFile,
+      'md5': md5,
+      'sha1': sha1,
+      'sha256': sha256,
+      'blake2b': blake2b,
+    };
     _pending.removeWhere((f) => f.id == fileId);
   }
 }
@@ -78,28 +92,34 @@ void main() {
       crypto: crypto,
     );
 
-    _item = (String id, {bool editable = false}) {
-      final fileKey = fileCrypto.generateFileKey(cipher: _cipher);
+    _item =
+        (
+          String id, {
+          bool editable = false,
+          Map<String, dynamic> extra = const {},
+        }) {
+          final fileKey = fileCrypto.generateFileKey(cipher: _cipher);
 
-      return FileItem.fromJson({
-        'id': id,
-        'encrypted_name': fileCrypto.encryptFileName(
-          name: '$id-notes.md',
-          fileKey: fileKey,
-          cipher: _cipher,
-        ),
-        'encrypted_key': fileCrypto.encryptFileKey(
-          fileKey: fileKey,
-          publicKeyPem: pair.publicPem,
-        ),
-        'mime': editable ? 'text/markdown' : 'application/octet-stream',
-        'cipher': _cipher,
-        // Editable files would be downloaded and decrypted to index their
-        // bodies; no downloader is wired here, so keep them plain.
-        'editable': false,
-        'is_owner': true,
-      });
-    };
+          return FileItem.fromJson({
+            ...extra,
+            'id': id,
+            'encrypted_name': fileCrypto.encryptFileName(
+              name: '$id-notes.md',
+              fileKey: fileKey,
+              cipher: _cipher,
+            ),
+            'encrypted_key': fileCrypto.encryptFileKey(
+              fileKey: fileKey,
+              publicKeyPem: pair.publicPem,
+            ),
+            'mime': editable ? 'text/markdown' : 'application/octet-stream',
+            'cipher': _cipher,
+            // Editable files would be downloaded and decrypted to index their
+            // bodies; no downloader is wired here, so keep them plain.
+            'editable': false,
+            'is_owner': true,
+          });
+        };
   });
 
   ReindexService serviceFor(_FakeStorageClient storage) =>
@@ -240,5 +260,49 @@ void main() {
       expect(state.fraction, inInclusiveRange(0, 1));
     }
     expect(states.last.fraction, 1);
+  });
+
+  test(
+    're-keys bare digests, into the digest fields and never in plaintext',
+    () async {
+      final bareSha256 = 'a' * 64;
+      final bareMd5 = 'b' * 32;
+      final storage = _FakeStorageClient([
+        _item('bare', extra: {'sha256': bareSha256, 'md5': bareMd5}),
+      ]);
+
+      await serviceFor(storage).run().drain<void>();
+
+      final written = storage.written['bare']!;
+      // Keyed: a 32-hex tag, never the stored value back.
+      expect(written['sha256'], matches(RegExp(r'^[0-9a-f]{32}$')));
+      expect(written['sha256'], isNot(bareSha256));
+      // MD5 shares the tag's shape; the bare sha256 sibling is what proves
+      // this row has not been keyed yet.
+      expect(written['md5'], matches(RegExp(r'^[0-9a-f]{32}$')));
+      expect(written['md5'], isNot(bareMd5));
+      expect(written['digest_tokens_root'], hasLength(2));
+      expect(written['digest_tokens_file'], hasLength(2));
+      // Digest tags stay out of the word lists — those are the scopes a
+      // rename replaces — and the bare digest crosses the wire nowhere.
+      expect(written.toString(), isNot(contains(bareSha256)));
+    },
+  );
+
+  test('a second pass leaves already-keyed digests alone', () async {
+    // What the first sweep wrote: 32-hex tags in every digest column. A
+    // failed crypto-migration ceremony makes this row pending again, and
+    // keying a keyed value would corrupt it beyond repair.
+    final storage = _FakeStorageClient([
+      _item('keyed', extra: {'sha256': 'c' * 32, 'md5': 'd' * 32}),
+    ]);
+
+    await serviceFor(storage).run().drain<void>();
+
+    final written = storage.written['keyed']!;
+    expect(written['sha256'], isNull);
+    expect(written['md5'], isNull);
+    expect(written['digest_tokens_root'], isNull);
+    expect(written['digest_tokens_file'], isNull);
   });
 }

@@ -6,10 +6,8 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/widgets/adaptive.dart';
-import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../helpers/file_helpers.dart';
-import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
 
 /// Show a text input dialog and return the entered value, or null if cancelled.
@@ -129,7 +127,9 @@ void showFileDetailsDialog({
               formatFileDate(file.createdAt),
             ),
             _detailRow(ctx, l10n.filesIdLabel, file.id),
-            if (file.sha256 != null) _copyableRow(ctx, 'SHA-256', file.sha256!),
+            // No digest row: the stored value is a keyed tag, not a digest a
+            // user could compare against a local file. Finding a file BY its
+            // digest still works — paste it into search.
           ],
         ),
         actions: [
@@ -222,48 +222,6 @@ Widget _detailRow(BuildContext context, String label, String value) {
           ),
         ),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 12))),
-      ],
-    ),
-  );
-}
-
-/// A detail row with a copy-to-clipboard button. Used for long values like
-/// hashes where the user may want to copy the full string.
-Widget _copyableRow(BuildContext context, String label, String value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 72,
-          child: Text(
-            label,
-            style: TextStyle(color: context.colors.textMuted, fontSize: 12),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 4),
-        GestureDetector(
-          onTap: () {
-            Clipboard.setData(ClipboardData(text: value));
-            AppNotification.show(
-              context,
-              message: AppLocalizations.of(
-                context,
-              ).filesCopiedToClipboard(label),
-              duration: const Duration(seconds: 2),
-            );
-          },
-          child: Icon(AppIcons.copy, size: 16, color: context.colors.iconMuted),
-        ),
       ],
     ),
   );

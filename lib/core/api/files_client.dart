@@ -247,6 +247,8 @@ class FilesClient {
     String? encryptedThumbnail,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? fileModifiedAt,
     String? sha256,
     bool? editable,
@@ -270,6 +272,12 @@ class FilesClient {
     }
     if (searchTokensFile != null) {
       data['search_tokens_file'] = searchTokensFile;
+    }
+    if (digestTokensRoot != null) {
+      data['digest_tokens_root'] = digestTokensRoot;
+    }
+    if (digestTokensFile != null) {
+      data['digest_tokens_file'] = digestTokensFile;
     }
     if (fileModifiedAt != null) data['file_modified_at'] = fileModifiedAt;
     if (sha256 != null) data['sha256'] = sha256;
@@ -414,26 +422,6 @@ class FilesClient {
     } finally {
       uploadDio.close();
     }
-  }
-
-  /// `PUT /api/storage/{fileId}/hashes` — session-auth variant used after
-  /// an interactive upload finishes.
-  Future<void> updateFileHashes({
-    required String fileId,
-    required String sha256,
-    String? md5,
-    String? sha1,
-    String? blake2b,
-    List<String>? searchTokensRoot,
-    List<String>? searchTokensFile,
-  }) async {
-    final data = <String, dynamic>{'sha256': sha256};
-    if (md5 != null) data['md5'] = md5;
-    if (sha1 != null) data['sha1'] = sha1;
-    if (blake2b != null) data['blake2b'] = blake2b;
-    if (searchTokensRoot != null) data['search_tokens_root'] = searchTokensRoot;
-    if (searchTokensFile != null) data['search_tokens_file'] = searchTokensFile;
-    await _dio.put('/api/storage/$fileId/hashes', data: data);
   }
 
   /// `PUT /api/storage/{fileId}/hashes` with a transfer-token bearer

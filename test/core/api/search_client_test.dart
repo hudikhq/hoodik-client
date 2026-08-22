@@ -57,49 +57,55 @@ class _RecordingAdapter implements HttpClientAdapter {
 
 void main() {
   group('SearchClient wire privacy', () {
-    test('sends keyed tags only — the raw body has no plaintext field', () async {
-      final env = _buildDio();
-      final client = SearchClient(env.dio);
+    test(
+      'sends keyed tags only — the raw body has no plaintext field',
+      () async {
+        final env = _buildDio();
+        final client = SearchClient(env.dio);
 
-      final tags = ['a' * 32, 'b' * 32];
-      await client.searchFiles(rootTags: tags);
+        final tags = ['a' * 32, 'b' * 32];
+        await client.searchFiles(rootTags: tags);
 
-      expect(env.adapter.requests.single.path, '/api/storage/search');
-      final body = env.adapter.lastJson;
-      expect(body['root_tags'], tags);
-      expect(body['file_tags'], isEmpty);
-      // The legacy shapes are refused by the server with 426; this build
-      // must not send them at all.
-      expect(body.containsKey('search'), isFalse);
-      expect(body.containsKey('search_tokens_hashed'), isFalse);
-      expect(body.containsKey('hash'), isFalse);
-      expect(body['limit'], 10);
-      expect(body['skip'], 0);
-      expect(body['compact'], isTrue);
-    });
+        expect(env.adapter.requests.single.path, '/api/storage/search');
+        final body = env.adapter.lastJson;
+        expect(body['root_tags'], tags);
+        expect(body['file_tags'], isEmpty);
+        // The legacy shapes are refused by the server with 426; this build
+        // must not send them at all.
+        expect(body.containsKey('search'), isFalse);
+        expect(body.containsKey('search_tokens_hashed'), isFalse);
+        expect(body.containsKey('hash'), isFalse);
+        expect(body['limit'], 10);
+        expect(body['skip'], 0);
+        expect(body['compact'], isTrue);
+      },
+    );
 
-    test('forwards dir scope and editable filter, and never a hash field', () async {
-      final env = _buildDio();
-      final client = SearchClient(env.dio);
+    test(
+      'forwards dir scope and editable filter, and never a hash field',
+      () async {
+        final env = _buildDio();
+        final client = SearchClient(env.dio);
 
-      await client.searchFiles(
-        rootTags: ['a' * 32],
-        dirId: 'dir-1',
-        editable: true,
-        limit: 50,
-        skip: 5,
-      );
+        await client.searchFiles(
+          rootTags: ['a' * 32],
+          dirId: 'dir-1',
+          editable: true,
+          limit: 50,
+          skip: 5,
+        );
 
-      final body = env.adapter.lastJson;
-      // The retired verbatim digest field must never come back: a pasted
-      // digest matches through an exact-match tag the caller appends.
-      expect(body.containsKey('hash'), isFalse);
-      expect(body['dir_id'], 'dir-1');
-      expect(body['editable'], true);
-      expect(body['limit'], 50);
-      expect(body['skip'], 5);
-      expect(body.containsKey('search'), isFalse);
-    });
+        final body = env.adapter.lastJson;
+        // The retired verbatim digest field must never come back: a pasted
+        // digest matches through an exact-match tag the caller appends.
+        expect(body.containsKey('hash'), isFalse);
+        expect(body['dir_id'], 'dir-1');
+        expect(body['editable'], true);
+        expect(body['limit'], 50);
+        expect(body['skip'], 5);
+        expect(body.containsKey('search'), isFalse);
+      },
+    );
 
     test('returns an empty list when the response is not a list', () async {
       final env = _buildDio()..adapter.nextResponse = {'unexpected': true};
