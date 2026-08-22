@@ -94,10 +94,11 @@ class ReindexService {
   /// server-side, so the next session picks it up from there.
   void cancel() => _cancelled = true;
 
-  /// A note's body is indexed word for word, which is why the old scheme
-  /// leaked note contents and not just names. Rebuilding that means fetching
-  /// and decrypting the note — there is no shortcut, the server holds only
-  /// ciphertext.
+  /// A note's body is indexed word for word alongside its name, which is why
+  /// the old scheme leaked note contents and not just names. Rebuilding that
+  /// means fetching and decrypting the note — there is no shortcut, the server
+  /// holds only ciphertext — and the name rides along so a swept note carries
+  /// the same tokens a saved one does.
   Future<String> _textFor(FileItem file, String name, Uint8List fileKey) async {
     final downloader = _downloader;
     if (!file.editable || downloader == null) {
@@ -110,7 +111,7 @@ class ReindexService {
       showInTransfers: false,
     );
 
-    return utf8.decode(bytes, allowMalformed: true);
+    return '$name\n${utf8.decode(bytes, allowMalformed: true)}';
   }
 
   Future<void> _reindexOne(FileItem file) async {

@@ -716,7 +716,16 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
     workerManager: wm,
     offlineManager: ref.read(offlineManagerProvider),
     backgroundUploadService: bus,
-    directUpload: ref.read(directChunkUploadProvider),
+    // Withheld unless the server says it serves bucket URLs, the same way the
+    // web client reads the advertisement. Asking anyway and taking the 400 as
+    // the answer works — every path falls back to relaying — but it spends a
+    // dead request per upload on every local-disk deployment, which is the
+    // default one. The fallback stays regardless: an operator can switch the
+    // feature off while a transfer is already in flight.
+    directUpload: capabilities?.directTransfer == true
+        ? ref.read(directChunkUploadProvider)
+        : null,
+    directTransfer: capabilities?.directTransfer == true,
     tarCapabilityCache: ref.read(tarCapabilityCacheProvider),
     chunkDownloadTransport: chunkTransport,
     uploadTarTransport: uploadTarTransport,

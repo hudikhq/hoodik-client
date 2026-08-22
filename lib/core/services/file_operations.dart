@@ -70,6 +70,7 @@ class FileOperations {
     String? accountId,
     SharedFolderTargetResolver? sharedTarget,
     SharedFolderUpload? sharedUpload,
+    bool directTransfer = true,
   }) {
     final fileCrypto = FileCrypto(
       privateKeyPem: privateKeyPem,
@@ -81,6 +82,20 @@ class FileOperations {
     // key and fall back to their RSA public key. FileCrypto keys the algorithm
     // off the private material it holds, so call sites only need the right key.
     final ownWrapPublicKey = wrappingPublicKeyPem ?? publicKeyPem;
+    // Built up front rather than inline: renaming a note re-indexes its body,
+    // which means reading it back, so the mutator needs the same downloader
+    // this instance hands out.
+    final downloader = FileDownloader(
+      client: client,
+      fileCrypto: fileCrypto,
+      transferManager: transferManager,
+      offlineManager: offlineManager,
+      tarCapabilityCache: tarCapabilityCache,
+      chunkDownloadTransport: chunkDownloadTransport,
+      database: database,
+      accountId: accountId,
+      directTransfer: directTransfer,
+    );
     return FileOperations._(
       fileCrypto: fileCrypto,
       mutator: FileMutator(
@@ -90,6 +105,7 @@ class FileOperations {
         defaultCipher: defaultCipher,
         sharedTarget: sharedTarget,
         sharedUpload: sharedUpload,
+        downloader: downloader,
       ),
       uploader: FileUploader(
         client: client,
@@ -106,16 +122,7 @@ class FileOperations {
         sharedTarget: sharedTarget,
         sharedUpload: sharedUpload,
       ),
-      downloader: FileDownloader(
-        client: client,
-        fileCrypto: fileCrypto,
-        transferManager: transferManager,
-        offlineManager: offlineManager,
-        tarCapabilityCache: tarCapabilityCache,
-        chunkDownloadTransport: chunkDownloadTransport,
-        database: database,
-        accountId: accountId,
-      ),
+      downloader: downloader,
     );
   }
 

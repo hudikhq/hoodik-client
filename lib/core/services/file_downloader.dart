@@ -36,6 +36,10 @@ class FileDownloader {
   final AppDatabase? _database;
   final String? _accountId;
 
+  /// Passed to the chunk pipeline, which skips asking for a bucket manifest
+  /// on a server that does not serve them.
+  final bool _directTransfer;
+
   /// File IDs with pending cancellation (for main-thread fallback loops).
   final Set<String> _cancelledFileIds = {};
 
@@ -48,6 +52,7 @@ class FileDownloader {
     ChunkDownloadTransport? chunkDownloadTransport,
     AppDatabase? database,
     String? accountId,
+    bool directTransfer = true,
   }) : _client = client,
        _database = database,
        _fileCrypto = fileCrypto,
@@ -55,6 +60,7 @@ class FileDownloader {
        _offlineManager = offlineManager,
        _tarCapabilityCache = tarCapabilityCache,
        _chunkDownloadTransport = chunkDownloadTransport,
+       _directTransfer = directTransfer,
        _accountId = accountId;
 
   /// Whether [ChunkDownloadPipeline] can run — requires the offline store
@@ -90,6 +96,7 @@ class FileDownloader {
     database: _database,
     fileCrypto: _fileCrypto,
     transferManager: _transferManager,
+    directTransfer: _directTransfer,
   );
 
   /// Request cancellation of the main-thread transfer loop for [fileId].

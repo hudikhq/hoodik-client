@@ -163,13 +163,15 @@ class FileUploader {
       fileKey: fileKey,
       cipher: cipher,
     );
-    // Indexed by body, the way web creates one and the way every later save
-    // re-indexes it. A note created here with only its title tagged would go
-    // missing from body search until something happened to re-index it.
-    final searchTokens = _fileCrypto.tokenizeForSearch(content);
+    // Name and body together, the way every later save and rename re-indexes
+    // it. Tagging one without the other leaves the note missing from half the
+    // searches that should find it, and whichever write ran last would decide
+    // which half.
+    final indexed = '$name\n$content';
+    final searchTokens = _fileCrypto.tokenizeForSearch(indexed);
     final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
       fileKey,
-      content,
+      indexed,
     );
 
     var fileId = await multiKeyCreateOrNull(
@@ -261,17 +263,25 @@ class FileUploader {
       );
     }
 
-    // A note is indexed by its whole body, not its title, and on every save
-    // rather than only on rename — tagging the name alone left body search
-    // broken outright, and a rename then replaced the body's tags with the
-    // title's. The root scope is the owner's, keyed under a key an editor does
-    // not hold, so an editor refreshes only the file scope.
+    // A note is indexed by its name and its whole body, on every save rather
+    // than only on rename — tagging the name alone left body search broken
+    // outright, and indexing the body alone drops the title the moment a save
+    // follows a rename. The root scope is the owner's, keyed under a key an
+    // editor does not hold, so an editor refreshes only the file scope.
+    final displayName =
+        name ??
+        _fileCrypto.decryptFileName(
+          encryptedNameHex: file.encryptedName,
+          fileKey: fileKey,
+          cipher: cipher,
+        );
+    final indexed = '$displayName\n$content';
     final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
       fileKey,
-      content,
+      indexed,
     );
     final searchTokens = file.isOwner
-        ? _fileCrypto.tokenizeForSearch(content)
+        ? _fileCrypto.tokenizeForSearch(indexed)
         : null;
 
     try {

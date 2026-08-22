@@ -40,6 +40,12 @@ class ChunkDownloadPipeline {
   final FileCrypto? _fileCrypto;
   final String _accountId;
 
+  /// Whether the server advertises bucket URLs. Only spares the manifest
+  /// request on a server that would decline it — the server's refusal is what
+  /// actually gates the feature, so defaulting to asking keeps any caller
+  /// that has not been told behaving exactly as before.
+  final bool _directTransfer;
+
   ChunkDownloadPipeline({
     required ApiClient client,
     required OfflineManager offlineManager,
@@ -49,7 +55,9 @@ class ChunkDownloadPipeline {
     AppDatabase? database,
     FileCrypto? fileCrypto,
     TransferManager? transferManager,
-  }) : _client = client,
+    bool directTransfer = true,
+  }) : _directTransfer = directTransfer,
+       _client = client,
        _database = database,
        _fileCrypto = fileCrypto,
        _offlineManager = offlineManager,
@@ -429,7 +437,9 @@ class ChunkDownloadPipeline {
     // transfer they belong to, and one fetch covers a whole file's chunks.
     // Returns null on every server that cannot serve them, which is the
     // normal case and falls through to downloading via the server.
-    final manifest = await _client.files.fetchChunkUrls(fileId);
+    final manifest = _directTransfer
+        ? await _client.files.fetchChunkUrls(fileId)
+        : null;
 
     // Recorded before the transfer starts, so a launch that follows a kill can
     // tell a download the user still wants from one abandoned with an old
@@ -455,8 +465,9 @@ class ChunkDownloadPipeline {
         alreadyDownloaded: alreadyDownloaded,
         accountId: _accountId,
         directUrls: manifest?.urls ?? const [],
-        refreshDirectUrls: () async =>
-            (await _client.files.fetchChunkUrls(fileId))?.urls,
+        refreshDirectUrls: () async => _directTransfer
+            ? (await _client.files.fetchChunkUrls(fileId))?.urls
+            : null,
         onProgress: onProgress,
       );
     } on TransferCancelledException {
