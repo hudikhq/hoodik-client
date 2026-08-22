@@ -66,6 +66,8 @@ class RecordingFilesClient extends Fake implements FilesClient {
     String? md5,
     String? sha1,
     String? blake2b,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     finalizedFileId = fileId;
     finalizedSha256 = sha256;

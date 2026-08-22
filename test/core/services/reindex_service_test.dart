@@ -42,6 +42,10 @@ class _FakeStorageClient extends Fake implements StorageClient {
     required String nameHash,
     required List<String> searchTokensRoot,
     required List<String> searchTokensFile,
+    String? md5,
+    String? sha1,
+    String? sha256,
+    String? blake2b,
   }) async {
     if (failFor.contains(fileId)) {
       throw StateError('boom');

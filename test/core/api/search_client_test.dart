@@ -78,14 +78,12 @@ void main() {
       expect(body['compact'], isTrue);
     });
 
-    test('forwards content hash, dir scope and editable filter', () async {
+    test('forwards dir scope and editable filter, and never a hash field', () async {
       final env = _buildDio();
       final client = SearchClient(env.dio);
 
-      final sha256 = 'c' * 64;
       await client.searchFiles(
-        rootTags: const [],
-        hash: sha256,
+        rootTags: ['a' * 32],
         dirId: 'dir-1',
         editable: true,
         limit: 50,
@@ -93,7 +91,9 @@ void main() {
       );
 
       final body = env.adapter.lastJson;
-      expect(body['hash'], sha256);
+      // The retired verbatim digest field must never come back: a pasted
+      // digest matches through an exact-match tag the caller appends.
+      expect(body.containsKey('hash'), isFalse);
       expect(body['dir_id'], 'dir-1');
       expect(body['editable'], true);
       expect(body['limit'], 50);
@@ -108,30 +108,6 @@ void main() {
       final results = await client.searchFiles(rootTags: const []);
 
       expect(results, isEmpty);
-    });
-  });
-
-  group('SearchClient.hashLookup', () {
-    test('recognizes every digest length the file rows carry', () {
-      expect(SearchClient.hashLookup('d' * 32), 'd' * 32); // MD5
-      expect(SearchClient.hashLookup('A' * 40), 'A' * 40); // SHA1, uppercase
-      expect(SearchClient.hashLookup('0' * 64), '0' * 64); // SHA256
-      expect(SearchClient.hashLookup('f' * 128), 'f' * 128); // BLAKE2b
-      expect(SearchClient.hashLookup('  ${'a' * 64}  '), 'a' * 64);
-    });
-
-    test('rejects everything that is not digest-shaped', () {
-      expect(SearchClient.hashLookup('holiday photos'), isNull);
-      expect(SearchClient.hashLookup('f' * 63), isNull);
-      expect(SearchClient.hashLookup('g' * 64), isNull);
-      expect(SearchClient.hashLookup(''), isNull);
-    });
-
-    test('a file id is not a content hash', () {
-      expect(
-        SearchClient.hashLookup('01234567-89ab-cdef-0123-456789abcdef'),
-        isNull,
-      );
     });
   });
 

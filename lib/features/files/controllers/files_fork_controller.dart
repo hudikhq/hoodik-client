@@ -142,7 +142,13 @@ class FilesForkController {
 
       final size = plaintext.length;
       final chunks = (size / kUploadChunkSize).ceil().clamp(1, 1 << 30);
+      // Keyed under the fork's new key before it touches the wire, like
+      // every other digest write.
       final sha256 = fileCrypto.sha256(plaintext);
+      final keyedSha256 = fileCrypto.exactTag(
+        fileCrypto.searchFileKeyHex(newKey),
+        sha256,
+      );
       final newFileId = const Uuid().v4();
       final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
@@ -168,7 +174,7 @@ class FilesForkController {
         'mime': source.mime,
         'size': size,
         'chunks': chunks,
-        'sha256': sha256,
+        'sha256': keyedSha256,
         'cipher': cipher,
         'encrypted_key': wrappedKey,
         'search_tokens_root': fileCrypto.tokenizeForSearch(displayName),
@@ -240,10 +246,18 @@ class FilesForkController {
       await client.files.uploadChunk(fileId: fileId, chunk: i, data: encrypted);
     }
 
+    // Same keying as every hash persist: the column under the file's search
+    // key, plus the digest tags that answer a pasted-digest search.
+    final fileSearchKey = fileCrypto.searchFileKeyHex(fileKey);
+    final keyed = fileCrypto.exactTag(fileSearchKey, sha256);
     await client.files.updateFileHashesWithToken(
       fileId: fileId,
       transferToken: token.token,
-      sha256: sha256,
+      sha256: keyed,
+      searchTokensRoot: [
+        '${fileCrypto.exactTag(fileCrypto.searchRootKey, sha256)}:1',
+      ],
+      searchTokensFile: ['$keyed:1'],
     );
   }
 

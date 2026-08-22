@@ -20,13 +20,16 @@ class UploadResume {
     required this.fileKey,
     required this.uploadedChunks,
     required String? sha256,
-  }) : _sha256 = sha256;
+    required FileCrypto fileCrypto,
+  }) : _sha256 = sha256,
+       _fileCrypto = fileCrypto;
 
   final String fileId;
   final String cipher;
   final Uint8List fileKey;
   final Set<int> uploadedChunks;
   final String? _sha256;
+  final FileCrypto _fileCrypto;
 
   /// Decide between a fresh upload (`null`) and adopting [existing].
   ///
@@ -59,6 +62,7 @@ class UploadResume {
       fileKey: fileCrypto.decryptFileKey(existing.encryptedKey!),
       uploadedChunks: {...?existing.uploadedChunks},
       sha256: existing.sha256,
+      fileCrypto: fileCrypto,
     );
   }
 
@@ -72,8 +76,16 @@ class UploadResume {
   /// stored indexes anyway could commit a file that decrypts to a silent
   /// splice of two different contents.
   void ensureSameContent(String sha256) {
+    // The row stores the digest keyed under the file's search key, so the
+    // local plaintext digest is keyed the same way before comparing. A row
+    // from before the keying — a bare digest — can never equal the keyed
+    // form and is refused with the rest of the unprovable cases.
+    final keyed = _fileCrypto.exactTag(
+      _fileCrypto.searchFileKeyHex(fileKey),
+      sha256,
+    );
     final unprovable = _sha256 == null && uploadedChunks.isNotEmpty;
-    if (unprovable || (_sha256 != null && _sha256 != sha256)) {
+    if (unprovable || (_sha256 != null && _sha256 != keyed)) {
       throw Exception(ambientL10n.serviceUploadPartialConflict);
     }
   }

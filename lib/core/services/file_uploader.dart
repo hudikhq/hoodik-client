@@ -357,11 +357,21 @@ class FileUploader {
       );
     }
 
+    // Keyed before it touches the wire: the column stores the digest under
+    // the file's search key so any key-holder can run the resume equality
+    // check, and the digest tags are what make the note findable by pasting
+    // its digest into search. The bare digest never leaves this function.
     final sha256 = _fileCrypto.sha256(plaintext);
+    final fileSearchKey = _fileCrypto.searchFileKeyHex(fileKey);
+    final keyed = _fileCrypto.exactTag(fileSearchKey, sha256);
     await _client.files.updateFileHashesWithToken(
       fileId: fileId,
       transferToken: token.token,
-      sha256: sha256,
+      sha256: keyed,
+      searchTokensRoot: [
+        '${_fileCrypto.exactTag(_fileCrypto.searchRootKey, sha256)}:1',
+      ],
+      searchTokensFile: ['$keyed:1'],
     );
   }
 }

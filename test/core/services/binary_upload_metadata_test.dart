@@ -99,6 +99,8 @@ class _CapturingFilesClient extends Fake implements FilesClient {
       'chunks': chunks,
       'parent_dir_id': parentDirId,
       'sha256': sha256,
+      'search_tokens_root': searchTokensRoot,
+      'search_tokens_file': searchTokensFile,
     };
     return {'id': 'owner-only-id'};
   }
@@ -163,7 +165,13 @@ void main() {
     expect(upload.mime, 'application/octet-stream');
     expect(upload.chunks, 3);
     expect(upload.size, 4096);
-    expect(upload.sha256, 'deadbeef');
+    // The column value is the digest keyed under the file's search key —
+    // the bare digest must never cross the wire.
+    final keyed = fileCrypto.exactTag(
+      fileCrypto.searchFileKeyHex(fileKey),
+      'deadbeef',
+    );
+    expect(upload.sha256, keyed);
     expect(entry['id'], upload.newFileId);
     expect(entry['id'], isNotEmpty);
   });
@@ -186,7 +194,25 @@ void main() {
     expect(files.captured!['parent_dir_id'], 'folder-id');
     expect(files.captured!['mime'], 'application/octet-stream');
     expect(files.captured!['chunks'], 3);
-    expect(files.captured!['sha256'], 'deadbeef');
+    final keyed = fileCrypto.exactTag(
+      fileCrypto.searchFileKeyHex(fileKey),
+      'deadbeef',
+    );
+    expect(files.captured!['sha256'], keyed);
+    // And the digest joined the index in both scopes alongside the name
+    // tokens, which is what answers a pasted-digest search.
+    expect(
+      files.captured!['search_tokens_root'],
+      contains('${fileCrypto.exactTag(fileCrypto.searchRootKey, 'deadbeef')}:1'),
+    );
+    expect(
+      files.captured!['search_tokens_file'],
+      contains('$keyed:1'),
+    );
+    expect(
+      (files.captured!['search_tokens_root'] as List).join(),
+      isNot(contains('deadbeef')),
+    );
     expect((files.captured!['encrypted_key'] as String), isNotEmpty);
     expect(entry['id'], 'owner-only-id');
   });

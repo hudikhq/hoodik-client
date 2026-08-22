@@ -197,6 +197,11 @@ class FileCrypto {
   /// file names reverses without needing a rainbow table at all.
   String hashFileName(String name) => _crypto.searchTag(searchRootKey, name);
 
+  /// One keyed tag of a whole value under [key] — the exact-match unit: the
+  /// keyed digest columns, the digest tags in the index, and the query-side
+  /// tag that answers a pasted digest without it ever crossing the wire.
+  String exactTag(String key, String value) => _crypto.searchTag(key, value);
+
   /// Tags for text under the account key: everything this user owns.
   List<String> tokenizeForSearch(String name) =>
       _crypto.searchTags(searchRootKey, name);

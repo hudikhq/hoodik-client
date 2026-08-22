@@ -124,15 +124,23 @@ class ProductionMcpGateway implements McpGateway {
     // report shared files as missing.
     final sharedKeys = await _ref.read(incomingSearchKeysProvider.future);
 
+    // One exact-match tag per scope rides along, same as the search UI —
+    // what lets the agent find a file by pasting its content digest.
+    final exact = query.trim().toLowerCase();
+    final rootKey = fileCrypto.searchRootKey;
+
     return _client().search.searchFiles(
-      rootTags: fileCrypto.queryTags(fileCrypto.searchRootKey, query),
-      fileTags: sharedKeys
-          .expand(
-            (key) =>
-                fileCrypto.queryTags(fileCrypto.searchFileKeyHex(key), query),
-          )
-          .toList(),
-      hash: SearchClient.hashLookup(query),
+      rootTags: [
+        ...fileCrypto.queryTags(rootKey, query),
+        fileCrypto.exactTag(rootKey, exact),
+      ],
+      fileTags: sharedKeys.expand((key) {
+        final fileKey = fileCrypto.searchFileKeyHex(key);
+        return [
+          ...fileCrypto.queryTags(fileKey, query),
+          fileCrypto.exactTag(fileKey, exact),
+        ];
+      }).toList(),
       dirId: dirId,
       limit: limit ?? 20,
     );

@@ -106,22 +106,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         throw StateError('Cannot search without an unlocked private key');
       }
 
+      // The whole trimmed query rides along as one exact-match tag per
+      // scope, which is what makes pasting a file's content digest find it —
+      // through the ordinary index, with nothing plaintext on the wire.
+      final exact = query.trim().toLowerCase();
       final rootKey = fileCrypto.searchRootKey;
       final results = await client.search.searchFiles(
-        rootTags: fileCrypto.queryTags(rootKey, query),
+        rootTags: [
+          ...fileCrypto.queryTags(rootKey, query),
+          fileCrypto.exactTag(rootKey, exact),
+        ],
         fileTags: await ref
             .read(incomingSearchKeysProvider.future)
             .then(
-              (keys) => keys
-                  .expand(
-                    (key) => fileCrypto.queryTags(
-                      fileCrypto.searchFileKeyHex(key),
-                      query,
-                    ),
-                  )
-                  .toList(),
+              (keys) => keys.expand((key) {
+                final fileKey = fileCrypto.searchFileKeyHex(key);
+                return [
+                  ...fileCrypto.queryTags(fileKey, query),
+                  fileCrypto.exactTag(fileKey, exact),
+                ];
+              }).toList(),
             ),
-        hash: SearchClient.hashLookup(query),
       );
       if (!mounted) return;
 

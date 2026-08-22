@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hoodik_app/core/api/search_client.dart';
 import 'package:hoodik_app/core/providers.dart';
 import 'package:hoodik_app/core/services/reindex_service.dart';
 import 'package:hoodik_app/main.dart' as app;
@@ -109,8 +108,12 @@ void main() {
     );
 
     await client.search.searchFiles(
-      rootTags: fileCrypto.queryTags(fileCrypto.searchRootKey, term),
-      hash: SearchClient.hashLookup(term),
+      rootTags: [
+        ...fileCrypto.queryTags(fileCrypto.searchRootKey, term),
+        // The exact-match tag every real query carries — the digest-search
+        // path, exercised here to prove it leaks nothing either.
+        fileCrypto.exactTag(fileCrypto.searchRootKey, term),
+      ],
     );
 
     expect(bodies, isNotEmpty, reason: 'the search request should have been captured');

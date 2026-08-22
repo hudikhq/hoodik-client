@@ -55,11 +55,21 @@ class BinaryUploadMetadata {
       fileKey: fileKey,
       cipher: cipher,
     );
-    final searchTokens = _fileCrypto.tokenizeForSearch(fileName);
-    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
-      fileKey,
-      fileName,
-    );
+
+    // The binary pipeline hashes before it creates, so the digest joins the
+    // index with the name tokens, and the column stores it keyed under the
+    // file's search key — the bare digest never crosses the wire. Pasting
+    // the digest into search then matches through ordinary tag equality.
+    final fileSearchKey = _fileCrypto.searchFileKeyHex(fileKey);
+    final keyedSha256 = _fileCrypto.exactTag(fileSearchKey, sha256);
+    final searchTokens = [
+      ..._fileCrypto.tokenizeForSearch(fileName),
+      '${_fileCrypto.exactTag(_fileCrypto.searchRootKey, sha256)}:1',
+    ];
+    final searchTokensFile = [
+      ..._fileCrypto.tokenizeForSearchWithFileKey(fileKey, fileName),
+      '$keyedSha256:1',
+    ];
 
     String? encryptedThumbnail;
     if (canGenerateThumbnail(mime)) {
@@ -85,7 +95,7 @@ class BinaryUploadMetadata {
       cipher: cipher,
       chunks: totalChunks,
       size: fileSize,
-      sha256: sha256,
+      sha256: keyedSha256,
       searchTokensRoot: searchTokens,
       searchTokensFile: searchTokensFile,
       encryptedThumbnail: encryptedThumbnail,
@@ -108,7 +118,7 @@ class BinaryUploadMetadata {
       searchTokensRoot: searchTokens,
       searchTokensFile: searchTokensFile,
       encryptedThumbnail: encryptedThumbnail,
-      sha256: sha256,
+      sha256: keyedSha256,
     );
   }
 }

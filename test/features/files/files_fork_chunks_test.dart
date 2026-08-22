@@ -103,7 +103,13 @@ void main() {
       );
       expect(filesClient.finalizedFileId, sharesClient.returnedId);
       expect(filesClient.finalizedSha256, sharesClient.forkBody!['sha256']);
-      expect(filesClient.finalizedSha256, _crypto.sha256(data: plaintext));
+      // Keyed under the fork's new key: never the bare digest (64 hex), the
+      // keyed tag shape (32 hex) instead.
+      expect(
+        filesClient.finalizedSha256,
+        isNot(_crypto.sha256(data: plaintext)),
+      );
+      expect(filesClient.finalizedSha256, matches(RegExp(r'^[0-9a-f]{32}$')));
     });
 
     test('uploaded chunks decrypt under the new key back to the source '

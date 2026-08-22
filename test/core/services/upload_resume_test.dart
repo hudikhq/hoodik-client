@@ -13,6 +13,12 @@ class _FakeFileCrypto extends Fake implements FileCrypto {
     decryptedKeyInput = encryptedKeyBase64;
     return Uint8List.fromList(List.filled(32, 7));
   }
+
+  @override
+  String searchFileKeyHex(Uint8List fileKey) => 'file-search-key';
+
+  @override
+  String exactTag(String key, String value) => 'keyed($key|$value)';
 }
 
 FileItem _partialRow({
@@ -20,7 +26,7 @@ FileItem _partialRow({
   int chunks = 169,
   int chunksStored = 0,
   List<int>? uploadedChunks,
-  String? sha256 = 'abc123',
+  String? sha256 = 'keyed(file-search-key|abc123)',
   int? finishedUploadAt,
   String mime = 'video/mp4',
 }) {
@@ -136,7 +142,7 @@ void main() {
   });
 
   group('ensureSameContent', () {
-    test('passes when the local hash matches the row', () {
+    test('passes when the keyed local hash matches the row', () {
       final resume = UploadResume.of(
         _partialRow(),
         totalChunks: 169,
@@ -156,7 +162,23 @@ void main() {
       expect(() => resume!.ensureSameContent('other'), throwsA(isA<Exception>()));
     });
 
-    test('passes when the row predates content hashes', () {
+    test('a bare pre-keying digest can never match, so the row is refused', () {
+      // Transitional rows store the plaintext digest; the keyed form of the
+      // same content differs, and refusing is the safe answer — chunks are
+      // write-once, so an unprovable mix must not be committed.
+      final resume = UploadResume.of(
+        _partialRow(sha256: 'abc123', uploadedChunks: [0]),
+        totalChunks: 169,
+        fileCrypto: crypto,
+      );
+
+      expect(
+        () => resume!.ensureSameContent('abc123'),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('passes when a hashless row stores no chunks yet', () {
       final resume = UploadResume.of(
         _partialRow(sha256: null),
         totalChunks: 169,
@@ -164,6 +186,19 @@ void main() {
       );
 
       resume!.ensureSameContent('abc123');
+    });
+
+    test('throws when a hashless row already stores chunks', () {
+      final resume = UploadResume.of(
+        _partialRow(sha256: null, uploadedChunks: [0, 1]),
+        totalChunks: 169,
+        fileCrypto: crypto,
+      );
+
+      expect(
+        () => resume!.ensureSameContent('abc123'),
+        throwsA(isA<Exception>()),
+      );
     });
   });
 }

@@ -21,12 +21,13 @@ class SearchClient {
 
   /// `POST /api/storage/search` — match keyed tags against the index.
   ///
-  /// [hash] is an optional content digest matched verbatim against the
-  /// stored hash columns — see [hashLookup].
+  /// Content-digest lookup is not a parameter any more: digests are indexed
+  /// as keyed tags, so callers append one exact-match tag of the raw query
+  /// to each scope and a pasted digest matches like any other tag — with
+  /// nothing plaintext on the wire.
   Future<List<FileItem>> searchFiles({
     required List<String> rootTags,
     List<String> fileTags = const [],
-    String? hash,
     String? dirId,
     int limit = 10,
     int skip = 0,
@@ -39,7 +40,6 @@ class SearchClient {
       'skip': skip,
       'compact': true,
     };
-    if (hash != null) data['hash'] = hash;
     if (dirId != null) data['dir_id'] = dirId;
     if (editable != null) data['editable'] = editable;
 
@@ -51,22 +51,4 @@ class SearchClient {
         .toList();
   }
 
-  /// A query that is itself a content digest is sent verbatim so the server
-  /// can match it against the stored hash columns — the way to check whether
-  /// a file already lives here. The digest comes from the file's own bytes
-  /// and the server already stores all four, so it carries nothing the
-  /// server does not have. Anything else must stay on the device.
-  ///
-  /// Lengths are hex characters: MD5, SHA1, SHA256, BLAKE2b.
-  static String? hashLookup(String query) {
-    const hexHashLengths = {32, 40, 64, 128};
-    final candidate = query.trim();
-
-    if (hexHashLengths.contains(candidate.length) &&
-        RegExp(r'^[0-9a-fA-F]+$').hasMatch(candidate)) {
-      return candidate;
-    }
-
-    return null;
-  }
 }

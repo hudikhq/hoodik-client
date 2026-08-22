@@ -424,11 +424,15 @@ class FilesClient {
     String? md5,
     String? sha1,
     String? blake2b,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     final data = <String, dynamic>{'sha256': sha256};
     if (md5 != null) data['md5'] = md5;
     if (sha1 != null) data['sha1'] = sha1;
     if (blake2b != null) data['blake2b'] = blake2b;
+    if (searchTokensRoot != null) data['search_tokens_root'] = searchTokensRoot;
+    if (searchTokensFile != null) data['search_tokens_file'] = searchTokensFile;
     await _dio.put('/api/storage/$fileId/hashes', data: data);
   }
 
@@ -442,11 +446,15 @@ class FilesClient {
     String? md5,
     String? sha1,
     String? blake2b,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     final data = <String, dynamic>{'sha256': sha256};
     if (md5 != null) data['md5'] = md5;
     if (sha1 != null) data['sha1'] = sha1;
     if (blake2b != null) data['blake2b'] = blake2b;
+    if (searchTokensRoot != null) data['search_tokens_root'] = searchTokensRoot;
+    if (searchTokensFile != null) data['search_tokens_file'] = searchTokensFile;
 
     final tokenDio = Dio(
       BaseOptions(

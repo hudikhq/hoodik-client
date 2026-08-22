@@ -47,22 +47,29 @@ class StorageClient {
         .toList();
   }
 
-  /// `PUT /api/storage/{id}/reindex` — replace one file's search tags and its
-  /// re-keyed `name_hash`.
+  /// `PUT /api/storage/{id}/reindex` — replace one file's search tags, its
+  /// re-keyed `name_hash`, and the content digests re-keyed under the file's
+  /// search key.
   Future<void> reindexFile({
     required String fileId,
     required String nameHash,
     required List<String> searchTokensRoot,
     required List<String> searchTokensFile,
+    String? md5,
+    String? sha1,
+    String? sha256,
+    String? blake2b,
   }) async {
-    await _dio.put(
-      '/api/storage/$fileId/reindex',
-      data: {
-        'name_hash': nameHash,
-        'search_tokens_root': searchTokensRoot,
-        'search_tokens_file': searchTokensFile,
-      },
-    );
+    final data = <String, dynamic>{
+      'name_hash': nameHash,
+      'search_tokens_root': searchTokensRoot,
+      'search_tokens_file': searchTokensFile,
+    };
+    if (md5 != null) data['md5'] = md5;
+    if (sha1 != null) data['sha1'] = sha1;
+    if (sha256 != null) data['sha256'] = sha256;
+    if (blake2b != null) data['blake2b'] = blake2b;
+    await _dio.put('/api/storage/$fileId/reindex', data: data);
   }
 
   /// `POST /api/storage/stats` — aggregated storage usage for the current

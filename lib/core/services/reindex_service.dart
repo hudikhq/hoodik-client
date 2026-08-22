@@ -121,15 +121,32 @@ class ReindexService {
     );
 
     final indexed = await _textFor(file, name, fileKey);
+    final rootTags = _fileCrypto.tokenizeForSearch(indexed);
+    final fileTags = _fileCrypto.tokenizeForSearchWithFileKey(fileKey, indexed);
+
+    // Migrated rows still carry bare content digests — the third copy of the
+    // same leak. Re-key each from the stored value (no re-download needed)
+    // and index it in both scopes, which is what makes pasting a digest into
+    // search find the file.
+    final fileSearchKey = _fileCrypto.searchFileKeyHex(fileKey);
+    final rootKey = _fileCrypto.searchRootKey;
+    String? rekey(String? digest) {
+      if (digest == null || digest.isEmpty) return null;
+      rootTags.add('${_fileCrypto.exactTag(rootKey, digest)}:1');
+      final keyed = _fileCrypto.exactTag(fileSearchKey, digest);
+      fileTags.add('$keyed:1');
+      return keyed;
+    }
 
     await _client.storage.reindexFile(
       fileId: file.id,
       nameHash: _fileCrypto.hashFileName(name),
-      searchTokensRoot: _fileCrypto.tokenizeForSearch(indexed),
-      searchTokensFile: _fileCrypto.tokenizeForSearchWithFileKey(
-        fileKey,
-        indexed,
-      ),
+      searchTokensRoot: rootTags,
+      searchTokensFile: fileTags,
+      md5: rekey(file.md5),
+      sha1: rekey(file.sha1),
+      sha256: rekey(file.sha256),
+      blake2b: rekey(file.blake2b),
     );
   }
 
