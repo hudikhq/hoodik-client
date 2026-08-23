@@ -80,10 +80,11 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   /// before the page is ready to receive it.
   double _iosBottomInset = 0;
 
-  /// Set when the workspace was seeded from the Files branch; closing the
-  /// last tab then switches the shell back there instead of falling
-  /// through to the recent-notes landing state.
-  bool _returnToFilesOnLastClose = false;
+  /// The branch the note was opened from, if it came from outside Notes.
+  /// Closing the last tab switches the shell back there rather than falling
+  /// through to the recent-notes landing state — a note opened from search
+  /// belongs back in search.
+  int? _returnToBranchOnLastClose;
 
   Timer? _autoSaveTimer;
   Completer<String>? _getMarkdownCompleter;
@@ -103,10 +104,10 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       // The request that seeded this workspace was set before the listener
       // below existed, so its origin flag has to be read directly.
       final req = ref.read(openNoteRequestProvider);
-      _returnToFilesOnLastClose =
-          req != null &&
-          req.fileId == widget.initialFileId &&
-          req.returnToFiles;
+      _returnToBranchOnLastClose =
+          req != null && req.fileId == widget.initialFileId
+          ? req.returnToBranchIndex
+          : null;
     }
 
     // Re-apply zoom to the webview whenever the host preference changes.
@@ -130,7 +131,9 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   }
 
   void _openFromRequest(OpenNoteRequest req) {
-    if (req.returnToFiles) _returnToFilesOnLastClose = true;
+    if (req.returnToBranchIndex != null) {
+      _returnToBranchOnLastClose = req.returnToBranchIndex;
+    }
     final existing = _tabs.indexWhere((t) => t.fileId == req.fileId);
     if (existing >= 0) {
       if (existing != _activeTabIndex) {
@@ -455,9 +458,10 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   /// one opened from the Notes tab falls through to the recent-notes
   /// empty state instead.
   void _maybeReturnToFiles() {
-    if (!_returnToFilesOnLastClose) return;
-    _returnToFilesOnLastClose = false;
-    ref.read(shellBranchRequestProvider.notifier).state = filesBranchIndex;
+    final branch = _returnToBranchOnLastClose;
+    if (branch == null) return;
+    _returnToBranchOnLastClose = null;
+    ref.read(shellBranchRequestProvider.notifier).state = branch;
   }
 
   Future<void> _closeTab(int index) async {

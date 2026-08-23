@@ -554,6 +554,8 @@ final notesBranchTitleProvider = StateProvider<String?>((ref) => null);
 
 /// Bottom-nav branch indices, in bottom-nav order (see MainShell).
 const int filesBranchIndex = 0;
+const int notesBranchIndex = 1;
+const int searchBranchIndex = 2;
 
 /// A "switch the shell to this branch" signal for widgets deep inside a
 /// branch. MainShell listens and calls `goBranch`, which restores the

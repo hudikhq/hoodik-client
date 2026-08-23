@@ -3352,6 +3352,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'La recherche nécessite une mise à jour. Vos fichiers sont intacts : mettez Hoodik à jour pour les retrouver.';
 
   @override
+  String get searchViewFolder => 'Afficher le dossier';
+
+  @override
   String get reindexTitle => 'Amélioration de l\'index de recherche';
 
   @override

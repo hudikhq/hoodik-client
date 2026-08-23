@@ -3360,6 +3360,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Suche benötigt ein App-Update. Deine Dateien sind sicher — aktualisiere Hoodik, um sie wieder zu durchsuchen.';
 
   @override
+  String get searchViewFolder => 'Ordner anzeigen';
+
+  @override
   String get reindexTitle => 'Verbesserung des Suchindex';
 
   @override

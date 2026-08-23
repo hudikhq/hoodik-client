@@ -69,6 +69,20 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       // reports files needing re-indexing after the search re-key.
       maybeShowReindexDialog(context, ref);
     });
+
+    // Branches live in an IndexedStack, so coming back to Files never rebuilds
+    // this screen and its listing is whatever it was when the user left. That
+    // is wrong whenever something outside this branch changed the drive —
+    // forking a note version creates a file in this very folder, and the user
+    // returned to a listing that had never heard of it.
+    ref.listenManual<int?>(shellBranchRequestProvider, (_, next) {
+      if (next != filesBranchIndex || !mounted) return;
+      // Every folder in this branch's back-stack is still mounted and
+      // listening. Only the one the user is about to look at needs refetching.
+      if (ModalRoute.of(context)?.isCurrent != true) return;
+
+      _notifier.load();
+    });
   }
 
   @override
@@ -312,7 +326,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     context: context,
     ref: ref,
     parentDirId: widget.dirId,
-    returnToFiles: true,
+    returnToBranchIndex: filesBranchIndex,
   );
 
   void _share(FileItem file) =>

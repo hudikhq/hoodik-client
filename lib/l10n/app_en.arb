@@ -2323,6 +2323,7 @@
   "widgetUpdateDownloaded": "A new version of Hoodik has been downloaded.",
   "widgetUpdateRestart": "Restart",
   "searchRequiresUpdate": "Search needs an app update. Your files are safe — update Hoodik to search them again.",
+  "searchViewFolder": "View folder",
   "reindexTitle": "Search index upgrade",
   "reindexExplanation": "We've strengthened how your file names and notes are hashed for search, making them far harder to crack. Your files need re-indexing on this device to use the new format. Notes are downloaded and decrypted here, which is why this can take a moment. Files that haven't been processed yet won't turn up in search.",
   "reindexProgress": "{done} of {total} files",

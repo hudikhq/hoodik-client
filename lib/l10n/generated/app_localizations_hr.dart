@@ -3343,6 +3343,9 @@ class AppLocalizationsHr extends AppLocalizations {
       'Pretraga traži ažuriranje aplikacije. Datoteke su sigurne — ažuriraj Hoodik da ih ponovno pretražuješ.';
 
   @override
+  String get searchViewFolder => 'Prikaži folder';
+
+  @override
   String get reindexTitle => 'Nadogradnja search indeksa';
 
   @override

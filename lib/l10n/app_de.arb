@@ -910,6 +910,7 @@
   "widgetUpdateDownloaded": "Eine neue Version von Hoodik wurde heruntergeladen.",
   "widgetUpdateRestart": "Neu starten",
   "searchRequiresUpdate": "Die Suche benötigt ein App-Update. Deine Dateien sind sicher — aktualisiere Hoodik, um sie wieder zu durchsuchen.",
+  "searchViewFolder": "Ordner anzeigen",
   "reindexTitle": "Verbesserung des Suchindex",
   "reindexExplanation": "Wir haben das Hashing deiner Dateinamen und Notizen für die Suche verstärkt, sodass es deutlich schwerer zu knacken ist. Deine Dateien müssen auf diesem Gerät neu indexiert werden, um das neue Format zu nutzen. Notizen werden dabei heruntergeladen und entschlüsselt, deshalb kann das einen Moment dauern. Noch nicht verarbeitete Dateien erscheinen nicht in der Suche.",
   "reindexProgress": "{done} von {total} Dateien",

@@ -5487,6 +5487,12 @@ abstract class AppLocalizations {
   /// **'Search needs an app update. Your files are safe — update Hoodik to search them again.'**
   String get searchRequiresUpdate;
 
+  /// No description provided for @searchViewFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'View folder'**
+  String get searchViewFolder;
+
   /// No description provided for @reindexTitle.
   ///
   /// In en, this message translates to:

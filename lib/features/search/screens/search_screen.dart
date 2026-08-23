@@ -5,6 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../files/controllers/files_download_controller.dart';
+import '../../files/helpers/files_preview_navigation.dart';
+import '../../files/helpers/share_surface.dart';
+import '../../files/widgets/file_dialogs.dart';
+import '../../../core/widgets/adaptive_menu.dart';
+
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
 import '../../../core/services/thumbnail_loader.dart';
@@ -16,6 +22,7 @@ import '../../files/helpers/file_helpers.dart';
 import '../../files/widgets/file_list_item.dart';
 import '../../preview/providers/preview_providers.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/app_notification.dart';
 import '../../../core/theme/hoodik_scheme.dart';
 
 const _log = Logger('SearchScreen');
@@ -258,9 +265,117 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _onResultTap(FileItem file) {
     if (file.isDir) {
       context.push('/files/${file.id}', extra: _decryptedNames[file.id]);
-    } else if (isPreviewable(file)) {
+      return;
+    }
+
+    // A note belongs in the editor, the same as it does from the file list.
+    // The preview screen says so itself — markdown reaching it falls through
+    // to the plain-text view as a safety net — and that is what a search
+    // result got: the note's source, tags and all, with no way to edit it.
+    if (isMarkdownFile(file, displayName: _displayName(file))) {
+      openEditor(
+        context: context,
+        ref: ref,
+        file: file,
+        siblings: _results ?? const <FileItem>[],
+        names: _decryptedNames,
+        keys: _decryptedKeys,
+        returnToBranchIndex: searchBranchIndex,
+      );
+      return;
+    }
+
+    if (isPreviewable(file)) {
       _openPreview(file);
     }
+  }
+
+  /// A search hit's own menu, rather than the file list's.
+  ///
+  /// Deliberately not the same set: the actions that mutate a listing —
+  /// rename, delete, move — belong to the screen that shows that listing and
+  /// can refresh it. What a search result needs is a way out of the search:
+  /// to the file's folder, to its details, to sharing it, or to a copy on
+  /// disk.
+  Future<void> _showResultMenu(FileItem file, Offset anchor) async {
+    final l10n = AppLocalizations.of(context);
+    final name = _displayName(file);
+    final sharingEnabled =
+        ref.read(shareCapabilitiesProvider).valueOrNull?.sharingEnabled ??
+        false;
+
+    await showAdaptiveMenu(
+      context: context,
+      title: name,
+      anchor: anchor,
+      actions: [
+        AdaptiveMenuAction(
+          label: l10n.searchViewFolder,
+          icon: AppIcons.folderOpen,
+          iconColor: context.colors.iconSlate,
+          onTap: () => _openContainingFolder(file),
+        ),
+        AdaptiveMenuAction(
+          label: l10n.filesDetails,
+          icon: AppIcons.info,
+          iconColor: context.colors.iconMuted,
+          onTap: () => showFileDetailsDialog(
+            context: context,
+            file: file,
+            displayName: name,
+          ),
+        ),
+        if (sharingEnabled && !file.isDir)
+          AdaptiveMenuAction(
+            label: l10n.commonShare,
+            icon: AppIcons.memberAdd,
+            iconColor: context.colors.sageFill,
+            onTap: () =>
+                openShareSurface(context, ref, dirId: file.fileId, file: file),
+          ),
+        if (!file.isDir)
+          AdaptiveMenuAction(
+            label: l10n.filesExport,
+            icon: AppIcons.download,
+            iconColor: context.colors.iconSlate,
+            onTap: () => _export(file),
+          ),
+      ],
+    );
+  }
+
+  /// Open the folder the file lives in. A file at the account root has no
+  /// parent id, which is the root listing itself.
+  void _openContainingFolder(FileItem file) {
+    final parent = file.fileId;
+    if (parent == null || parent.isEmpty) {
+      // The account root is the Files branch's own route; there is no
+      // '/files' without a folder id, and asking for one is a routing error.
+      ref.read(shellBranchRequestProvider.notifier).state = filesBranchIndex;
+      return;
+    }
+
+    context.push('/files/$parent');
+  }
+
+  Future<void> _export(FileItem file) async {
+    final origin = shareOriginRect(context);
+    final result = await ref
+        .read(filesDownloadControllerProvider(file.fileId))
+        .exportToDisk(
+          file,
+          shareOriginRect: origin,
+          // Search decrypted these itself; the folder's listing may never
+          // have been opened, so its caches are empty.
+          key: _decryptedKeys[file.id],
+          name: _displayName(file),
+        );
+
+    // Null means the user dismissed the desktop save dialog, which needs no
+    // telling.
+    if (!mounted || result == null || result.message.isEmpty) return;
+
+    AppNotification.show(context, message: result.message, type: result.type);
   }
 
   void _openPreview(FileItem file) {
@@ -388,7 +503,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           isOffline: false,
           selectionMode: false,
           onToggleSelection: () {},
-          onContextMenu: (_) {},
+          onContextMenu: (pos) => _showResultMenu(file, pos),
           onTap: () => _onResultTap(file),
         );
       },

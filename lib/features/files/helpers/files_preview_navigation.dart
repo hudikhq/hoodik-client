@@ -38,6 +38,7 @@ void openEditor({
   required Map<String, String> names,
   required Map<String, Uint8List> keys,
   String? parentDirId,
+  int returnToBranchIndex = filesBranchIndex,
 }) {
   final markdownFiles = siblings
       .where((f) => isMarkdownFile(f, displayName: names[f.id] ?? ''))
@@ -60,7 +61,11 @@ void openEditor({
   // Tell the workspace to open this note. The provider's epoch-bumped
   // signal fires even when the URL doesn't change (re-tap of a note the
   // user just closed), which a plain `?open=` query wouldn't.
-  requestOpenNoteFromWidget(ref, file.id, returnToFiles: true);
+  requestOpenNoteFromWidget(
+    ref,
+    file.id,
+    returnToBranchIndex: returnToBranchIndex,
+  );
 
   context.go('/editor/${file.id}');
 }

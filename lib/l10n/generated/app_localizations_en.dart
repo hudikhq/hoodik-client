@@ -3307,6 +3307,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Search needs an app update. Your files are safe — update Hoodik to search them again.';
 
   @override
+  String get searchViewFolder => 'View folder';
+
+  @override
   String get reindexTitle => 'Search index upgrade';
 
   @override
