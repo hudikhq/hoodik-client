@@ -69,41 +69,90 @@ void main() {
   });
 
   group('server too old for this client', () {
-    test('is detected by the absence of the compatibility fields', () {
-      // Both arrived in 2.5.0 alongside the keyed search index, so a server
-      // that omits them still stores digests this build cannot produce.
+    test('a version below the minimum is refused', () {
       expect(
-        _server(minimum: null, recommended: null).isServerBelowClientMinimum,
+        const LivenessInfo(alive: true, version: '2.4.1').isServerBelowMinimum,
         isTrue,
       );
     });
 
-    test('is not claimed for a server that reports them', () {
-      expect(_server().isServerBelowClientMinimum, isFalse);
+    test('a server that reports no version at all is refused', () {
+      // The field arrived in v1.16.0, so its absence is not missing
+      // information — it dates the server precisely enough.
+      expect(const LivenessInfo(alive: true).isServerBelowMinimum, isTrue);
+    });
+
+    test('the minimum itself is accepted', () {
+      expect(
+        LivenessInfo(
+          alive: true,
+          version: minimumServerVersion,
+        ).isServerBelowMinimum,
+        isFalse,
+      );
+    });
+
+    test('a newer server is accepted', () {
+      expect(
+        const LivenessInfo(alive: true, version: '2.6.0').isServerBelowMinimum,
+        isFalse,
+      );
+    });
+
+    test('a version that parses to nothing is let through', () {
+      // compareSemver returns 0 rather than guess, and guessing wrong here
+      // locks someone out of their own server over a homemade build string.
+      expect(
+        const LivenessInfo(alive: true, version: 'dev').isServerBelowMinimum,
+        isFalse,
+      );
     });
 
     test('is not claimed for an unreachable server', () {
       // Offline is not the same as incompatible, and guessing would put a
-      // permanent warning in front of anyone with a flaky connection.
-      expect(const LivenessInfo.offline().isServerBelowClientMinimum, isFalse);
+      // permanent wall in front of anyone with a flaky connection.
+      expect(const LivenessInfo.offline().isServerBelowMinimum, isFalse);
+    });
+  });
+
+  group('the recommended server version', () {
+    test('nudges without blocking between the two numbers', () {
+      // Nothing sits between them today; the test pins the shape so raising
+      // the recommendation later cannot start blocking people by accident.
+      const between = LivenessInfo(alive: true, version: '2.5.0');
+      expect(between.isServerBelowMinimum, isFalse);
+      expect(
+        between.isServerBelowRecommended,
+        compareSemver('2.5.0', recommendedServerVersion) < 0,
+      );
+    });
+
+    test('a blocked server is never also merely nudged', () {
+      const old = LivenessInfo(alive: true, version: '1.0.0');
+      expect(old.isServerBelowMinimum, isTrue);
+      expect(old.isServerBelowRecommended, isFalse);
+    });
+
+    test('is not claimed for a server that reports no version', () {
+      expect(const LivenessInfo(alive: true).isServerBelowRecommended, isFalse);
     });
   });
 
   group('the two server banners do not stack', () {
     test('an incompatible server is outdated too, so one must defer', () {
       // Both conditions are true for a pre-2.5.0 server. OutdatedServerWarning
-      // checks isServerBelowClientMinimum first and stands down, leaving the
+      // checks isServerBelowMinimum first and stands down, leaving the
       // message that tells the user what is actually broken.
       const server = LivenessInfo(alive: true, version: '2.4.1');
 
-      expect(server.isServerBelowClientMinimum, isTrue);
+      expect(server.isServerBelowMinimum, isTrue);
       expect(server.isOutdatedAgainst('2.5.0'), isTrue);
     });
 
     test('a current server triggers neither', () {
       final server = _server(version: '2.5.0');
 
-      expect(server.isServerBelowClientMinimum, isFalse);
+      expect(server.isServerBelowMinimum, isFalse);
       expect(server.isOutdatedAgainst('2.5.0'), isFalse);
     });
   });

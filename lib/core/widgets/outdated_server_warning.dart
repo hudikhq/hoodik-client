@@ -46,7 +46,7 @@ class OutdatedServerWarning extends ConsumerWidget {
     // actionable message from ServerCompatibilityWarning instead. Stacking
     // "an update is available" on top of "search will not work here" adds a
     // line that says less than the one below it.
-    if (liveness.isServerBelowClientMinimum) {
+    if (liveness.isServerBelowMinimum) {
       return const SizedBox.shrink();
     }
 

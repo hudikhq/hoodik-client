@@ -3396,4 +3396,20 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get appBelowRecommendedVersion =>
       'Für diesen Server ist eine neuere Version der App verfügbar.';
+
+  @override
+  String get serverBelowMinimumTitle => 'Dieser Server ist zu alt';
+
+  @override
+  String serverBelowMinimumBody(String required, String reported) {
+    return 'Für die sichere Nutzung dieser App wird Hoodik $required oder neuer benötigt. Dieser Server meldet $reported. Aktualisiere den Server und versuche es erneut.';
+  }
+
+  @override
+  String get serverVersionUnknown =>
+      'eine Version, die zu alt ist, um sich zu melden';
+
+  @override
+  String get serverBelowRecommendedVersion =>
+      'Dieser Server ist älter als die Version, für die diese App gebaut wurde. Bis zur Aktualisierung können Funktionen fehlen.';
 }

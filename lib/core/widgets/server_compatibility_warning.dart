@@ -40,8 +40,15 @@ class ServerCompatibilityWarning extends ConsumerWidget {
       return _Banner(message: l10n.appBelowMinimumVersion, severe: true);
     }
 
-    if (liveness.isServerBelowClientMinimum) {
-      return _Banner(message: l10n.serverTooOldForSearch, severe: true);
+    // Below the minimum the app does not reach this banner at all —
+    // ServerVersionGate stands in for the shell instead. What is left here is
+    // the softer half: a server this build is ahead of but can still work
+    // with.
+    if (liveness.isServerBelowRecommended) {
+      return _Banner(
+        message: l10n.serverBelowRecommendedVersion,
+        severe: false,
+      );
     }
 
     if (appVersion != null && liveness.isClientBelowRecommended(appVersion)) {

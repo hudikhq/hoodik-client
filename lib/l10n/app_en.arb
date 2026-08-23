@@ -2349,5 +2349,19 @@
   "reindexCancel": "Cancel",
   "serverTooOldForSearch": "This server is too old for search. Ask whoever runs it to update Hoodik to 2.5.0 or newer.",
   "appBelowMinimumVersion": "This server needs a newer version of the app. Update Hoodik to keep using it.",
-  "appBelowRecommendedVersion": "A newer version of the app is available for this server."
+  "appBelowRecommendedVersion": "A newer version of the app is available for this server.",
+  "serverBelowMinimumTitle": "This server is too old",
+  "serverBelowMinimumBody": "Hoodik {required} or newer is needed to use this app safely. This one reports {reported}. Update the server, then try again.",
+  "serverVersionUnknown": "a version too old to say",
+  "serverBelowRecommendedVersion": "This server is behind the version this app was built for. Some things may be missing until it is updated.",
+  "@serverBelowMinimumBody": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      },
+      "reported": {
+        "type": "String"
+      }
+    }
+  }
 }

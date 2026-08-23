@@ -919,5 +919,9 @@
   "reindexCancel": "Abbrechen",
   "serverTooOldForSearch": "Dieser Server ist zu alt für die Suche. Bitte den Betreiber, Hoodik auf 2.5.0 oder neuer zu aktualisieren.",
   "appBelowMinimumVersion": "Dieser Server benötigt eine neuere Version der App. Aktualisiere Hoodik, um sie weiter zu nutzen.",
-  "appBelowRecommendedVersion": "Für diesen Server ist eine neuere Version der App verfügbar."
+  "appBelowRecommendedVersion": "Für diesen Server ist eine neuere Version der App verfügbar.",
+  "serverBelowMinimumTitle": "Dieser Server ist zu alt",
+  "serverBelowMinimumBody": "Für die sichere Nutzung dieser App wird Hoodik {required} oder neuer benötigt. Dieser Server meldet {reported}. Aktualisiere den Server und versuche es erneut.",
+  "serverVersionUnknown": "eine Version, die zu alt ist, um sich zu melden",
+  "serverBelowRecommendedVersion": "Dieser Server ist älter als die Version, für die diese App gebaut wurde. Bis zur Aktualisierung können Funktionen fehlen."
 }

@@ -5546,6 +5546,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A newer version of the app is available for this server.'**
   String get appBelowRecommendedVersion;
+
+  /// No description provided for @serverBelowMinimumTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This server is too old'**
+  String get serverBelowMinimumTitle;
+
+  /// No description provided for @serverBelowMinimumBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Hoodik {required} or newer is needed to use this app safely. This one reports {reported}. Update the server, then try again.'**
+  String serverBelowMinimumBody(String required, String reported);
+
+  /// No description provided for @serverVersionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'a version too old to say'**
+  String get serverVersionUnknown;
+
+  /// No description provided for @serverBelowRecommendedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'This server is behind the version this app was built for. Some things may be missing until it is updated.'**
+  String get serverBelowRecommendedVersion;
 }
 
 class _AppLocalizationsDelegate

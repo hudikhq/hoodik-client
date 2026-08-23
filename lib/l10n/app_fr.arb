@@ -919,5 +919,9 @@
   "reindexCancel": "Annuler",
   "serverTooOldForSearch": "Ce serveur est trop ancien pour la recherche. Demandez à son administrateur de mettre Hoodik à jour en 2.5.0 ou plus récent.",
   "appBelowMinimumVersion": "Ce serveur nécessite une version plus récente de l'application. Mettez Hoodik à jour pour continuer.",
-  "appBelowRecommendedVersion": "Une version plus récente de l'application est disponible pour ce serveur."
+  "appBelowRecommendedVersion": "Une version plus récente de l'application est disponible pour ce serveur.",
+  "serverBelowMinimumTitle": "Ce serveur est trop ancien",
+  "serverBelowMinimumBody": "Hoodik {required} ou plus récent est nécessaire pour utiliser cette application en toute sécurité. Celui-ci annonce {reported}. Mettez le serveur à jour, puis réessayez.",
+  "serverVersionUnknown": "une version trop ancienne pour être annoncée",
+  "serverBelowRecommendedVersion": "Ce serveur est plus ancien que la version pour laquelle cette application a été conçue. Certaines fonctions peuvent manquer jusqu'à sa mise à jour."
 }

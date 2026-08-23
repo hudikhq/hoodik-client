@@ -7,7 +7,11 @@ import 'package:hoodik_app/core/storage/database.dart';
 import 'package:hoodik_app/core/widgets/outdated_server_warning.dart';
 import 'package:hoodik_app/l10n/generated/app_localizations.dart';
 
-const _latestRelease = '1.15.0';
+// Both above minimumServerVersion: this banner is the softer of the two,
+// and a server below the minimum never reaches it — ServerVersionGate stands
+// in for the shell before any of this renders.
+const _latestRelease = '2.7.0';
+const _usableButBehind = '2.5.0';
 
 Server _server({String url = 'https://self-hosted.example'}) {
   return Server(
@@ -46,7 +50,7 @@ void main() {
         server: null,
         liveness: const LivenessInfo(
           alive: true,
-          version: '1.9.0',
+          version: _usableButBehind,
           minimumClientVersion: '1.0.0',
           recommendedClientVersion: '1.0.0',
         ),
@@ -107,7 +111,7 @@ void main() {
           server: _server(),
           liveness: const LivenessInfo(
             alive: true,
-            version: '0.1.0',
+            version: _usableButBehind,
             minimumClientVersion: '1.0.0',
             recommendedClientVersion: '1.0.0',
           ),
@@ -127,14 +131,17 @@ void main() {
           server: _server(),
           liveness: const LivenessInfo(
             alive: true,
-            version: '1.9.0',
+            version: _usableButBehind,
             minimumClientVersion: '1.0.0',
             recommendedClientVersion: '1.0.0',
           ),
         ),
       );
       await tester.pump();
-      expect(find.textContaining('1.9.0', findRichText: true), findsOneWidget);
+      expect(
+        find.textContaining(_usableButBehind, findRichText: true),
+        findsOneWidget,
+      );
       expect(
         find.textContaining('v$_latestRelease', findRichText: true),
         findsOneWidget,
@@ -173,7 +180,7 @@ void main() {
         server: _server(),
         liveness: const LivenessInfo(
           alive: true,
-          version: '1.9.0',
+          version: _usableButBehind,
           minimumClientVersion: '1.0.0',
           recommendedClientVersion: '1.0.0',
         ),

@@ -3379,4 +3379,19 @@ class AppLocalizationsHr extends AppLocalizations {
   @override
   String get appBelowRecommendedVersion =>
       'Za ovaj server dostupna je novija verzija aplikacije.';
+
+  @override
+  String get serverBelowMinimumTitle => 'Ovaj server je prestar';
+
+  @override
+  String serverBelowMinimumBody(String required, String reported) {
+    return 'Za sigurno korištenje ove aplikacije potreban je Hoodik $required ili noviji. Ovaj javlja $reported. Ažuriraj server pa pokušaj ponovno.';
+  }
+
+  @override
+  String get serverVersionUnknown => 'verzija prestara da se javi';
+
+  @override
+  String get serverBelowRecommendedVersion =>
+      'Ovaj server zaostaje za verzijom za koju je aplikacija građena. Dok se ne ažurira, neke stvari mogu nedostajati.';
 }

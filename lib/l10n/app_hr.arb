@@ -919,5 +919,9 @@
   "reindexCancel": "Odustani",
   "serverTooOldForSearch": "Ovaj server je prestar za pretragu. Traži od administratora da ažurira Hoodik na 2.5.0 ili noviji.",
   "appBelowMinimumVersion": "Ovaj server traži noviju verziju aplikacije. Ažuriraj Hoodik da nastaviš.",
-  "appBelowRecommendedVersion": "Za ovaj server dostupna je novija verzija aplikacije."
+  "appBelowRecommendedVersion": "Za ovaj server dostupna je novija verzija aplikacije.",
+  "serverBelowMinimumTitle": "Ovaj server je prestar",
+  "serverBelowMinimumBody": "Za sigurno korištenje ove aplikacije potreban je Hoodik {required} ili noviji. Ovaj javlja {reported}. Ažuriraj server pa pokušaj ponovno.",
+  "serverVersionUnknown": "verzija prestara da se javi",
+  "serverBelowRecommendedVersion": "Ovaj server zaostaje za verzijom za koju je aplikacija građena. Dok se ne ažurira, neke stvari mogu nedostajati."
 }

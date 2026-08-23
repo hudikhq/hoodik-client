@@ -12,6 +12,7 @@ import 'features/auth/screens/register_screen.dart';
 import 'features/auth/screens/setup_pin_screen.dart';
 import 'features/auth/screens/unlock_screen.dart';
 import 'features/auth/widgets/migration_notice_gate.dart';
+import 'features/auth/widgets/server_version_gate.dart';
 import 'features/files/screens/files_screen.dart';
 import 'features/files/widgets/transfer_overlay.dart';
 import 'features/account/screens/account_screen.dart';
@@ -167,8 +168,9 @@ GoRouter buildRouter(bool Function() isLoggedIn) {
       // switching tabs is instant (no slide transition) and preserves
       // each branch's scroll/selection state.
       StatefulShellRoute.indexedStack(
-        builder: (context, state, shell) =>
-            MigrationNoticeGate(child: MainShell(navigationShell: shell)),
+        builder: (context, state, shell) => ServerVersionGate(
+          child: MigrationNoticeGate(child: MainShell(navigationShell: shell)),
+        ),
         branches: [
           StatefulShellBranch(
             navigatorKey: _filesBranchKey,
