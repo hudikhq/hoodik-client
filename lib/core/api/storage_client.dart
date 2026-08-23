@@ -51,9 +51,14 @@ class StorageClient {
   /// `PUT /api/storage/{id}/reindex` — replace one file's search tags, its
   /// re-keyed `name_hash`, and the content digests re-keyed under the file's
   /// search key.
+  ///
+  /// [fingerprint] is the account key the tags were derived under. The server
+  /// compares it to the live row and refuses a mismatch, so a sweep that
+  /// started before a key rotation cannot mark files done under the old key.
   Future<void> reindexFile({
     required String fileId,
     required String nameHash,
+    required String fingerprint,
     required List<String> searchTokensRoot,
     required List<String> searchTokensFile,
     String? md5,
@@ -65,6 +70,7 @@ class StorageClient {
   }) async {
     final data = <String, dynamic>{
       'name_hash': nameHash,
+      'fingerprint': fingerprint,
       'search_tokens_root': searchTokensRoot,
       'search_tokens_file': searchTokensFile,
     };

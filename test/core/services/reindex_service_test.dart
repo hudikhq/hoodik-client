@@ -42,6 +42,7 @@ class _FakeStorageClient extends Fake implements StorageClient {
   Future<void> reindexFile({
     required String fileId,
     required String nameHash,
+    required String fingerprint,
     required List<String> searchTokensRoot,
     required List<String> searchTokensFile,
     List<String>? digestTokensRoot,
@@ -57,6 +58,7 @@ class _FakeStorageClient extends Fake implements StorageClient {
 
     reindexed.add(fileId);
     written[fileId] = {
+      'fingerprint': fingerprint,
       'search_tokens_root': searchTokensRoot,
       'search_tokens_file': searchTokensFile,
       'digest_tokens_root': digestTokensRoot,
@@ -123,7 +125,11 @@ void main() {
   });
 
   ReindexService serviceFor(_FakeStorageClient storage) =>
-      ReindexService(client: _FakeApiClient(storage), fileCrypto: fileCrypto);
+      ReindexService(
+        client: _FakeApiClient(storage),
+        fileCrypto: fileCrypto,
+        fingerprint: 'test-fp',
+      );
 
   test('walks every pending file and finishes empty', () async {
     final storage = _FakeStorageClient(List.generate(23, (i) => _item('f$i')));
@@ -283,6 +289,7 @@ void main() {
       expect(written['md5'], isNot(bareMd5));
       expect(written['digest_tokens_root'], hasLength(2));
       expect(written['digest_tokens_file'], hasLength(2));
+      expect(written['fingerprint'], 'test-fp');
       // Digest tags stay out of the word lists — those are the scopes a
       // rename replaces — and the bare digest crosses the wire nowhere.
       expect(written.toString(), isNot(contains(bareSha256)));

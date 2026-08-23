@@ -154,13 +154,19 @@ void main() {
       final container = await TestHooks.waitForContainer($);
       final client = container.read(apiClientProvider)!;
       final fileCrypto = container.read(fileCryptoProvider)!;
+      final fingerprint = container.read(activeAccountProvider)?.fingerprint;
+      expect(fingerprint, isNotNull);
 
       // A file only becomes pending when its keyed `name_hash` is blanked,
       // which happens in the re-key migration and the OPAQUE key rotation —
       // neither reachable from a client over HTTP, so this exercises the
       // drained steady state rather than forcing one. The sweep must complete
       // reporting nothing pending, never spin.
-      final service = ReindexService(client: client, fileCrypto: fileCrypto);
+      final service = ReindexService(
+        client: client,
+        fileCrypto: fileCrypto,
+        fingerprint: fingerprint!,
+      );
       final states = await service.run().toList();
       expect(states.last.running, isFalse);
       expect(states.last.failed, 0);

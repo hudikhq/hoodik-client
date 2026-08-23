@@ -61,13 +61,16 @@ class ReindexService {
   ReindexService({
     required ApiClient client,
     required FileCrypto fileCrypto,
+    required String fingerprint,
     FileDownloader? downloader,
   }) : _client = client,
        _fileCrypto = fileCrypto,
+       _fingerprint = fingerprint,
        _downloader = downloader;
 
   final ApiClient _client;
   final FileCrypto _fileCrypto;
+  final String _fingerprint;
   final FileDownloader? _downloader;
 
   bool _cancelled = false;
@@ -175,6 +178,7 @@ class ReindexService {
     await _client.storage.reindexFile(
       fileId: file.id,
       nameHash: _fileCrypto.hashFileName(name),
+      fingerprint: _fingerprint,
       searchTokensRoot: rootTags,
       searchTokensFile: fileTags,
       md5: rekey('md5'),

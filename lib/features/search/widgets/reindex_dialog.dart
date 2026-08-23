@@ -119,11 +119,18 @@ class _ReindexDialogState extends ConsumerState<ReindexDialog> {
 Future<void> maybeShowReindexDialog(BuildContext context, WidgetRef ref) async {
   final client = ref.read(apiClientProvider);
   final fileCrypto = ref.read(fileCryptoProvider);
-  if (client == null || fileCrypto == null) return;
+  final fingerprint = ref.read(activeAccountProvider)?.fingerprint;
+  if (client == null ||
+      fileCrypto == null ||
+      fingerprint == null ||
+      fingerprint.isEmpty) {
+    return;
+  }
 
   final service = ReindexService(
     client: client,
     fileCrypto: fileCrypto,
+    fingerprint: fingerprint,
     downloader: ref.read(fileDownloaderProvider),
   );
 
