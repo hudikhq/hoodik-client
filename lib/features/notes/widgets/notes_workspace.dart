@@ -28,6 +28,7 @@ import '../services/note_pdf_exporter.dart';
 import 'ios_editor_layout.dart' show applyIosEditorInset;
 import 'notes_landing_app_bar.dart';
 import 'notes_main_area.dart';
+import 'note_conflict_dialog.dart';
 import 'notes_sidebar.dart';
 import 'recent_notes_panel.dart';
 import 'unsaved_changes_dialog.dart';
@@ -623,37 +624,21 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
   Future<void> _promptResolveConflict() async {
     final tab = _activeTab;
-    final l10n = AppLocalizations.of(context);
-    final action = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.notesConflictTitle),
-        content: Text(l10n.notesConflictBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'discard'),
-            child: Text(l10n.notesConflictDiscardMine),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: context.colors.textCrimson,
-            ),
-            onPressed: () => Navigator.pop(ctx, 'overwrite'),
-            child: Text(l10n.notesConflictOverwrite),
-          ),
-        ],
-      ),
-    );
+    final choice = await showNoteConflictDialog(context);
     if (!mounted) return;
-    if (action == 'overwrite') {
-      await _saveActiveContent(force: true);
-    } else if (action == 'discard') {
-      // Drop the dirty flag — next render of the tab will reload the
-      // committed content from the server (whichever save wins).
-      setState(() {
-        tab.isDirty = false;
-        tab.draftContent = null;
-      });
+
+    switch (choice) {
+      case NoteConflictChoice.overwrite:
+        await _saveActiveContent(force: true);
+      case NoteConflictChoice.discardMine:
+        // Drop the dirty flag — next render of the tab will reload the
+        // committed content from the server (whichever save wins).
+        setState(() {
+          tab.isDirty = false;
+          tab.draftContent = null;
+        });
+      case null:
+        break;
     }
   }
 
