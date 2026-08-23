@@ -116,7 +116,11 @@ void main() {
       ],
     );
 
-    expect(bodies, isNotEmpty, reason: 'the search request should have been captured');
+    expect(
+      bodies,
+      isNotEmpty,
+      reason: 'the search request should have been captured',
+    );
     for (final raw in bodies) {
       expect(
         raw.toLowerCase().contains(term),

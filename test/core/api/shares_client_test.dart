@@ -371,23 +371,29 @@ void main() {
     // from a request that never landed, and it retries the second rather than
     // pinning the whole session to a probe lost while the phone changed
     // networks.
-    test('404 (pre-1.16 server) throws for the caller to fail closed on', () async {
-      final env = _buildDio([_Reply.empty(status: 404)]);
+    test(
+      '404 (pre-1.16 server) throws for the caller to fail closed on',
+      () async {
+        final env = _buildDio([_Reply.empty(status: 404)]);
 
-      await expectLater(
-        SharesClient(env.dio).getCapabilities(),
-        throwsA(isA<DioException>()),
-      );
-    });
+        await expectLater(
+          SharesClient(env.dio).getCapabilities(),
+          throwsA(isA<DioException>()),
+        );
+      },
+    );
 
-    test('an unparseable body throws rather than reading as disabled', () async {
-      final env = _buildDio([_Reply.jsonList([])]);
+    test(
+      'an unparseable body throws rather than reading as disabled',
+      () async {
+        final env = _buildDio([_Reply.jsonList([])]);
 
-      await expectLater(
-        SharesClient(env.dio).getCapabilities(),
-        throwsA(anything),
-      );
-    });
+        await expectLater(
+          SharesClient(env.dio).getCapabilities(),
+          throwsA(anything),
+        );
+      },
+    );
   });
 
   group('SharesClient.patchMe', () {

@@ -124,12 +124,11 @@ void main() {
         };
   });
 
-  ReindexService serviceFor(_FakeStorageClient storage) =>
-      ReindexService(
-        client: _FakeApiClient(storage),
-        fileCrypto: fileCrypto,
-        fingerprint: 'test-fp',
-      );
+  ReindexService serviceFor(_FakeStorageClient storage) => ReindexService(
+    client: _FakeApiClient(storage),
+    fileCrypto: fileCrypto,
+    fingerprint: 'test-fp',
+  );
 
   test('walks every pending file and finishes empty', () async {
     final storage = _FakeStorageClient(List.generate(23, (i) => _item('f$i')));
