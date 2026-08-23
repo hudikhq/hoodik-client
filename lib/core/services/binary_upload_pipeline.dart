@@ -297,6 +297,16 @@ class BinaryUploadPipeline {
         transferId: encryptItem?.id,
       );
 
+      // The worker runs to completion even after a cancel — it has no
+      // cancellation channel of its own — so the request is honoured here,
+      // before any of this reaches the network.
+      if (_cancelledFileIds.remove(tempId)) {
+        if (encryptItem != null) {
+          _transferManager?.markCancelled(encryptItem.id);
+        }
+        throw TransferCancelledException(tempId);
+      }
+
       if (encryptItem != null) {
         _transferManager?.completeTransfer(encryptItem.id);
       }
@@ -305,7 +315,20 @@ class BinaryUploadPipeline {
         sha256: result.sha256,
         checksums: result.checksums,
       );
+    } on TransferCancelledException {
+      rethrow;
     } catch (e) {
+      // A cancel mid-encryption pulls the staging directory out from under
+      // the worker, and what it reports is the read that then failed — a
+      // filesystem path the user has no use for, shown in red next to a
+      // transfer they stopped on purpose. Report the cancellation instead.
+      if (_cancelledFileIds.remove(tempId)) {
+        if (encryptItem != null) {
+          _transferManager?.markCancelled(encryptItem.id);
+        }
+        throw TransferCancelledException(tempId);
+      }
+
       if (encryptItem != null) {
         _transferManager?.failTransfer(
           encryptItem.id,
