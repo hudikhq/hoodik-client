@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
+import 'core/services/client_identity.dart';
 import 'core/platform/tray_integration.dart';
 import 'core/services/connect_link.dart';
 import 'core/services/preferences.dart';
@@ -41,6 +42,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
   await RustLib.init();
+  // Before any client is built: ApiClient stamps this on every request, and
+  // a request that went out without it would look like one from an app too
+  // old to have it.
+  await loadClientIdentity();
 
   // Stamp the session boundary before anything else — the bug-report
   // export uses this to filter "current session only" logs.
