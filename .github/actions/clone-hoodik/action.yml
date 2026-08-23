@@ -1,0 +1,42 @@
+name: Clone hoodik
+description: Check out hoodik next to this repo for the shared Rust crates.
+
+inputs:
+    pinned:
+        description: >
+            A hoodik branch to build against, overriding the name pairing
+            below. Pass the HOODIK_BRANCH repository variable.
+        required: false
+        default: ""
+
+runs:
+    using: composite
+    steps:
+        # Paired branches build against each other: a client branch that
+        # changes the FFI ships with a hoodik branch of the same name, and
+        # building it against master would fail on symbols that are not there
+        # yet. Solitary branches, and release tags, fall back to master.
+        #
+        # HOODIK_BRANCH overrides the pairing, for the two cases the name
+        # cannot express: a pair whose branches are named differently, and a
+        # release cut from a tag while the server it needs is still on a
+        # branch. Unset it once hoodik has merged, or releases keep building
+        # against a branch that no longer moves.
+        - shell: bash
+          env:
+              # Through env rather than interpolated into the script: a branch
+              # name is attacker-chosen text on a public repo, and
+              # interpolation would paste it into the shell as code.
+              PINNED: ${{ inputs.pinned }}
+              BRANCH: ${{ github.head_ref || github.ref_name }}
+          run: |
+              for ref in "$PINNED" "$BRANCH" master; do
+                if [ -n "$ref" ] && git clone --depth 1 --branch "$ref" \
+                     https://github.com/hudikhq/hoodik.git ../hoodik; then
+                  echo "built against hoodik@$ref"
+                  break
+                fi
+                rm -rf ../hoodik
+              done
+              test -d ../hoodik/.git
+              echo "HOODIK_SHA=$(git -C ../hoodik rev-parse HEAD)" >> "$GITHUB_ENV"

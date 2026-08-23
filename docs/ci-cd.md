@@ -69,6 +69,29 @@ The main hoodik repo is public, so no auth token is needed for the clone.
 
 **Note:** `actions/checkout@v4` restricts `path` to within `$GITHUB_WORKSPACE`, so we use `git clone --depth 1` instead for the hoodik repo.
 
+Every workflow clones it through `.github/actions/clone-hoodik`, which picks a
+revision in this order:
+
+1. The `HOODIK_BRANCH` repository variable, if set and present on hoodik.
+2. A hoodik branch named the same as the branch being built. Paired branches
+   build against each other: a client branch that changes the FFI ships with a
+   hoodik branch of the same name, and building it against master would fail on
+   symbols that are not there yet.
+3. `master`.
+
+The chosen ref is echoed into the log as `built against hoodik@<ref>`.
+
+Set `HOODIK_BRANCH` for the two cases a branch name cannot express: a pair
+whose branches are named differently, and a release cut from a tag while the
+server it needs is still on a branch — a store build otherwise links against
+master, which is the wrong server. Unset it once hoodik has merged, or every
+later release keeps building against a branch that no longer moves.
+
+```bash
+gh variable set HOODIK_BRANCH --repo hudikhq/hoodik-client --body my-branch
+gh variable delete HOODIK_BRANCH --repo hudikhq/hoodik-client
+```
+
 ## Fastlane (iOS)
 
 Fastlane handles iOS TestFlight upload:
