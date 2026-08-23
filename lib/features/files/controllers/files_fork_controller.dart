@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -140,6 +141,16 @@ class FilesForkController {
               cipher: cipher,
             );
 
+      // Name and body together, the way every other note write indexes one.
+      // The copy holds the words the source does, so indexing its title alone
+      // left it missing from every search that finds the note it came from —
+      // and nothing revisits a fork, so it stayed missing. Only for a note:
+      // decoding arbitrary bytes as text would tag a video with whatever its
+      // header happened to look like.
+      final indexed = source.editable
+          ? '$displayName\n${utf8.decode(plaintext, allowMalformed: true)}'
+          : displayName;
+
       final size = plaintext.length;
       final chunks = (size / kUploadChunkSize).ceil().clamp(1, 1 << 30);
       // Keyed under the fork's new key before it touches the wire, like
@@ -177,13 +188,13 @@ class FilesForkController {
         'sha256': keyedSha256,
         'cipher': cipher,
         'encrypted_key': wrappedKey,
-        'search_tokens_root': fileCrypto.tokenizeForSearch(displayName),
+        'search_tokens_root': fileCrypto.tokenizeForSearch(indexed),
         // The fork is a distinct file under `newKey`, so its file scope is
         // keyed on that — tagging under the source's key would index it for
         // whoever holds the original instead.
         'search_tokens_file': fileCrypto.tokenizeForSearchWithFileKey(
           newKey,
-          displayName,
+          indexed,
         ),
         'event_signature': eventSignature,
         'timestamp': timestamp,

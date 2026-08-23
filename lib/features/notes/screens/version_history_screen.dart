@@ -199,6 +199,13 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
         fileKey: key,
         cipher: file.cipher,
       );
+
+      // Name and body together, the way every other note write indexes one.
+      // The copy holds the words this version does, so indexing its title
+      // alone leaves it out of every search that finds the note it came from,
+      // and nothing revisits a fork afterwards.
+      final indexed =
+          '$newName\n${utf8.decode(await _decryptVersion(v), allowMalformed: true)}';
       // The new file shares the source's symmetric key (chunks are
       // server-copied verbatim), so the existing RSA-wrapped
       // encrypted_key is reusable as-is for the new owner row.
@@ -210,7 +217,17 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
         'cipher': file.cipher,
         'editable': true,
         if (file.fileId != null) 'file_id': file.fileId,
-        'search_tokens_hashed': fileCrypto.tokenizeForSearch(newName),
+        // Both scopes, under the names the server actually reads.
+        // `search_tokens_hashed` is the pre-keyed field the re-key migration
+        // retired: the server ignores it, so everything sent under it was
+        // dropped and the copy was born unfindable. The fork reuses the
+        // source's symmetric key — its chunks are copied verbatim — so the
+        // file scope is keyed on that same key.
+        'search_tokens_root': fileCrypto.tokenizeForSearch(indexed),
+        'search_tokens_file': fileCrypto.tokenizeForSearchWithFileKey(
+          key,
+          indexed,
+        ),
       };
 
       final result = await client.versions.fork(
