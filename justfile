@@ -110,6 +110,60 @@ e2e-all:
 build:
     @scripts/release-check/build.sh
 
+# Build the iOS app for a physical device and install it.
+#
+# Two things this does that a bare `flutter build ios --release` does not:
+#
+# CocoaPods is reset first. `patrol` is a dev dependency that registers itself
+# in the generated plugin registrant, but its pod is only present for the
+# Runner target when CocoaPods resolves from scratch — so every device build
+# that follows a `flutter clean` or a project-file edit fails on
+# "Module 'patrol' not found". Resetting up front costs a couple of minutes and
+# removes a failed cycle that costs more.
+#
+# Signing is switched to development for the build and put back afterwards.
+# Every Release block pins the manual "Hoodik App Store" distribution profile,
+# which produces a bundle the device refuses to install
+# (ApplicationVerificationFailed). The project file is restored with git even
+# when the build fails, so the edit is never left behind and never committed.
+#
+# Pass the devicectl device id to install; omit it to build only:
+#   just device-install D7789901-DA8C-5BF3-BF9C-758A27F033B7
+device-install device="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    restore() { git checkout ios/Runner.xcodeproj/project.pbxproj; }
+    trap restore EXIT
+
+    python3 - <<'PY'
+    import re
+    p = 'ios/Runner.xcodeproj/project.pbxproj'
+    s = open(p).read()
+    before = s
+    # Rewritten in place, never inserted: an inserted CODE_SIGN_STYLE leaves
+    # the original `Manual` later in the block, and the last one wins.
+    s = s.replace('CODE_SIGN_STYLE = Manual;', 'CODE_SIGN_STYLE = Automatic;')
+    s = s.replace('"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";',
+                  '"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";')
+    s = s.replace('CODE_SIGN_IDENTITY = "Apple Distribution";',
+                  'CODE_SIGN_IDENTITY = "Apple Development";')
+    s = re.sub(r'\n\s*"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]" = "[^"]*";', '', s)
+    s = re.sub(r'\n\s*PROVISIONING_PROFILE_SPECIFIER = "[^"]*";', '', s)
+    assert s != before, 'signing already flipped — is the working tree clean?'
+    open(p, 'w').write(s)
+    PY
+
+    rm -rf ios/Pods ios/Podfile.lock
+    flutter build ios --release
+
+    if [ -n "{{device}}" ]; then
+        xcrun devicectl device install app \
+            --device "{{device}}" build/ios/iphoneos/Runner.app
+    else
+        echo "Built build/ios/iphoneos/Runner.app — pass a device id to install"
+    fi
+
 summary:
     @scripts/release-check/summary.sh
 
