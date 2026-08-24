@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import '../api/api_client.dart';
-import '../utils/l10n_lookup.dart';
 import 'offline_manager.dart';
 import 'transfer_manager.dart';
 
