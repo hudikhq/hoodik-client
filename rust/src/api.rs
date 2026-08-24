@@ -1616,20 +1616,37 @@ fn clear_progress(file_id: &str) {
     TRANSFER_PROGRESS.lock().unwrap().remove(file_id);
 }
 
+/// How far a transfer has got.
+///
+/// A named struct rather than a tuple: the generated binding for an
+/// `Option<(u64, u64)>` decodes the pair as a `List<dynamic>` while declaring
+/// it a Dart record, so every call threw
+/// `type 'List<dynamic>' is not a subtype of type '(BigInt, BigInt)'`. Nothing
+/// caught it, because the only caller polls from a timer where a throw goes to
+/// the zone and disappears.
+pub struct TransferProgress {
+    /// Downloads count bytes; uploads count chunks.
+    pub transferred: u64,
+    /// The matching total, in the same unit.
+    pub total: u64,
+}
+
 /// Poll the current progress of a transfer.
 ///
-/// Returns (transferred, total) where:
-/// - For downloads: (bytes_downloaded, total_bytes)
-/// - For uploads: (chunks_completed, total_chunks)
+/// - For downloads: bytes downloaded out of total bytes.
+/// - For uploads: chunks completed out of total chunks.
 ///
 /// Returns `None` if no transfer with the given file_id is active.
 #[frb(sync)]
-pub fn get_transfer_progress(file_id: String) -> Option<(u64, u64)> {
+pub fn get_transfer_progress(file_id: String) -> Option<TransferProgress> {
     TRANSFER_PROGRESS
         .lock()
         .unwrap()
         .get(&file_id)
-        .map(|(t, total)| (t.load(Ordering::Relaxed), total.load(Ordering::Relaxed)))
+        .map(|(t, total)| TransferProgress {
+            transferred: t.load(Ordering::Relaxed),
+            total: total.load(Ordering::Relaxed),
+        })
 }
 
 /// Cancel an in-progress upload or download.
@@ -1888,12 +1905,12 @@ mod tests {
         total.store(10000, Ordering::Relaxed);
 
         let progress = get_transfer_progress(file_id.clone()).unwrap();
-        assert_eq!(progress, (0, 10000));
+        assert_eq!((progress.transferred, progress.total), (0, 10000));
 
         // Simulate progress updates.
         transferred.store(5000, Ordering::Relaxed);
         let progress = get_transfer_progress(file_id.clone()).unwrap();
-        assert_eq!(progress, (5000, 10000));
+        assert_eq!((progress.transferred, progress.total), (5000, 10000));
 
         // Clear and verify removal.
         clear_progress(&file_id);

@@ -1859,23 +1859,14 @@ impl SseDecode for Option<i64> {
     }
 }
 
-impl SseDecode for Option<(u64, u64)> {
+impl SseDecode for Option<crate::api::TransferProgress> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<(u64, u64)>::sse_decode(deserializer));
+            return Some(<crate::api::TransferProgress>::sse_decode(deserializer));
         } else {
             return None;
         }
-    }
-}
-
-impl SseDecode for (u64, u64) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_field0 = <u64>::sse_decode(deserializer);
-        let mut var_field1 = <u64>::sse_decode(deserializer);
-        return (var_field0, var_field1);
     }
 }
 
@@ -1901,6 +1892,18 @@ impl SseDecode for crate::api::RsaPublicInfo {
         return crate::api::RsaPublicInfo {
             public_key_pem: var_publicKeyPem,
             fingerprint: var_fingerprint,
+        };
+    }
+}
+
+impl SseDecode for crate::api::TransferProgress {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_transferred = <u64>::sse_decode(deserializer);
+        let mut var_total = <u64>::sse_decode(deserializer);
+        return crate::api::TransferProgress {
+            transferred: var_transferred,
+            total: var_total,
         };
     }
 }
@@ -2109,6 +2112,24 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::RsaPublicInfo> for crate::api
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::TransferProgress {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.transferred.into_into_dart().into_dart(),
+            self.total.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::TransferProgress {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::TransferProgress>
+    for crate::api::TransferProgress
+{
+    fn into_into_dart(self) -> crate::api::TransferProgress {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::TransitionSignatures {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -2273,21 +2294,13 @@ impl SseEncode for Option<i64> {
     }
 }
 
-impl SseEncode for Option<(u64, u64)> {
+impl SseEncode for Option<crate::api::TransferProgress> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <(u64, u64)>::sse_encode(value, serializer);
+            <crate::api::TransferProgress>::sse_encode(value, serializer);
         }
-    }
-}
-
-impl SseEncode for (u64, u64) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <u64>::sse_encode(self.0, serializer);
-        <u64>::sse_encode(self.1, serializer);
     }
 }
 
@@ -2305,6 +2318,14 @@ impl SseEncode for crate::api::RsaPublicInfo {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.public_key_pem, serializer);
         <String>::sse_encode(self.fingerprint, serializer);
+    }
+}
+
+impl SseEncode for crate::api::TransferProgress {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.transferred, serializer);
+        <u64>::sse_encode(self.total, serializer);
     }
 }
 
@@ -2398,11 +2419,11 @@ mod io {
             unsafe { *flutter_rust_bridge::for_generated::box_from_leak_ptr(self) }
         }
     }
-    impl CstDecode<(u64, u64)> for *mut wire_cst_record_u_64_u_64 {
+    impl CstDecode<crate::api::TransferProgress> for *mut wire_cst_transfer_progress {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> (u64, u64) {
+        fn cst_decode(self) -> crate::api::TransferProgress {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
-            CstDecode::<(u64, u64)>::cst_decode(*wrap).into()
+            CstDecode::<crate::api::TransferProgress>::cst_decode(*wrap).into()
         }
     }
     impl CstDecode<crate::api::Ed25519KeyPair> for wire_cst_ed_25519_key_pair {
@@ -2497,12 +2518,6 @@ mod io {
             }
         }
     }
-    impl CstDecode<(u64, u64)> for wire_cst_record_u_64_u_64 {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> (u64, u64) {
-            (self.field0.cst_decode(), self.field1.cst_decode())
-        }
-    }
     impl CstDecode<crate::api::RsaKeyPair> for wire_cst_rsa_key_pair {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::api::RsaKeyPair {
@@ -2519,6 +2534,15 @@ mod io {
             crate::api::RsaPublicInfo {
                 public_key_pem: self.public_key_pem.cst_decode(),
                 fingerprint: self.fingerprint.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::api::TransferProgress> for wire_cst_transfer_progress {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::api::TransferProgress {
+            crate::api::TransferProgress {
+                transferred: self.transferred.cst_decode(),
+                total: self.total.cst_decode(),
             }
         }
     }
@@ -2602,19 +2626,6 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
-    impl NewWithNullPtr for wire_cst_record_u_64_u_64 {
-        fn new_with_null_ptr() -> Self {
-            Self {
-                field0: Default::default(),
-                field1: Default::default(),
-            }
-        }
-    }
-    impl Default for wire_cst_record_u_64_u_64 {
-        fn default() -> Self {
-            Self::new_with_null_ptr()
-        }
-    }
     impl NewWithNullPtr for wire_cst_rsa_key_pair {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -2638,6 +2649,19 @@ mod io {
         }
     }
     impl Default for wire_cst_rsa_public_info {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_transfer_progress {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                transferred: Default::default(),
+                total: Default::default(),
+            }
+        }
+    }
+    impl Default for wire_cst_transfer_progress {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -3431,10 +3455,10 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_hoodik_app_cst_new_box_autoadd_record_u_64_u_64(
-    ) -> *mut wire_cst_record_u_64_u_64 {
+    pub extern "C" fn frbgen_hoodik_app_cst_new_box_autoadd_transfer_progress(
+    ) -> *mut wire_cst_transfer_progress {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(
-            wire_cst_record_u_64_u_64::new_with_null_ptr(),
+            wire_cst_transfer_progress::new_with_null_ptr(),
         )
     }
 
@@ -3568,12 +3592,6 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_record_u_64_u_64 {
-        field0: u64,
-        field1: u64,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
     pub struct wire_cst_rsa_key_pair {
         private_key_pem: *mut wire_cst_list_prim_u_8_strict,
         public_key_pem: *mut wire_cst_list_prim_u_8_strict,
@@ -3584,6 +3602,12 @@ mod io {
     pub struct wire_cst_rsa_public_info {
         public_key_pem: *mut wire_cst_list_prim_u_8_strict,
         fingerprint: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_transfer_progress {
+        transferred: u64,
+        total: u64,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -3745,21 +3769,6 @@ mod web {
             }
         }
     }
-    impl CstDecode<(u64, u64)> for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> (u64, u64) {
-            let self_ = self
-                .dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>()
-                .unwrap();
-            assert_eq!(
-                self_.length(),
-                2,
-                "Expected 2 elements, got {}",
-                self_.length()
-            );
-            (self_.get(0).cst_decode(), self_.get(1).cst_decode())
-        }
-    }
     impl CstDecode<crate::api::RsaKeyPair>
         for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue
     {
@@ -3798,6 +3807,26 @@ mod web {
             crate::api::RsaPublicInfo {
                 public_key_pem: self_.get(0).cst_decode(),
                 fingerprint: self_.get(1).cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::api::TransferProgress>
+        for flutter_rust_bridge::for_generated::wasm_bindgen::JsValue
+    {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::api::TransferProgress {
+            let self_ = self
+                .dyn_into::<flutter_rust_bridge::for_generated::js_sys::Array>()
+                .unwrap();
+            assert_eq!(
+                self_.length(),
+                2,
+                "Expected 2 elements, got {}",
+                self_.length()
+            );
+            crate::api::TransferProgress {
+                transferred: self_.get(0).cst_decode(),
+                total: self_.get(1).cst_decode(),
             }
         }
     }

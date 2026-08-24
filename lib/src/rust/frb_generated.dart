@@ -263,7 +263,7 @@ abstract class RustLibApi extends BaseApi {
 
   WrappingKeyPair crateApiGenerateWrappingKeypair();
 
-  (BigInt, BigInt)? crateApiGetTransferProgress({required String fileId});
+  TransferProgress? crateApiGetTransferProgress({required String fileId});
 
   Uint8List crateApiMemberPubkeyDer({
     required String keyType,
@@ -1623,7 +1623,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "generate_wrapping_keypair", argNames: []);
 
   @override
-  (BigInt, BigInt)? crateApiGetTransferProgress({required String fileId}) {
+  TransferProgress? crateApiGetTransferProgress({required String fileId}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
@@ -1631,7 +1631,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return wire.wire__crate__api__get_transfer_progress(arg0);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_opt_box_autoadd_record_u_64_u_64,
+          decodeSuccessData: dco_decode_opt_box_autoadd_transfer_progress,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGetTransferProgressConstMeta,
@@ -2765,9 +2765,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  (BigInt, BigInt) dco_decode_box_autoadd_record_u_64_u_64(dynamic raw) {
+  TransferProgress dco_decode_box_autoadd_transfer_progress(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as (BigInt, BigInt);
+    return dco_decode_transfer_progress(raw);
   }
 
   @protected
@@ -2868,19 +2868,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  (BigInt, BigInt)? dco_decode_opt_box_autoadd_record_u_64_u_64(dynamic raw) {
+  TransferProgress? dco_decode_opt_box_autoadd_transfer_progress(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_record_u_64_u_64(raw);
-  }
-
-  @protected
-  (BigInt, BigInt) dco_decode_record_u_64_u_64(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2) {
-      throw Exception('Expected 2 elements, got ${arr.length}');
-    }
-    return (dco_decode_u_64(arr[0]), dco_decode_u_64(arr[1]));
+    return raw == null ? null : dco_decode_box_autoadd_transfer_progress(raw);
   }
 
   @protected
@@ -2905,6 +2895,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return RsaPublicInfo(
       publicKeyPem: dco_decode_String(arr[0]),
       fingerprint: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  TransferProgress dco_decode_transfer_progress(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return TransferProgress(
+      transferred: dco_decode_u_64(arr[0]),
+      total: dco_decode_u_64(arr[1]),
     );
   }
 
@@ -2988,11 +2990,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  (BigInt, BigInt) sse_decode_box_autoadd_record_u_64_u_64(
+  TransferProgress sse_decode_box_autoadd_transfer_progress(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_record_u_64_u_64(deserializer));
+    return (sse_decode_transfer_progress(deserializer));
   }
 
   @protected
@@ -3103,24 +3105,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  (BigInt, BigInt)? sse_decode_opt_box_autoadd_record_u_64_u_64(
+  TransferProgress? sse_decode_opt_box_autoadd_transfer_progress(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_record_u_64_u_64(deserializer));
+      return (sse_decode_box_autoadd_transfer_progress(deserializer));
     } else {
       return null;
     }
-  }
-
-  @protected
-  (BigInt, BigInt) sse_decode_record_u_64_u_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_field0 = sse_decode_u_64(deserializer);
-    var var_field1 = sse_decode_u_64(deserializer);
-    return (var_field0, var_field1);
   }
 
   @protected
@@ -3145,6 +3139,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       publicKeyPem: var_publicKeyPem,
       fingerprint: var_fingerprint,
     );
+  }
+
+  @protected
+  TransferProgress sse_decode_transfer_progress(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_transferred = sse_decode_u_64(deserializer);
+    var var_total = sse_decode_u_64(deserializer);
+    return TransferProgress(transferred: var_transferred, total: var_total);
   }
 
   @protected
@@ -3259,12 +3261,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_record_u_64_u_64(
-    (BigInt, BigInt) self,
+  void sse_encode_box_autoadd_transfer_progress(
+    TransferProgress self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_record_u_64_u_64(self, serializer);
+    sse_encode_transfer_progress(self, serializer);
   }
 
   @protected
@@ -3391,26 +3393,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_record_u_64_u_64(
-    (BigInt, BigInt)? self,
+  void sse_encode_opt_box_autoadd_transfer_progress(
+    TransferProgress? self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_box_autoadd_record_u_64_u_64(self, serializer);
+      sse_encode_box_autoadd_transfer_progress(self, serializer);
     }
-  }
-
-  @protected
-  void sse_encode_record_u_64_u_64(
-    (BigInt, BigInt) self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_u_64(self.$1, serializer);
-    sse_encode_u_64(self.$2, serializer);
   }
 
   @protected
@@ -3429,6 +3421,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.publicKeyPem, serializer);
     sse_encode_String(self.fingerprint, serializer);
+  }
+
+  @protected
+  void sse_encode_transfer_progress(
+    TransferProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.transferred, serializer);
+    sse_encode_u_64(self.total, serializer);
   }
 
   @protected

@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../src/rust/api.dart' as rust;
+import '../utils/logger.dart';
 import 'background_tar_transfer.dart';
 import 'direct_chunk_download.dart';
 import 'file_downloader_config.dart';
@@ -87,6 +88,8 @@ abstract class TarDownloadBackend {
 /// server speaks neither `?format=tar` nor presigned URLs.
 /// Reads the byte counters the Rust pipeline keeps for an in-flight transfer.
 /// `null` once the transfer has ended and its counters are gone.
+const _log = Logger('ChunkDownloadTransport');
+
 typedef TransferProgressReader =
     (int transferred, int total)? Function(String fileId);
 
@@ -121,7 +124,7 @@ class BackgroundDownloaderChunkTransport implements ChunkDownloadTransport {
   static (int, int)? _readRustProgress(String fileId) {
     final progress = rust.getTransferProgress(fileId: fileId);
     if (progress == null) return null;
-    return (progress.$1.toInt(), progress.$2.toInt());
+    return (progress.transferred.toInt(), progress.total.toInt());
   }
 
   /// Drive [onProgress] from the Rust counters until the returned timer is
@@ -135,9 +138,43 @@ class BackgroundDownloaderChunkTransport implements ChunkDownloadTransport {
     onProgress,
     Duration every = const Duration(milliseconds: 300),
   }) {
+    var ticks = 0;
+    var silent = 0;
     return Timer.periodic(every, (_) {
-      final progress = _readProgress(fileId);
-      if (progress == null) return;
+      final (int, int)? progress;
+      try {
+        progress = _readProgress(fileId);
+      } catch (e) {
+        // A throw inside a periodic callback goes to the zone and is lost, so
+        // the bar simply never moves and nothing anywhere says why. Reading
+        // the counters is a synchronous FFI call, unlike the download beside
+        // it, and it is the one thing here that can fail on its own.
+        if (++silent == 1) {
+          _log.warn(
+            'reading transfer counters threw',
+            fields: {'file_id': fileId, 'error': e.toString()},
+          );
+        }
+        return;
+      }
+      if (progress == null) {
+        // The counters exist only while the Rust transfer is registered. A
+        // run that never reports one is the difference between "the bar was
+        // not drawn" and "there was nothing to draw it from".
+        if (++silent == 20) {
+          _log.warn(
+            'no transfer counters after 20 polls',
+            fields: {'file_id': fileId},
+          );
+        }
+        return;
+      }
+      if (++ticks == 1) {
+        _log.info(
+          'first progress tick',
+          fields: {'file_id': fileId, 'transferred': progress.$1},
+        );
+      }
       final (transferred, total) = progress;
       onProgress(
         total <= 0 ? 0 : (transferred * chunkCount) ~/ total,
@@ -207,6 +244,15 @@ class BackgroundDownloaderChunkTransport implements ChunkDownloadTransport {
     // this side ever asked. Its own doc says "polled from Dart", and until now
     // the answer was that nobody did, so the one download path that reaches
     // it showed a bar frozen at zero for the whole transfer.
+    _log.info(
+      'per-chunk leg starting',
+      fields: {
+        'file_id': fileId,
+        'chunks': chunkCount,
+        'has_progress_hook': onProgress != null,
+      },
+    );
+
     final poll = onProgress == null
         ? null
         : pollProgress(

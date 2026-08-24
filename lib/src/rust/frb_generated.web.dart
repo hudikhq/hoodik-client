@@ -30,7 +30,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
   @protected
-  (BigInt, BigInt) dco_decode_box_autoadd_record_u_64_u_64(dynamic raw);
+  TransferProgress dco_decode_box_autoadd_transfer_progress(dynamic raw);
 
   @protected
   Ed25519KeyPair dco_decode_ed_25519_key_pair(dynamic raw);
@@ -69,16 +69,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
 
   @protected
-  (BigInt, BigInt)? dco_decode_opt_box_autoadd_record_u_64_u_64(dynamic raw);
-
-  @protected
-  (BigInt, BigInt) dco_decode_record_u_64_u_64(dynamic raw);
+  TransferProgress? dco_decode_opt_box_autoadd_transfer_progress(dynamic raw);
 
   @protected
   RsaKeyPair dco_decode_rsa_key_pair(dynamic raw);
 
   @protected
   RsaPublicInfo dco_decode_rsa_public_info(dynamic raw);
+
+  @protected
+  TransferProgress dco_decode_transfer_progress(dynamic raw);
 
   @protected
   TransitionSignatures dco_decode_transition_signatures(dynamic raw);
@@ -111,7 +111,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
-  (BigInt, BigInt) sse_decode_box_autoadd_record_u_64_u_64(
+  TransferProgress sse_decode_box_autoadd_transfer_progress(
     SseDeserializer deserializer,
   );
 
@@ -158,18 +158,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
-  (BigInt, BigInt)? sse_decode_opt_box_autoadd_record_u_64_u_64(
+  TransferProgress? sse_decode_opt_box_autoadd_transfer_progress(
     SseDeserializer deserializer,
   );
-
-  @protected
-  (BigInt, BigInt) sse_decode_record_u_64_u_64(SseDeserializer deserializer);
 
   @protected
   RsaKeyPair sse_decode_rsa_key_pair(SseDeserializer deserializer);
 
   @protected
   RsaPublicInfo sse_decode_rsa_public_info(SseDeserializer deserializer);
+
+  @protected
+  TransferProgress sse_decode_transfer_progress(SseDeserializer deserializer);
 
   @protected
   TransitionSignatures sse_decode_transition_signatures(
@@ -212,9 +212,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny cst_encode_box_autoadd_record_u_64_u_64((BigInt, BigInt) raw) {
+  JSAny cst_encode_box_autoadd_transfer_progress(TransferProgress raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_record_u_64_u_64(raw);
+    return cst_encode_transfer_progress(raw);
   }
 
   @protected
@@ -303,15 +303,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  JSAny? cst_encode_opt_box_autoadd_record_u_64_u_64((BigInt, BigInt)? raw) {
+  JSAny? cst_encode_opt_box_autoadd_transfer_progress(TransferProgress? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw == null ? null : cst_encode_box_autoadd_record_u_64_u_64(raw);
-  }
-
-  @protected
-  JSAny cst_encode_record_u_64_u_64((BigInt, BigInt) raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return [cst_encode_u_64(raw.$1), cst_encode_u_64(raw.$2)].jsify()!;
+    return raw == null ? null : cst_encode_box_autoadd_transfer_progress(raw);
   }
 
   @protected
@@ -330,6 +324,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     return [
       cst_encode_String(raw.publicKeyPem),
       cst_encode_String(raw.fingerprint),
+    ].jsify()!;
+  }
+
+  @protected
+  JSAny cst_encode_transfer_progress(TransferProgress raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return [
+      cst_encode_u_64(raw.transferred),
+      cst_encode_u_64(raw.total),
     ].jsify()!;
   }
 
@@ -391,8 +394,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_box_autoadd_record_u_64_u_64(
-    (BigInt, BigInt) self,
+  void sse_encode_box_autoadd_transfer_progress(
+    TransferProgress self,
     SseSerializer serializer,
   );
 
@@ -460,14 +463,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_record_u_64_u_64(
-    (BigInt, BigInt)? self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_record_u_64_u_64(
-    (BigInt, BigInt) self,
+  void sse_encode_opt_box_autoadd_transfer_progress(
+    TransferProgress? self,
     SseSerializer serializer,
   );
 
@@ -476,6 +473,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_rsa_public_info(RsaPublicInfo self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_transfer_progress(
+    TransferProgress self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_transition_signatures(

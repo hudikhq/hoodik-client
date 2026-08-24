@@ -800,12 +800,11 @@ void packChunksToTar({
 
 /// Poll the current progress of a transfer.
 ///
-/// Returns (transferred, total) where:
-/// - For downloads: (bytes_downloaded, total_bytes)
-/// - For uploads: (chunks_completed, total_chunks)
+/// - For downloads: bytes downloaded out of total bytes.
+/// - For uploads: chunks completed out of total chunks.
 ///
 /// Returns `None` if no transfer with the given file_id is active.
-(BigInt, BigInt)? getTransferProgress({required String fileId}) =>
+TransferProgress? getTransferProgress({required String fileId}) =>
     RustLib.instance.api.crateApiGetTransferProgress(fileId: fileId);
 
 /// Cancel an in-progress upload or download.
@@ -932,6 +931,35 @@ class RsaPublicInfo {
           runtimeType == other.runtimeType &&
           publicKeyPem == other.publicKeyPem &&
           fingerprint == other.fingerprint;
+}
+
+/// How far a transfer has got.
+///
+/// A named struct rather than a tuple: the generated binding for an
+/// `Option<(u64, u64)>` decodes the pair as a `List<dynamic>` while declaring
+/// it a Dart record, so every call threw
+/// `type 'List<dynamic>' is not a subtype of type '(BigInt, BigInt)'`. Nothing
+/// caught it, because the only caller polls from a timer where a throw goes to
+/// the zone and disappears.
+class TransferProgress {
+  /// Downloads count bytes; uploads count chunks.
+  final BigInt transferred;
+
+  /// The matching total, in the same unit.
+  final BigInt total;
+
+  const TransferProgress({required this.transferred, required this.total});
+
+  @override
+  int get hashCode => transferred.hashCode ^ total.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TransferProgress &&
+          runtimeType == other.runtimeType &&
+          transferred == other.transferred &&
+          total == other.total;
 }
 
 class TransitionSignatures {
