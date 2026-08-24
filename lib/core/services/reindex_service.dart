@@ -97,15 +97,13 @@ class ReindexService {
   /// server-side, so the next session picks it up from there.
   void cancel() => _cancelled = true;
 
-  /// A note's body is indexed word for word alongside its name, which is why
-  /// the old scheme leaked note contents and not just names. Rebuilding that
-  /// means fetching and decrypting the note — there is no shortcut, the server
-  /// holds only ciphertext — and the name rides along so a swept note carries
-  /// the same tokens a saved one does.
-  Future<String> _textFor(FileItem file, String name, Uint8List fileKey) async {
+  /// A note's body is a separate source from its name. Rebuilding the body
+  /// index means fetching and decrypting the note — there is no shortcut, the
+  /// server holds only ciphertext.
+  Future<String?> _bodyFor(FileItem file, Uint8List fileKey) async {
     final downloader = _downloader;
     if (!file.editable || downloader == null) {
-      return name;
+      return null;
     }
 
     final bytes = await downloader.downloadFile(
@@ -114,7 +112,7 @@ class ReindexService {
       showInTransfers: false,
     );
 
-    return '$name\n${utf8.decode(bytes, allowMalformed: true)}';
+    return utf8.decode(bytes, allowMalformed: true);
   }
 
   Future<void> _reindexOne(FileItem file) async {
@@ -125,9 +123,15 @@ class ReindexService {
       cipher: file.cipher,
     );
 
-    final indexed = await _textFor(file, name, fileKey);
-    final rootTags = _fileCrypto.tokenizeForSearch(indexed);
-    final fileTags = _fileCrypto.tokenizeForSearchWithFileKey(fileKey, indexed);
+    final rootTags = _fileCrypto.tokenizeForSearch(name);
+    final fileTags = _fileCrypto.tokenizeForSearchWithFileKey(fileKey, name);
+    final noteBody = await _bodyFor(file, fileKey);
+    final contentRoot = noteBody == null
+        ? null
+        : _fileCrypto.tokenizeForSearch(noteBody);
+    final contentFile = noteBody == null
+        ? null
+        : _fileCrypto.tokenizeForSearchWithFileKey(fileKey, noteBody);
 
     // Migrated rows still carry bare content digests — the third copy of the
     // same leak. Re-key each from the stored value (no re-download needed)
@@ -181,6 +185,8 @@ class ReindexService {
       fingerprint: _fingerprint,
       searchTokensRoot: rootTags,
       searchTokensFile: fileTags,
+      contentTokensRoot: contentRoot,
+      contentTokensFile: contentFile,
       md5: rekey('md5'),
       sha1: rekey('sha1'),
       sha256: rekey('sha256'),

@@ -43,6 +43,8 @@ class _MockSharedFolderUpload extends Fake implements SharedFolderUpload {
     bool? editable,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
     List<String>? digestTokensRoot,
     List<String>? digestTokensFile,
     String? encryptedThumbnail,
@@ -78,6 +80,8 @@ class _NoteFilesClient extends Fake implements FilesClient {
   String? createdCipher;
   List<String>? createdTokensRoot;
   List<String>? createdTokensFile;
+  List<String>? createdContentTokensRoot;
+  List<String>? createdContentTokensFile;
   final List<String> chunkFileIds = [];
   String? hashedFileId;
 
@@ -132,6 +136,8 @@ class _NoteFilesClient extends Fake implements FilesClient {
     String? encryptedThumbnail,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
     List<String>? digestTokensRoot,
     List<String>? digestTokensFile,
     String? fileModifiedAt,
@@ -144,6 +150,8 @@ class _NoteFilesClient extends Fake implements FilesClient {
     createdCipher = cipher;
     createdTokensRoot = searchTokensRoot;
     createdTokensFile = searchTokensFile;
+    createdContentTokensRoot = contentTokensRoot;
+    createdContentTokensFile = contentTokensFile;
     return {'id': 'owner-note-id'};
   }
 
@@ -379,13 +387,17 @@ void main() {
           .map((e) => e.split(':').first)
           .toSet();
 
-      final written = files.createdTokensRoot!
+      final nameTags = files.createdTokensRoot!
+          .map((e) => e.split(':').first)
+          .toSet();
+      final contentTags = files.createdContentTokensRoot!
           .map((e) => e.split(':').first)
           .toSet();
 
       expect(expected, isNotEmpty);
-      expect(written, containsAll(expected));
-      expect(files.createdTokensFile, isNotEmpty);
+      expect(contentTags, containsAll(expected));
+      expect(nameTags.intersection(expected), isEmpty);
+      expect(files.createdContentTokensFile, isNotEmpty);
     });
 
     test('a server that will not sign the URLs still gets the note', () async {

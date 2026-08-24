@@ -143,6 +143,7 @@ void main() {
       );
       expect(body['search_tokens_root'], isA<List<dynamic>>());
       expect(body['search_tokens_file'], isA<List<dynamic>>());
+      expect(body.containsKey('content_tokens_root'), isFalse);
     });
 
     test('name_hash is the keyed tag of the plaintext name, not the '

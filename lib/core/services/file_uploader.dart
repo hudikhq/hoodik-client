@@ -177,15 +177,15 @@ class FileUploader {
       fileKey: fileKey,
       cipher: cipher,
     );
-    // Name and body together, the way every later save and rename re-indexes
-    // it. Tagging one without the other leaves the note missing from half the
-    // searches that should find it, and whichever write ran last would decide
-    // which half.
-    final indexed = '$name\n$content';
-    final searchTokens = _fileCrypto.tokenizeForSearch(indexed);
-    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
+    final nameTokens = _fileCrypto.tokenizeForSearch(name);
+    final nameTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
       fileKey,
-      indexed,
+      name,
+    );
+    final contentTokens = _fileCrypto.tokenizeForSearch(content);
+    final contentTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
+      fileKey,
+      content,
     );
 
     var fileId = await multiKeyCreateOrNull(
@@ -201,8 +201,10 @@ class FileUploader {
       chunks: totalChunks,
       size: fileSize,
       editable: true,
-      searchTokensRoot: searchTokens,
-      searchTokensFile: searchTokensFile,
+      searchTokensRoot: nameTokens,
+      searchTokensFile: nameTokensFile,
+      contentTokensRoot: contentTokens,
+      contentTokensFile: contentTokensFile,
     );
     if (fileId == null) {
       final encryptedKey = _fileCrypto.encryptFileKey(
@@ -218,8 +220,10 @@ class FileUploader {
         chunks: totalChunks,
         parentDirId: parentDirId,
         cipher: cipher,
-        searchTokensRoot: searchTokens,
-        searchTokensFile: searchTokensFile,
+        searchTokensRoot: nameTokens,
+        searchTokensFile: nameTokensFile,
+        contentTokensRoot: contentTokens,
+        contentTokensFile: contentTokensFile,
         editable: true,
       );
       fileId = entry['id'] as String;
@@ -277,25 +281,15 @@ class FileUploader {
       );
     }
 
-    // A note is indexed by its name and its whole body, on every save rather
-    // than only on rename — tagging the name alone left body search broken
-    // outright, and indexing the body alone drops the title the moment a save
-    // follows a rename. The root scope is the owner's, keyed under a key an
-    // editor does not hold, so an editor refreshes only the file scope.
-    final displayName =
-        name ??
-        _fileCrypto.decryptFileName(
-          encryptedNameHex: file.encryptedName,
-          fileKey: fileKey,
-          cipher: cipher,
-        );
-    final indexed = '$displayName\n$content';
+    // Body only. The title lives in a different source; sending it here would
+    // wipe the name the moment a save follows a rename. An editor does not
+    // hold the owner's root key, so they refresh only the file scope.
     final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
       fileKey,
-      indexed,
+      content,
     );
     final searchTokens = file.isOwner
-        ? _fileCrypto.tokenizeForSearch(indexed)
+        ? _fileCrypto.tokenizeForSearch(content)
         : null;
 
     try {

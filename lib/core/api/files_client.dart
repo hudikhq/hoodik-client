@@ -247,6 +247,8 @@ class FilesClient {
     String? encryptedThumbnail,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
     List<String>? digestTokensRoot,
     List<String>? digestTokensFile,
     String? fileModifiedAt,
@@ -272,6 +274,12 @@ class FilesClient {
     }
     if (searchTokensFile != null) {
       data['search_tokens_file'] = searchTokensFile;
+    }
+    if (contentTokensRoot != null) {
+      data['content_tokens_root'] = contentTokensRoot;
+    }
+    if (contentTokensFile != null) {
+      data['content_tokens_file'] = contentTokensFile;
     }
     if (digestTokensRoot != null) {
       data['digest_tokens_root'] = digestTokensRoot;

@@ -33,6 +33,8 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     String? cipher,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
     List<String>? digestTokensRoot,
     List<String>? digestTokensFile,
   }) async {
@@ -53,6 +55,8 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     String? encryptedThumbnail,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
     List<String>? digestTokensRoot,
     List<String>? digestTokensFile,
     String? fileModifiedAt,
@@ -82,6 +86,8 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     String? blake2b,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
   }) async {}
 }
 

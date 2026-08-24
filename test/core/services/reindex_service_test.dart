@@ -1,8 +1,12 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hoodik_app/core/api/api_client.dart';
 import 'package:hoodik_app/core/crypto/crypto_service.dart';
 import 'package:hoodik_app/core/crypto/file_crypto.dart';
+import 'package:hoodik_app/core/services/file_downloader.dart';
 import 'package:hoodik_app/core/services/reindex_service.dart';
 import 'package:hoodik_app/src/rust/frb_generated.dart';
 
@@ -45,6 +49,8 @@ class _FakeStorageClient extends Fake implements StorageClient {
     required String fingerprint,
     required List<String> searchTokensRoot,
     required List<String> searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
     List<String>? digestTokensRoot,
     List<String>? digestTokensFile,
     String? md5,
@@ -61,6 +67,8 @@ class _FakeStorageClient extends Fake implements StorageClient {
       'fingerprint': fingerprint,
       'search_tokens_root': searchTokensRoot,
       'search_tokens_file': searchTokensFile,
+      'content_tokens_root': contentTokensRoot,
+      'content_tokens_file': contentTokensFile,
       'digest_tokens_root': digestTokensRoot,
       'digest_tokens_file': digestTokensFile,
       'md5': md5,
@@ -77,6 +85,20 @@ class _FakeApiClient extends Fake implements ApiClient {
 
   @override
   final StorageClient storage;
+}
+
+class _FakeDownloader extends Fake implements FileDownloader {
+  _FakeDownloader(this.body);
+  final Uint8List body;
+
+  @override
+  Future<Uint8List> downloadFile(
+    FileItem file, {
+    required Uint8List fileKey,
+    void Function(double progress)? onProgress,
+    String? displayName,
+    bool showInTransfers = true,
+  }) async => body;
 }
 
 void main() {
@@ -116,18 +138,20 @@ void main() {
             ),
             'mime': editable ? 'text/markdown' : 'application/octet-stream',
             'cipher': _cipher,
-            // Editable files would be downloaded and decrypted to index their
-            // bodies; no downloader is wired here, so keep them plain.
-            'editable': false,
+            'editable': editable,
             'is_owner': true,
           });
         };
   });
 
-  ReindexService serviceFor(_FakeStorageClient storage) => ReindexService(
+  ReindexService serviceFor(
+    _FakeStorageClient storage, {
+    FileDownloader? downloader,
+  }) => ReindexService(
     client: _FakeApiClient(storage),
     fileCrypto: fileCrypto,
     fingerprint: 'test-fp',
+    downloader: downloader,
   );
 
   test('walks every pending file and finishes empty', () async {
@@ -310,5 +334,41 @@ void main() {
     expect(written['md5'], isNull);
     expect(written['digest_tokens_root'], isNull);
     expect(written['digest_tokens_file'], isNull);
+  });
+
+  test('a note indexes its body separately from its name', () async {
+    const body = '# Renewal\nThe insurance policy renews in March.\n';
+    final storage = _FakeStorageClient([_item('note', editable: true)]);
+    final downloader = _FakeDownloader(Uint8List.fromList(utf8.encode(body)));
+
+    await serviceFor(storage, downloader: downloader).run().drain<void>();
+
+    final written = storage.written['note']!;
+    final expected = fileCrypto
+        .tokenizeForSearch('insurance')
+        .map((e) => e.split(':').first)
+        .toSet();
+    final nameTags = (written['search_tokens_root'] as List<String>)
+        .map((e) => e.split(':').first)
+        .toSet();
+    final contentTags = (written['content_tokens_root'] as List<String>)
+        .map((e) => e.split(':').first)
+        .toSet();
+
+    expect(expected, isNotEmpty);
+    expect(contentTags, containsAll(expected));
+    expect(nameTags.intersection(expected), isEmpty);
+    expect(written['content_tokens_file'], isNotEmpty);
+  });
+
+  test('a regular file sends no content tokens', () async {
+    final storage = _FakeStorageClient([_item('bin')]);
+
+    await serviceFor(storage).run().drain<void>();
+
+    final written = storage.written['bin']!;
+    expect(written['content_tokens_root'], isNull);
+    expect(written['content_tokens_file'], isNull);
+    expect(written['search_tokens_root'], isNotEmpty);
   });
 }

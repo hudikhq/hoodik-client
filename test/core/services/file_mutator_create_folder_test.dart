@@ -39,6 +39,8 @@ class _MockSharedFolderUpload extends Fake implements SharedFolderUpload {
     bool? editable,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
     List<String>? digestTokensRoot,
     List<String>? digestTokensFile,
     String? encryptedThumbnail,
@@ -65,6 +67,8 @@ class _DirFilesClient extends Fake implements FilesClient {
     String? cipher,
     List<String>? searchTokensRoot,
     List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
     List<String>? digestTokensRoot,
     List<String>? digestTokensFile,
   }) async {

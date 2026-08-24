@@ -61,6 +61,8 @@ class StorageClient {
     required String fingerprint,
     required List<String> searchTokensRoot,
     required List<String> searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
     String? md5,
     String? sha1,
     String? sha256,
@@ -74,6 +76,12 @@ class StorageClient {
       'search_tokens_root': searchTokensRoot,
       'search_tokens_file': searchTokensFile,
     };
+    if (contentTokensRoot != null) {
+      data['content_tokens_root'] = contentTokensRoot;
+    }
+    if (contentTokensFile != null) {
+      data['content_tokens_file'] = contentTokensFile;
+    }
     if (md5 != null) data['md5'] = md5;
     if (sha1 != null) data['sha1'] = sha1;
     if (sha256 != null) data['sha256'] = sha256;

@@ -106,7 +106,6 @@ class FileOperations {
         defaultCipher: defaultCipher,
         sharedTarget: sharedTarget,
         sharedUpload: sharedUpload,
-        downloader: downloader,
       ),
       uploader: FileUploader(
         client: client,

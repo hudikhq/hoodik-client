@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import '../api/api_client.dart';
 import '../crypto/file_crypto.dart';
-import 'file_downloader.dart';
 import 'shared_folder_target.dart';
 import 'shared_folder_upload.dart';
 
@@ -23,10 +21,6 @@ class FileMutator {
   final SharedFolderTargetResolver? _sharedTarget;
   final SharedFolderUpload? _sharedUpload;
 
-  /// Only a note's rename needs this: its body has to be re-indexed with its
-  /// new name, and the body exists only as ciphertext server-side.
-  final FileDownloader? _downloader;
-
   FileMutator({
     required ApiClient client,
     required FileCrypto fileCrypto,
@@ -34,14 +28,12 @@ class FileMutator {
     String defaultCipher = 'aegis128l',
     SharedFolderTargetResolver? sharedTarget,
     SharedFolderUpload? sharedUpload,
-    FileDownloader? downloader,
   }) : _client = client,
        _fileCrypto = fileCrypto,
        _publicKeyPem = publicKeyPem,
        _defaultCipher = defaultCipher,
        _sharedTarget = sharedTarget,
-       _sharedUpload = sharedUpload,
-       _downloader = downloader;
+       _sharedUpload = sharedUpload;
 
   /// Create a new encrypted folder. Generates a per-folder symmetric key
   /// the owner can later use to encrypt names of children, hashes the
@@ -122,54 +114,19 @@ class FileMutator {
     // the owner's, keyed under a key this device does not have — sending ours
     // would overwrite the owner's index with tags they can never match. The
     // server enforces this too; this just keeps us from sending garbage.
-    final indexed = await _indexedText(file, newName, fileKey);
-
+    // Name tokens only: the body lives in a different source.
     await _client.files.renameFile(
       fileId: file.id,
       nameHash: nameHash,
       encryptedName: encryptedName,
-      searchTokensRoot: indexed != null && file.isOwner
-          ? _fileCrypto.tokenizeForSearch(indexed)
+      searchTokensRoot: file.isOwner
+          ? _fileCrypto.tokenizeForSearch(newName)
           : null,
-      searchTokensFile: indexed == null
-          ? null
-          : _fileCrypto.tokenizeForSearchWithFileKey(fileKey, indexed),
+      searchTokensFile: _fileCrypto.tokenizeForSearchWithFileKey(
+        fileKey,
+        newName,
+      ),
     );
-  }
-
-  /// The text a file's word tokens are built from: its name, and for a note
-  /// its body as well.
-  ///
-  /// A rename replaces every word token it sends, so a note renamed on its
-  /// name alone would lose its contents from search until the next save. The
-  /// body is only reachable by downloading and decrypting it — the server
-  /// holds ciphertext — which is affordable because notes are small and this
-  /// runs once per rename.
-  ///
-  /// Null means the body could not be read. The caller then sends no tokens
-  /// at all: the server replaces only the scopes it is given, so the note
-  /// keeps the ones it has rather than being reduced to its new name.
-  Future<String?> _indexedText(
-    FileItem file,
-    String name,
-    Uint8List fileKey,
-  ) async {
-    if (!file.editable) return name;
-
-    final downloader = _downloader;
-    if (downloader == null) return null;
-
-    try {
-      final bytes = await downloader.downloadFile(
-        file,
-        fileKey: fileKey,
-        showInTransfers: false,
-      );
-
-      return '$name\n${utf8.decode(bytes, allowMalformed: true)}';
-    } catch (_) {
-      return null;
-    }
   }
 
   Future<void> delete(String fileId) => _client.files.deleteFile(fileId);
