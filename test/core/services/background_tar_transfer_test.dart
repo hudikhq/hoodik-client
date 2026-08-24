@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/services/background_tar_transfer.dart';
@@ -14,6 +16,8 @@ import 'package:hoodik_app/core/services/background_tar_transfer.dart';
 /// regression that drops `cause` / `body` from the log fields fails
 /// the build before it lands.
 void main() {
+  _settleGroup();
+
   group('TransferFailure', () {
     UploadTask makeTask() => UploadTask(
       taskId: 'tar-ul:abc',
@@ -144,6 +148,83 @@ void main() {
         const TransferFailure(status: 422).message,
         equals('unknown cause (status 422)'),
       );
+    });
+  });
+}
+
+/// The tar leg used to learn it had finished from exactly one place: a status
+/// update pushed up from the OS. `resumeFromBackground` replays the updates
+/// iOS buffered while the app was suspended — but the plugin makes that replay
+/// one-shot for the life of the process, and this app asks for it from three
+/// places. Whoever asks first gets the events; the rest get a no-op.
+///
+/// So a download that completed while the phone was locked could have its
+/// completion delivered to nobody, and the future returned by
+/// `downloadTarToFile` would never resolve — no error, no timeout, no log.
+/// The archive sat finished on disk while the transfer showed as running.
+///
+/// The plugin's own database survives that: `trackTasks` records every task's
+/// terminal state, and reading it cannot consume it.
+void _settleGroup() {
+  group('settling a transfer the replay could not deliver', () {
+    test('a stored complete record resolves the waiting future', () async {
+      final records = <String, TaskRecord>{};
+      final service = BackgroundTarTransfer(
+        baseUrl: 'https://drive.example.com',
+        recordLookup: (taskId) async => records[taskId],
+      );
+
+      final completer = Completer<void>();
+      service.debugRegisterDownload(
+        taskId: 'acct|file-1',
+        outputPath: '/tmp/does-not-matter.tar',
+        totalBytes: 10,
+        completer: completer,
+      );
+
+      // Nothing stored yet: still in flight, so nothing is settled.
+      await service.settleFinishedTransfers();
+      expect(completer.isCompleted, isFalse);
+
+      records['tar-dl:acct|file-1'] = TaskRecord(
+        DownloadTask(taskId: 'tar-dl:acct|file-1', url: 'https://x/y'),
+        TaskStatus.complete,
+        1.0,
+        10,
+      );
+
+      await service.settleFinishedTransfers();
+      expect(
+        completer.isCompleted,
+        isTrue,
+        reason: 'the stored record is the truth the lost update carried',
+      );
+    });
+
+    test('a stored failure surfaces as an error, not a hang', () async {
+      final records = <String, TaskRecord>{};
+      final service = BackgroundTarTransfer(
+        baseUrl: 'https://drive.example.com',
+        recordLookup: (taskId) async => records[taskId],
+      );
+
+      final completer = Completer<void>();
+      service.debugRegisterDownload(
+        taskId: 'acct|file-2',
+        outputPath: '/tmp/also-not-matter.tar',
+        totalBytes: 10,
+        completer: completer,
+      );
+
+      records['tar-dl:acct|file-2'] = TaskRecord(
+        DownloadTask(taskId: 'tar-dl:acct|file-2', url: 'https://x/y'),
+        TaskStatus.failed,
+        0.5,
+        10,
+      );
+
+      await service.settleFinishedTransfers();
+      await expectLater(completer.future, throwsA(isA<Exception>()));
     });
   });
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:background_downloader/background_downloader.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as p;
 
 import '../utils/logger.dart';
@@ -28,7 +29,17 @@ class BackgroundTarTransfer {
 
   Future<void>? _configuring;
 
-  BackgroundTarTransfer({required this.baseUrl});
+  /// How a task's stored record is read. Injectable because the real one
+  /// goes through the plugin's platform channel, which a unit test has no
+  /// way to answer.
+  final Future<TaskRecord?> Function(String taskId) _recordLookup;
+
+  BackgroundTarTransfer({
+    required this.baseUrl,
+    Future<TaskRecord?> Function(String taskId)? recordLookup,
+  }) : _recordLookup =
+           recordLookup ??
+           ((taskId) => FileDownloader().database.recordForId(taskId));
 
   Future<void> _configure() => _configuring ??= _doConfigure();
 
@@ -89,6 +100,9 @@ class BackgroundTarTransfer {
     // from the previous session. The entry registered above adopts it, and a
     // second task would only race it into the same archive.
     if ((await tasksInFlight(downloadGroup)).contains(task.taskId)) {
+      // It may also have finished already, in which case its update is long
+      // gone and only the stored record still says so.
+      await settleFinishedTransfers();
       return completer.future;
     }
 
@@ -181,9 +195,76 @@ class BackgroundTarTransfer {
     }
   }
 
-  /// Replay buffered OS events after the app resumes from background.
-  Future<void> resumeFromBackground() =>
-      FileDownloader().resumeFromBackground();
+  /// Replay buffered OS events after the app resumes from background, then
+  /// settle anything the replay could not deliver.
+  ///
+  /// `resumeFromBackground` is one-shot for the life of the process — the
+  /// plugin sets a flag on the first call and never clears it — and more than
+  /// one place in this app asks for it. Whoever asks first gets the buffered
+  /// events; everyone after that gets a no-op. A tar leg waiting on a status
+  /// update that was already spent, or delivered before this service
+  /// registered its handler, would wait for the rest of the process.
+  ///
+  /// So the replay is a fast path, not the truth. The truth is the plugin's
+  /// own database, which `trackTasks` keeps across a suspend and which no
+  /// amount of reading can consume.
+  Future<void> resumeFromBackground() async {
+    await FileDownloader().resumeFromBackground();
+    await settleFinishedTransfers();
+  }
+
+  /// Register a pending download without going near the platform channel, so
+  /// [settleFinishedTransfers] can be exercised without a plugin host.
+  @visibleForTesting
+  void debugRegisterDownload({
+    required String taskId,
+    required String outputPath,
+    required int totalBytes,
+    required Completer<void> completer,
+  }) {
+    _downloads[taskId] = _PendingDownload(
+      totalBytes: totalBytes,
+      outputPath: outputPath,
+      completer: completer,
+      onProgress: null,
+    );
+  }
+
+  /// Complete any pending transfer whose task has already reached a terminal
+  /// state, according to the plugin's persisted record.
+  ///
+  /// Safe to call at any time: a task still running has no terminal record,
+  /// and one already completed here is skipped.
+  @visibleForTesting
+  Future<void> settleFinishedTransfers() async {
+    for (final entry in _downloads.entries.toList()) {
+      final pending = entry.value;
+      if (pending.completer.isCompleted) continue;
+
+      final record = await _recordLookup('$_downloadTaskPrefix${entry.key}');
+      if (record == null) continue;
+
+      switch (record.status) {
+        case TaskStatus.complete:
+          _downloads.remove(entry.key);
+          pending.completer.complete();
+        case TaskStatus.failed || TaskStatus.notFound:
+          _downloads.remove(entry.key);
+          _deleteIfExists(pending.outputPath);
+          _log.warn(
+            'tar download settled as failed from its stored record',
+            fields: {'task_id': entry.key},
+          );
+          pending.completer.completeError(Exception('Tar download failed'));
+        case TaskStatus.canceled:
+          _downloads.remove(entry.key);
+          _deleteIfExists(pending.outputPath);
+          pending.completer.completeError(Exception('Tar download cancelled'));
+        default:
+          break;
+      }
+    }
+  }
 
   /// Cancel all pending transfers, remove their database records, and
   /// release the shared update handlers. Safe to call multiple times.
