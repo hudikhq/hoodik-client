@@ -30,6 +30,69 @@ void main() {
   }
 
   group('BackgroundDownloaderChunkTransport', () {
+    /// The per-chunk leg is what runs when a server offers neither the archive
+    /// nor bucket URLs, and it was the last download path with no progress at
+    /// all. The Rust pipeline had been counting bytes into shared atomics the
+    /// whole time and saying in its own doc that Dart should poll them —
+    /// nothing did, so the bar sat at zero for the entire transfer.
+    test('polls the Rust counters and scales them to chunks', () async {
+      var reading = (0, 1000);
+      final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
+        backend: _FakeDownloadBackend(),
+        stagingTarPath: stagingPath,
+        readProgress: (_) => reading,
+      );
+
+      final seen = <(int, int)>[];
+      final poll = transport.pollProgress(
+        fileId: 'file-123',
+        chunkCount: 4,
+        onProgress: (chunks, bytes) => seen.add((chunks, bytes)),
+        every: const Duration(milliseconds: 1),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      reading = (500, 1000);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      poll.cancel();
+
+      expect(seen, isNotEmpty, reason: 'the counters must actually be read');
+      expect(seen.first, equals((0, 0)));
+      expect(
+        seen.last,
+        equals((2, 500)),
+        reason: 'bytes verbatim, chunks scaled from them',
+      );
+    });
+
+    test(
+      'a transfer with no counters yet reports nothing rather than zero',
+      () async {
+        // Between registering and the first byte the Rust side has no entry.
+        // Reporting a zero there would reset a bar that a resumed transfer had
+        // already advanced.
+        final transport = BackgroundDownloaderChunkTransport.forTesting(
+          directChunks: DirectChunkDownloadService(),
+          backend: _FakeDownloadBackend(),
+          stagingTarPath: stagingPath,
+          readProgress: (_) => null,
+        );
+
+        final seen = <(int, int)>[];
+        final poll = transport.pollProgress(
+          fileId: 'file-123',
+          chunkCount: 4,
+          onProgress: (chunks, bytes) => seen.add((chunks, bytes)),
+          every: const Duration(milliseconds: 1),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        poll.cancel();
+
+        expect(seen, isEmpty);
+      },
+    );
+
     /// The archive arrives as one transfer, so nothing counts chunks along the
     /// way — and the caller's progress hook was simply not plumbed to it. On a
     /// server without direct transfer that is the only download path, so the

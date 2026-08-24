@@ -96,6 +96,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
     required String outputDir,
     required List<int> alreadyDownloaded,
     required String accountId,
+    void Function(int completedChunks, int transferredBytes)? onProgress,
   }) async {
     await hold;
     perChunkCalls.add(

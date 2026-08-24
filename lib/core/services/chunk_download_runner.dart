@@ -97,6 +97,7 @@ class ChunkDownloadRunner {
         outputDir: outputDir,
         alreadyDownloaded: alreadyDownloaded,
         accountId: accountId,
+        onProgress: onProgress,
       );
       return;
     }
@@ -130,6 +131,7 @@ class ChunkDownloadRunner {
         outputDir: outputDir,
         alreadyDownloaded: alreadyDownloaded,
         accountId: accountId,
+        onProgress: onProgress,
       );
     }
   }

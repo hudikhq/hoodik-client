@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
@@ -38,6 +40,7 @@ abstract class ChunkDownloadTransport {
     required String outputDir,
     required List<int> alreadyDownloaded,
     required String accountId,
+    void Function(int completedChunks, int transferredBytes)? onProgress,
   });
 
   /// Fetch the chunks straight from object storage using the presigned
@@ -82,17 +85,26 @@ abstract class TarDownloadBackend {
 /// reason. The per-chunk fallback still goes through the Rust HTTP pipeline
 /// because its concurrent downloader is well tuned and only runs when the
 /// server speaks neither `?format=tar` nor presigned URLs.
+/// Reads the byte counters the Rust pipeline keeps for an in-flight transfer.
+/// `null` once the transfer has ended and its counters are gone.
+typedef TransferProgressReader =
+    (int transferred, int total)? Function(String fileId);
+
 class BackgroundDownloaderChunkTransport implements ChunkDownloadTransport {
   final TarDownloadBackend _backend;
   final Future<String> Function(String) _stagingTarPath;
 
   final DirectChunkDownloadService _direct;
 
+  /// Injected so the polling loop can be exercised without an FFI host.
+  final TransferProgressReader _readProgress;
+
   BackgroundDownloaderChunkTransport({
     required BackgroundTarTransfer tarTransfer,
     required DirectChunkDownloadService directChunks,
   }) : _backend = _BackgroundTarDownloadBackend(tarTransfer),
        _direct = directChunks,
+       _readProgress = _readRustProgress,
        _stagingTarPath = _defaultStagingTarPath;
 
   @visibleForTesting
@@ -100,9 +112,39 @@ class BackgroundDownloaderChunkTransport implements ChunkDownloadTransport {
     required TarDownloadBackend backend,
     required Future<String> Function(String) stagingTarPath,
     required DirectChunkDownloadService directChunks,
+    TransferProgressReader? readProgress,
   }) : _backend = backend,
        _direct = directChunks,
+       _readProgress = readProgress ?? _readRustProgress,
        _stagingTarPath = stagingTarPath;
+
+  static (int, int)? _readRustProgress(String fileId) {
+    final progress = rust.getTransferProgress(fileId: fileId);
+    if (progress == null) return null;
+    return (progress.$1.toInt(), progress.$2.toInt());
+  }
+
+  /// Drive [onProgress] from the Rust counters until the returned timer is
+  /// cancelled. Split out so both the poll cadence and the chunk-scaling live
+  /// in one testable place.
+  @visibleForTesting
+  Timer pollProgress({
+    required String fileId,
+    required int chunkCount,
+    required void Function(int completedChunks, int transferredBytes)
+    onProgress,
+    Duration every = const Duration(milliseconds: 300),
+  }) {
+    return Timer.periodic(every, (_) {
+      final progress = _readProgress(fileId);
+      if (progress == null) return;
+      final (transferred, total) = progress;
+      onProgress(
+        total <= 0 ? 0 : (transferred * chunkCount) ~/ total,
+        transferred,
+      );
+    });
+  }
 
   @override
   Future<void> downloadAsTar({
@@ -158,20 +200,43 @@ class BackgroundDownloaderChunkTransport implements ChunkDownloadTransport {
     required String outputDir,
     required List<int> alreadyDownloaded,
     required String accountId,
-  }) {
-    return rust.downloadEncryptedChunks(
-      baseUrl: baseUrl,
-      cookie: cookie,
-      fileId: fileId,
-      fileSize: BigInt.from(fileSize),
-      chunkCount: BigInt.from(chunkCount),
-      outputDir: outputDir,
-      alreadyDownloaded: Uint64List.fromList(alreadyDownloaded),
-      // Chunks that come from the bucket never take this path — they go
-      // through [downloadDirectChunks], which the OS keeps running while the
-      // app is suspended. This leg only ever talks to the server.
-      directUrls: const [],
-    );
+    void Function(int completedChunks, int transferredBytes)? onProgress,
+  }) async {
+    // The Rust pipeline counts bytes into shared atomics as they land and
+    // exposes them for polling — it has since it was written, and nothing on
+    // this side ever asked. Its own doc says "polled from Dart", and until now
+    // the answer was that nobody did, so the one download path that reaches
+    // it showed a bar frozen at zero for the whole transfer.
+    final poll = onProgress == null
+        ? null
+        : pollProgress(
+            fileId: fileId,
+            chunkCount: chunkCount,
+            onProgress: onProgress,
+          );
+
+    try {
+      await rust.downloadEncryptedChunks(
+        baseUrl: baseUrl,
+        cookie: cookie,
+        fileId: fileId,
+        fileSize: BigInt.from(fileSize),
+        chunkCount: BigInt.from(chunkCount),
+        outputDir: outputDir,
+        alreadyDownloaded: Uint64List.fromList(alreadyDownloaded),
+        // Chunks that come from the bucket never take this path — they go
+        // through [downloadDirectChunks], which the OS keeps running while
+        // the app is suspended. This leg only ever talks to the server.
+        directUrls: const [],
+      );
+
+      // The counters are torn down when the transfer ends, so the last poll
+      // may have missed the tail. Land the bar on the full size rather than
+      // leaving it a few hundred milliseconds short.
+      onProgress?.call(chunkCount, fileSize);
+    } finally {
+      poll?.cancel();
+    }
   }
 
   @override
