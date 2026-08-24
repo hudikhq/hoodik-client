@@ -30,6 +30,77 @@ void main() {
   }
 
   group('BackgroundDownloaderChunkTransport', () {
+    /// The archive arrives as one transfer, so nothing counts chunks along the
+    /// way — and the caller's progress hook was simply not plumbed to it. On a
+    /// server without direct transfer that is the only download path, so the
+    /// bar sat at zero for the whole file and then jumped to done, which reads
+    /// as a stall on anything large enough to notice.
+    test('reports progress while the archive is still arriving', () async {
+      final backend = _FakeDownloadBackend();
+      final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
+        backend: backend,
+        stagingTarPath: stagingPath,
+      );
+
+      final seen = <(int, int)>[];
+
+      await transport.downloadAsTar(
+        baseUrl: 'https://drive.example.com',
+        cookie: 'session=abc',
+        fileId: 'file-123',
+        fileSize: 1000,
+        chunkCount: 4,
+        outputDir: p.join(tmp.path, 'chunks'),
+        alreadyDownloaded: const [],
+        accountId: 'acct-test',
+        onProgress: (chunks, bytes) => seen.add((chunks, bytes)),
+      );
+
+      // The fake keeps the callback the transport handed it; drive it the way
+      // the OS download would.
+      final sink = backend.progressSink;
+      expect(
+        sink,
+        isNotNull,
+        reason: 'the tar leg must be given a progress hook',
+      );
+      sink!(250, 1000);
+      sink(500, 1000);
+      sink(1000, 1000);
+
+      // Bytes exactly as reported; chunks scaled, because the chunk-shaped
+      // display needs something that moves and the archive yields none.
+      expect(seen, equals([(1, 250), (2, 500), (4, 1000)]));
+    });
+
+    test('does not divide by a zero total', () async {
+      // An empty or unknown-length body would otherwise crash the transfer on
+      // its first progress tick.
+      final backend = _FakeDownloadBackend();
+      final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
+        backend: backend,
+        stagingTarPath: stagingPath,
+      );
+
+      final seen = <(int, int)>[];
+      await transport.downloadAsTar(
+        baseUrl: 'https://drive.example.com',
+        cookie: 'session=abc',
+        fileId: 'file-123',
+        fileSize: 0,
+        chunkCount: 4,
+        outputDir: p.join(tmp.path, 'chunks'),
+        alreadyDownloaded: const [],
+        accountId: 'acct-test',
+        onProgress: (chunks, bytes) => seen.add((chunks, bytes)),
+      );
+
+      backend.progressSink!(0, 0);
+      expect(seen, equals([(0, 0)]));
+    });
+
     test('happy path: fetch lands the tar on disk, unpack is called with '
         'that path, and the tar is deleted after success', () async {
       final backend = _FakeDownloadBackend();
@@ -292,6 +363,9 @@ class _UnpackCall {
 }
 
 class _FakeDownloadBackend implements TarDownloadBackend {
+  /// The callback the transport handed down, so a test can drive it.
+  void Function(int transferred, int total)? progressSink;
+
   final List<_FetchCall> fetchCalls = [];
   final List<_UnpackCall> unpackCalls = [];
   Object? fetchError;
@@ -304,7 +378,9 @@ class _FakeDownloadBackend implements TarDownloadBackend {
     required Map<String, String> headers,
     required String outputPath,
     required int totalBytes,
+    void Function(int transferred, int total)? onProgress,
   }) async {
+    progressSink = onProgress;
     fetchCalls.add(
       _FetchCall(
         taskId: taskId,

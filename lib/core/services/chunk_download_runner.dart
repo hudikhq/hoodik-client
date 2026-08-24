@@ -111,6 +111,7 @@ class ChunkDownloadRunner {
         outputDir: outputDir,
         alreadyDownloaded: alreadyDownloaded,
         accountId: accountId,
+        onProgress: onProgress,
       );
       _tarCapabilityCache.markSupported(baseUrl);
     } catch (e) {

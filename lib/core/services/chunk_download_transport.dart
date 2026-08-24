@@ -26,6 +26,7 @@ abstract class ChunkDownloadTransport {
     required String outputDir,
     required List<int> alreadyDownloaded,
     required String accountId,
+    void Function(int completedChunks, int transferredBytes)? onProgress,
   });
 
   Future<void> downloadPerChunk({
@@ -67,6 +68,7 @@ abstract class TarDownloadBackend {
     required Map<String, String> headers,
     required String outputPath,
     required int totalBytes,
+    void Function(int transferred, int total)? onProgress,
   });
 
   void unpack({required String tarPath, required String outputDir});
@@ -112,6 +114,7 @@ class BackgroundDownloaderChunkTransport implements ChunkDownloadTransport {
     required String outputDir,
     required List<int> alreadyDownloaded,
     required String accountId,
+    void Function(int completedChunks, int transferredBytes)? onProgress,
   }) async {
     final tarPath = await _stagingTarPath('download_$fileId.tar');
     await _ensureParent(tarPath);
@@ -127,6 +130,16 @@ class BackgroundDownloaderChunkTransport implements ChunkDownloadTransport {
         headers: cookie.isEmpty ? const {} : {'Cookie': cookie},
         outputPath: tarPath,
         totalBytes: fileSize,
+        // The archive arrives as one transfer and the chunks only exist once
+        // it is unpacked, so there are no completed chunks to count on the
+        // way. Scaling the bytes gives the chunk-shaped display something
+        // that moves, and the byte count beside it is exact.
+        onProgress: onProgress == null
+            ? null
+            : (transferred, total) => onProgress(
+                total <= 0 ? 0 : (transferred * chunkCount) ~/ total,
+                transferred,
+              ),
       );
 
       _backend.unpack(tarPath: tarPath, outputDir: outputDir);
@@ -195,6 +208,7 @@ class _BackgroundTarDownloadBackend implements TarDownloadBackend {
     required Map<String, String> headers,
     required String outputPath,
     required int totalBytes,
+    void Function(int transferred, int total)? onProgress,
   }) {
     return _tarTransfer.downloadTarToFile(
       taskId: taskId,
@@ -202,6 +216,7 @@ class _BackgroundTarDownloadBackend implements TarDownloadBackend {
       headers: headers,
       outputPath: outputPath,
       totalBytes: totalBytes,
+      onProgress: onProgress,
     );
   }
 
