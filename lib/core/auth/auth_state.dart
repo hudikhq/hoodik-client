@@ -7,6 +7,7 @@ import '../../features/shares/providers/folder_members_notifier.dart';
 import '../../features/shares/providers/groups_notifier.dart';
 import '../providers.dart';
 import '../services/file_downloader_config.dart';
+import '../services/plaintext_temp.dart';
 import '../storage/database.dart';
 import '../utils/account_context.dart';
 import '../utils/log_redact.dart';
@@ -69,18 +70,32 @@ extension AuthStateExtension on WidgetRef {
 
     // Settle the OS transfer queue against the account that just arrived.
     // Deliberately not awaited: it is a reconcile against work the OS is
-    // already doing, and sign-in should not wait on it.
+    // already doing, and sign-in should not wait on it. LRU runs after
+    // that future so a lowered cap or pre-ship backlog is applied once
+    // in-flight transfers have been adopted.
     final reconcile = read(transferReconcilerProvider);
-    if (reconcile != null) {
-      unawaited(
-        reconcile(account.id).catchError((Object e) {
+    final offline = read(offlineManagerProvider);
+    final accountId = account.id;
+    unawaited(() async {
+      if (reconcile != null) {
+        try {
+          await reconcile(accountId);
+        } catch (e) {
           _log.warn(
             'transfer adoption skipped on sign-in',
             fields: {'error': redactException(e)},
           );
-        }),
-      );
-    }
+        }
+      }
+      try {
+        await offline.enforceLimit(accountId);
+      } catch (e) {
+        _log.warn(
+          'cache eviction skipped on sign-in',
+          fields: {'error': redactException(e)},
+        );
+      }
+    }());
 
     // Eagerly evaluate mcpServerProvider so its auto-start listener is
     // registered. Without this, the provider is never created (it's lazy)
@@ -120,6 +135,7 @@ extension AuthStateExtension on WidgetRef {
         );
       }),
     );
+    unawaited(sweepPlaintextTemp());
 
     // Drop the logger's account prefix so post-logout lifecycle logs are
     // not mis-attributed to the account that just left.

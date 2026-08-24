@@ -206,6 +206,30 @@
     }
   },
   "accountOfflineCacheTitle": "Offline Cache",
+  "accountOfflineCacheOfLimit": "{used} of {limit}",
+  "@accountOfflineCacheOfLimit": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "accountOfflineCacheUnlimited": "{used} · Unlimited",
+  "@accountOfflineCacheUnlimited": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      }
+    }
+  },
+  "accountCacheLimitTitle": "Cache limit",
+  "accountCacheLimit2Gb": "2 GB",
+  "accountCacheLimit8Gb": "8 GB",
+  "accountCacheLimit32Gb": "32 GB",
+  "accountCacheLimitUnlimited": "Unlimited",
   "accountOfflineClearBody": "This will remove all offline copies of your files from this device. Your files on the server are not affected.",
   "accountOfflineClearTitle": "Clear Offline Cache",
   "accountOfflineCleared": "Offline cache cleared",
@@ -667,6 +691,25 @@
       }
     }
   },
+  "filesAvailableOfflineCount": "{count, plural, =1{1 file available offline} other{{count} files available offline}}",
+  "@filesAvailableOfflineCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesAvailableOfflinePartial": "{ok} of {total} files available offline",
+  "@filesAvailableOfflinePartial": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "filesCacheFailed": "Failed to cache: {error}",
   "@filesCacheFailed": {
     "placeholders": {
@@ -775,6 +818,37 @@
     }
   },
   "filesExport": "Export",
+  "filesExportBulkBody": "Each file will be downloaded and decrypted first. This can take a while, and you can pick where to send them once all the files are ready.",
+  "filesExportBulkTitle": "Export {count} files?",
+  "@filesExportBulkTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesExportedNone": "Couldn't export any files",
+  "filesExportedPartial": "Exported {success} of {total} files",
+  "@filesExportedPartial": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "filesBulkFoldersSkipped": "{count, plural, =1{1 folder will be skipped.} other{{count} folders will be skipped.}}",
+  "@filesBulkFoldersSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesBulkLargeExport": "This is a large export and may take several minutes.",
+  "filesBulkLargeDownload": "This is a large download and may take several minutes.",
   "filesExportFailed": "Export failed: {error}",
   "@filesExportFailed": {
     "placeholders": {
@@ -867,6 +941,16 @@
     }
   },
   "filesMakeAvailableOffline": "Make Available Offline",
+  "filesOfflineBulkBody": "Encrypted copies will download to this device. This can take a while. Files that are already offline are left as they are.",
+  "filesOfflineBulkTitle": "Make {count} files available offline?",
+  "@filesOfflineBulkTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesOfflineNone": "Nothing to make available offline",
   "filesMembers": "Members",
   "filesMoreActions": "More actions",
   "filesMoveFailed": "Move failed: {error}",
@@ -942,6 +1026,7 @@
   "filesSaveFileDialogTitle": "Save file",
   "filesSaveToMyDrive": "Save to my drive",
   "filesSelect": "Select",
+  "filesSelectAll": "Select all",
   "filesSelectFilesTooltip": "Select files",
   "filesSelectedCount": "{count} selected",
   "@filesSelectedCount": {

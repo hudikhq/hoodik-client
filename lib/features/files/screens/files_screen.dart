@@ -15,19 +15,19 @@ import '../../../core/widgets/server_compatibility_warning.dart';
 import '../../search/widgets/reindex_dialog.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../notes/helpers/create_note_flow.dart';
-import '../../preview/providers/preview_providers.dart';
 import '../../shares/shared_constants.dart';
 import '../helpers/fork_surface.dart';
 import '../helpers/share_surface.dart';
 import '../controllers/files_action_result.dart';
 import '../controllers/files_download_controller.dart';
+import '../controllers/files_export_batch.dart';
 import '../controllers/files_link_controller.dart';
 import '../controllers/files_mutation_controller.dart';
-import '../controllers/files_share_controller.dart';
+import '../controllers/files_offline_batch.dart';
 import '../controllers/files_upload_controller.dart';
 import '../helpers/file_helpers.dart';
 import '../helpers/file_name_validation.dart';
-import '../helpers/files_preview_navigation.dart';
+import '../helpers/files_screen_row_actions.dart';
 import '../helpers/move_wiring.dart';
 import '../providers/files_notifier.dart';
 import '../providers/files_state.dart';
@@ -270,44 +270,24 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
   Future<void> _performMove(List<String> ids, String? targetDirId) =>
       _runBusy(_moves.dropMove(context, ids, targetDirId));
 
-  void _openPreview(FileItem file) {
-    // An in-progress upload has a DB entry but no chunks yet. Opening
-    // it fires a tar download that the server can't fulfil (we've seen
-    // "extracted 0 chunks from tar" on files stuck mid-upload). For
-    // non-markdown files `isPreviewable` already filters these out —
-    // the markdown path bypasses it and needs the same guard.
-    if (file.isUploading) {
-      _showSnack(_l10n.filesStillUploading, NotificationType.info);
-      return;
-    }
-
-    final state = ref.read(filesNotifierProvider(widget.dirId));
-    final siblings = state.files ?? const <FileItem>[];
-    if (isMarkdownFile(file, displayName: state.displayName(file))) {
-      openEditor(
-        context: context,
-        ref: ref,
-        file: file,
-        siblings: siblings,
-        names: state.decryptedNames,
-        keys: state.decryptedKeys,
-        parentDirId: widget.dirId,
-      );
-      return;
-    }
-    openPreview(
-      context: context,
-      ref: ref,
-      file: file,
-      siblings: siblings,
-      names: state.decryptedNames,
-      keys: state.decryptedKeys,
-      parentDirId: widget.dirId,
-    );
+  Future<void> _exportSelected() async {
+    final origin = shareOriginRect(context);
+    final result = await ref
+        .read(filesExportBatchProvider(widget.dirId))
+        .exportSelected(context: context, shareOriginRect: origin);
+    if (result != null) _applyResult(result);
   }
 
-  /// Opens the create/upload sheet — the FAB's action, also offered by the
-  /// empty state so a fresh folder doesn't depend on spotting the FAB.
+  Future<void> _offlineSelected() async {
+    final result = await ref
+        .read(filesOfflineBatchProvider(widget.dirId))
+        .makeAvailableOfflineSelected(
+          context: context,
+          onComplete: _applyResult,
+        );
+    if (result != null) _applyResult(result);
+  }
+
   void _openCreateSheet([Offset? anchor]) {
     final isDesktop =
         Platform.isMacOS || Platform.isWindows || Platform.isLinux;
@@ -329,48 +309,17 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     returnToBranchIndex: filesBranchIndex,
   );
 
-  void _share(FileItem file) =>
-      openShareSurface(context, ref, dirId: widget.dirId, file: file);
-
-  void _fork(FileItem file) =>
-      openForkSurface(context, ref, dirId: widget.dirId, file: file);
-
-  void _showDetails(FileItem file) => showFileDetailsDialog(
-    context: context,
-    file: file,
-    displayName: ref
-        .read(filesNotifierProvider(widget.dirId))
-        .displayName(file),
-  );
-
   bool get _sharingEnabled =>
       ref.read(shareCapabilitiesProvider).valueOrNull?.sharingEnabled ?? false;
 
-  Future<void> _leave(FileItem file) async {
-    final confirmed = await confirmLeaveShare(
-      context: context,
-      displayName: ref
-          .read(filesNotifierProvider(widget.dirId))
-          .displayName(file),
-    );
-    if (!confirmed || !mounted) return;
-    final outcome = await ref
-        .read(filesShareControllerProvider(widget.dirId))
-        .leaveShare(file);
-    if (!mounted) return;
-    if (outcome is ShareFailure) {
-      AppNotification.show(
-        context,
-        message: outcome.message,
-        type: NotificationType.error,
-      );
-    } else {
-      await _notifier.load();
-    }
-  }
-
   FileMenuCallbacks get _menuCallbacks => FileMenuCallbacks(
-    onPreview: _openPreview,
+    onPreview: (file) => openFilesPreview(
+      context: context,
+      ref: ref,
+      dirId: widget.dirId,
+      file: file,
+      onSnack: _showSnack,
+    ),
     onConvertToNote: _convertToNote,
     onDownload: _downloadFile,
     onMakeOffline: _makeAvailableOffline,
@@ -378,24 +327,34 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     onRename: _renameFile,
     onDelete: _deleteFile,
     onCreateLink: _createLink,
-    onShare: _share,
-    onLeave: _leave,
-    onFork: _fork,
-    onDetails: _showDetails,
+    onShare: (file) =>
+        openShareSurface(context, ref, dirId: widget.dirId, file: file),
+    onLeave: (file) => leaveSharedFile(
+      context: context,
+      ref: ref,
+      dirId: widget.dirId,
+      file: file,
+      onLeft: _notifier.load,
+    ),
+    onFork: (file) =>
+        openForkSurface(context, ref, dirId: widget.dirId, file: file),
+    onDetails: (file) => showFileDetailsDialog(
+      context: context,
+      file: file,
+      displayName: ref
+          .read(filesNotifierProvider(widget.dirId))
+          .displayName(file),
+    ),
     onSelect: (file) => _notifier.enterSelectionMode(file.id),
   );
 
-  /// Open the file menu. [anchor] is the point the gesture came from — a
-  /// kebab, right-click or long-press — and null for a row tap, which is
-  /// what tells the platform layer whether a pointer menu is appropriate.
   void _showFileMenu(FileItem file, [Offset? anchor]) {
     if (_busy) return;
-    final state = ref.read(filesNotifierProvider(widget.dirId));
-    showFileActionsSheet(
+    showFilesRowMenu(
       context: context,
+      ref: ref,
+      dirId: widget.dirId,
       file: file,
-      displayName: state.displayName(file),
-      isOffline: state.offlineFileIds.contains(file.id),
       callbacks: _menuCallbacks,
       sharingEnabled: _sharingEnabled,
       anchor: anchor,
@@ -409,11 +368,15 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     } else if (file.isDir) {
       context.push('/files/${file.id}', extra: state.displayName(file));
     } else if (isPreviewable(file)) {
-      _openPreview(file);
+      openFilesPreview(
+        context: context,
+        ref: ref,
+        dirId: widget.dirId,
+        file: file,
+        onSnack: _showSnack,
+      );
     } else if (isTouchPlatform) {
-      // A phone has no kebab-on-hover and no right-click, so the row itself
-      // has to be the way in. On desktop both exist, and a click that opens
-      // a menu the user didn't ask for is just noise.
+      // Phones have no hover kebab; the row is the menu.
       _showFileMenu(file);
     }
   }
@@ -431,8 +394,6 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     _showSnack(result.message, result.type);
   }
 
-  /// Run an async mutation inside a "busy" scope so the backdrop
-  /// blocks stacking inputs while the operation is in flight.
   Future<void> _runBusy(Future<FilesActionResult> Function() task) async {
     setState(() => _busy = true);
     try {
@@ -444,9 +405,6 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     }
   }
 
-  /// What this listing contributes to the window title: null on the root
-  /// (the shell falls back to the branch label) and the decrypted folder
-  /// name below it.
   String? get _branchTitle {
     if (widget.dirId == null) return null;
     if (widget.dirId == sharedWithMeDirId) return sharedWithMeDirName;
@@ -483,6 +441,8 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
         onExitSelection: _notifier.exitSelectionMode,
         onMoveSelected: _moveSelected,
         onDeleteSelected: _deleteSelected,
+        onExportSelected: _exportSelected,
+        onMakeOfflineSelected: _offlineSelected,
         onEnterSelection: _notifier.enterEmptySelectionMode,
         onCreate: _openCreateSheet,
         onSortFieldSelected: _notifier.toggleSort,

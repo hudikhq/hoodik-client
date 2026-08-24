@@ -8,6 +8,7 @@ import '../utils/l10n_lookup.dart';
 import '../utils/logger.dart';
 import 'chunk_download_pipeline.dart';
 import 'chunk_download_transport.dart';
+import 'file_downloader_pin.dart';
 import 'offline_manager.dart';
 import 'tar_fallback.dart';
 import 'transfer_errors.dart';
@@ -61,7 +62,16 @@ class FileDownloader {
        _tarCapabilityCache = tarCapabilityCache,
        _chunkDownloadTransport = chunkDownloadTransport,
        _directTransfer = directTransfer,
-       _accountId = accountId;
+       _accountId = accountId {
+    _offlineManager?.activeTransferIds = () {
+      final ids = <String>{};
+      for (final t in _transferManager?.activeTransfers ?? const []) {
+        final id = t.fileId;
+        if (id != null) ids.add(id);
+      }
+      return ids;
+    };
+  }
 
   /// Whether [ChunkDownloadPipeline] can run — requires the offline store
   /// for chunk placement, the capability cache for tar fallback, and a
@@ -218,6 +228,7 @@ class FileDownloader {
     required String outputPath,
     String? displayName,
     Future<void> Function()? onComplete,
+    void Function(String error)? onError,
   }) {
     final totalChunks = file.chunks ?? 1;
     final totalBytes = file.size ?? 0;
@@ -240,6 +251,7 @@ class FileDownloader {
         totalChunks: totalChunks,
         totalBytes: totalBytes,
         onComplete: onComplete,
+        onError: onError,
       );
       return;
     }
@@ -259,6 +271,7 @@ class FileDownloader {
       displayName: name,
       transferItem: transferItem,
       onComplete: onComplete,
+      onError: onError,
     );
   }
 
@@ -301,8 +314,12 @@ class FileDownloader {
           return;
         }
 
-        await _pinOfflineMainThread(
-          file,
+        await pinOfflineOnMainThread(
+          client: _client,
+          offlineManager: _offlineManager,
+          accountId: _accountId,
+          transferManager: _transferManager,
+          file: file,
           chunksPath: await _offlineManager.chunksDir(_accountId, file.id),
           totalChunks: totalChunks,
           totalBytes: totalBytes,
@@ -331,6 +348,7 @@ class FileDownloader {
     String? displayName,
     TransferItem? transferItem,
     Future<void> Function()? onComplete,
+    void Function(String error)? onError,
   }) async {
     final totalChunks = file.chunks ?? 1;
     final totalBytes = file.size ?? 0;
@@ -368,58 +386,6 @@ class FileDownloader {
           transferItem.id,
           e.toString().replaceFirst('Exception: ', ''),
         );
-      }
-    }
-  }
-
-  Future<void> _pinOfflineMainThread(
-    FileItem file, {
-    required String chunksPath,
-    required int totalChunks,
-    required int totalBytes,
-    bool pinned = true,
-    TransferItem? transferItem,
-    void Function()? onComplete,
-    void Function(String error)? onError,
-  }) async {
-    try {
-      await _client.ensureFreshSession();
-      for (var i = 0; i < totalChunks; i++) {
-        final encryptedChunk = await _client.files.downloadChunk(
-          fileId: file.id,
-          chunk: i,
-        );
-        final dir = Directory(chunksPath);
-        if (!await dir.exists()) await dir.create(recursive: true);
-        final chunkPath = '$chunksPath/${i.toString().padLeft(6, '0')}.enc';
-        await File(chunkPath).writeAsBytes(encryptedChunk);
-
-        if (transferItem != null) {
-          final transferred = (totalBytes * (i + 1) / totalChunks).round();
-          _transferManager?.updateProgress(
-            transferItem.id,
-            completedChunks: i + 1,
-            transferredBytes: transferred,
-          );
-        }
-      }
-
-      await _offlineManager!.registerChunks(
-        accountId: _accountId!,
-        fileId: file.id,
-        chunksDir: chunksPath,
-        chunkCount: totalChunks,
-        pinned: pinned,
-      );
-
-      if (transferItem != null) {
-        _transferManager?.completeTransfer(transferItem.id);
-      }
-
-      onComplete?.call();
-    } catch (e) {
-      if (transferItem != null) {
-        _transferManager?.failTransfer(transferItem.id, e.toString());
       }
       onError?.call(e.toString());
     }

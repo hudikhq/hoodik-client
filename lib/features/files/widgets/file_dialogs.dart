@@ -97,6 +97,80 @@ Future<bool> confirmLeaveShare({
   return result ?? false;
 }
 
+Future<bool> confirmBulkExport({
+  required BuildContext context,
+  required int fileCount,
+  required int folderCount,
+  required bool isLarge,
+}) {
+  final l10n = AppLocalizations.of(context);
+  return _confirmBulk(
+    context: context,
+    title: l10n.filesExportBulkTitle(fileCount),
+    body: _bulkBody(
+      l10n.filesExportBulkBody,
+      folderCount: folderCount,
+      isLarge: isLarge,
+      large: l10n.filesBulkLargeExport,
+      foldersSkipped: l10n.filesBulkFoldersSkipped,
+    ),
+    confirmLabel: l10n.filesExport,
+  );
+}
+
+Future<bool> confirmBulkOffline({
+  required BuildContext context,
+  required int fileCount,
+  required int folderCount,
+  required bool isLarge,
+}) {
+  final l10n = AppLocalizations.of(context);
+  return _confirmBulk(
+    context: context,
+    title: l10n.filesOfflineBulkTitle(fileCount),
+    body: _bulkBody(
+      l10n.filesOfflineBulkBody,
+      folderCount: folderCount,
+      isLarge: isLarge,
+      large: l10n.filesBulkLargeDownload,
+      foldersSkipped: l10n.filesBulkFoldersSkipped,
+    ),
+    confirmLabel: l10n.commonDownload,
+  );
+}
+
+String _bulkBody(
+  String lead, {
+  required int folderCount,
+  required bool isLarge,
+  required String large,
+  required String Function(int count) foldersSkipped,
+}) {
+  final parts = <String>[lead];
+  if (folderCount > 0) parts.add(foldersSkipped(folderCount));
+  if (isLarge) parts.add(large);
+  return parts.join('\n\n');
+}
+
+Future<bool> _confirmBulk({
+  required BuildContext context,
+  required String title,
+  required String body,
+  required String confirmLabel,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final result = await showAdaptiveAlert<bool>(
+    context: context,
+    title: title,
+    content: body,
+    actions: [
+      AdaptiveDialogAction(label: l10n.commonCancel, value: false),
+      AdaptiveDialogAction(label: confirmLabel, value: true),
+    ],
+  );
+  return result ?? false;
+}
+
 /// Show file detail information in a dialog.
 void showFileDetailsDialog({
   required BuildContext context,
@@ -127,9 +201,6 @@ void showFileDetailsDialog({
               formatFileDate(file.createdAt),
             ),
             _detailRow(ctx, l10n.filesIdLabel, file.id),
-            // No digest row: the stored value is a keyed tag, not a digest a
-            // user could compare against a local file. Finding a file BY its
-            // digest still works — paste it into search.
           ],
         ),
         actions: [

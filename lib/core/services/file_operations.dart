@@ -211,12 +211,14 @@ class FileOperations {
     required String outputPath,
     String? displayName,
     Future<void> Function()? onComplete,
+    void Function(String error)? onError,
   }) => _downloader.downloadFileToDisk(
     file,
     fileKey: fileKey,
     outputPath: outputPath,
     displayName: displayName,
     onComplete: onComplete,
+    onError: onError,
   );
 
   /// [silent] marks a fetch the user did not ask for — opening a note or a

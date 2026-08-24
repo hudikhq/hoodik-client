@@ -1,10 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-
 import '../../../core/api/api_client.dart';
+import '../../../core/services/plaintext_temp.dart';
 
 /// Fingerprint derived from file metadata to detect changes.
 ///
@@ -85,9 +83,10 @@ class PreviewCache {
     String extension,
   ) async {
     _evict(file.id);
-    final dir = await getTemporaryDirectory();
-    if (!dir.existsSync()) await dir.create(recursive: true);
-    final tempPath = p.join(dir.path, 'hoodik_preview_${file.id}.$extension');
+    final tempPath = await plaintextTempPath(
+      fileId: file.id,
+      basename: 'preview.$extension',
+    );
     await File(tempPath).writeAsBytes(bytes);
 
     _entries[file.id] = _CacheEntry(

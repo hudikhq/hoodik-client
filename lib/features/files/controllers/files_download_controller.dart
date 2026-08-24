@@ -5,22 +5,19 @@ import 'dart:io' show File, Platform;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
+import '../../../core/services/plaintext_temp.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../helpers/file_helpers.dart';
 import '../providers/files_notifier.dart';
 import 'files_action_result.dart';
 
 /// Handles the export/download flow. On mobile the file is staged in
-/// the temp directory and handed to the share sheet; on desktop the
-/// user picks a destination via [FilePicker.saveFile] with a sensible
-/// fallback to the Downloads directory. The actual decrypt-and-stream
-/// work is delegated to [FileOperations.downloadFileToDisk].
+/// `hoodik_plaintext/` and handed to the share sheet; on desktop the
+/// user picks a destination via [FilePicker.saveFile].
 class FilesDownloadController {
   final Ref _ref;
   final String? _dirId;
@@ -59,8 +56,7 @@ class FilesDownloadController {
 
     String savePath;
     if (isMobile) {
-      final tmpDir = await getTemporaryDirectory();
-      savePath = p.join(tmpDir.path, fileName);
+      savePath = await plaintextTempPath(fileId: file.id, basename: fileName);
     } else {
       final picked = await FilePicker.platform.saveFile(
         dialogTitle: ambientL10n.filesSaveFileDialogTitle,

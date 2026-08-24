@@ -1,7 +1,5 @@
 import 'dart:io';
-
-import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as p;
+import 'dart:typed_data';
 
 import '../../src/rust/api.dart' as rust;
 import '../api/api_client.dart';
@@ -9,6 +7,8 @@ import '../crypto/file_crypto.dart';
 import '../storage/database.dart';
 import '../utils/log_redact.dart';
 import '../utils/logger.dart';
+import 'chunk_decrypt_memory.dart';
+import 'chunk_decrypt_to_output.dart';
 import 'chunk_download_runner.dart';
 import 'chunk_download_transport.dart';
 import 'transfer_errors.dart';
@@ -176,6 +176,7 @@ class ChunkDownloadPipeline {
     required int totalChunks,
     required int totalBytes,
     Future<void> Function()? onComplete,
+    void Function(String error)? onError,
   }) {
     () async {
       try {
@@ -186,14 +187,15 @@ class ChunkDownloadPipeline {
           totalBytes: totalBytes,
           outputPath: outputPath,
         );
-        await _decryptChunksToOutput(
-          file,
+        await decryptChunksToOutput(
+          file: file,
           fileKey: fileKey,
           outputPath: outputPath,
           chunksPath: chunksPath,
           displayName: displayName,
           totalChunks: totalChunks,
           totalBytes: totalBytes,
+          transferManager: _transferManager,
           onComplete: onComplete,
         );
       } catch (e) {
@@ -201,6 +203,7 @@ class ChunkDownloadPipeline {
           'download setup failed',
           fields: {'file_id': file.id, 'error': describeError(e)},
         );
+        onError?.call(e.toString().replaceFirst('Exception: ', ''));
       }
     }();
   }
@@ -229,34 +232,12 @@ class ChunkDownloadPipeline {
       silent: silent,
     );
     onProgress?.call(1.0);
-
-    // Straight to a temporary file and back rather than a decrypt-to-memory
-    // FFI: the Rust side already streams chunk by chunk into a file, so this
-    // holds one plaintext copy instead of one per chunk plus the joined
-    // result.
-    final scratch = File(
-      p.join(Directory.systemTemp.path, 'hoodik-decrypt-${file.id}'),
+    return decryptChunksToMemory(
+      chunksPath: chunksPath,
+      file: file,
+      fileKey: fileKey,
+      totalChunks: totalChunks,
     );
-    try {
-      await rust.decryptChunksToFile(
-        chunksDir: chunksPath,
-        chunkCount: BigInt.from(totalChunks),
-        decryptionKey: fileKey,
-        cipher: file.cipher,
-        outputPath: scratch.path,
-        fileId: file.id,
-      );
-      return await scratch.readAsBytes();
-    } finally {
-      if (await scratch.exists()) {
-        try {
-          await scratch.delete();
-        } catch (_) {
-          // A leftover in the system temp dir is the OS's problem, not a
-          // reason to fail a read that already succeeded.
-        }
-      }
-    }
   }
 
   /// Finish the downloads a previous session started that the OS is no longer
@@ -488,59 +469,6 @@ class ChunkDownloadPipeline {
       accountId: _accountId,
       fileId: fileId,
     );
-  }
-
-  Future<void> _decryptChunksToOutput(
-    FileItem file, {
-    required Uint8List fileKey,
-    required String outputPath,
-    required String chunksPath,
-    required String displayName,
-    required int totalChunks,
-    required int totalBytes,
-    Future<void> Function()? onComplete,
-  }) async {
-    final decryptItem = _transferManager?.startTransfer(
-      fileName: displayName,
-      type: TransferType.downloadDecrypt,
-      totalBytes: totalBytes,
-      totalChunks: totalChunks,
-      fileId: file.id,
-    );
-
-    try {
-      final decryptStart = DateTime.now();
-      await rust.decryptChunksToFile(
-        chunksDir: chunksPath,
-        chunkCount: BigInt.from(totalChunks),
-        decryptionKey: fileKey,
-        cipher: file.cipher,
-        outputPath: outputPath,
-        fileId: file.id,
-      );
-      final decryptDuration = DateTime.now().difference(decryptStart);
-      _log.debug(
-        'chunk decrypt done',
-        fields: {
-          'file_id': file.id,
-          'duration_ms': decryptDuration.inMilliseconds,
-        },
-      );
-
-      if (decryptItem != null) {
-        _transferManager?.completeTransfer(decryptItem.id);
-      }
-    } catch (e) {
-      if (decryptItem != null) {
-        _transferManager?.failTransfer(
-          decryptItem.id,
-          e.toString().replaceFirst('Exception: ', ''),
-        );
-      }
-      rethrow;
-    }
-
-    await onComplete?.call();
   }
 
   void _logDownloadTiming({

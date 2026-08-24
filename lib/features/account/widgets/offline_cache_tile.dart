@@ -3,15 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/services/offline_cache_lru.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/widgets/app_icons.dart';
+import 'offline_cache_limit_picker.dart';
 
 /// Displays the size of the offline cache for the active account and lets
-/// the user clear it. Owns its own size/count state so the parent screen
-/// doesn't have to thread them through build.
+/// the user set the size cap or clear it. Owns its own size/count state so
+/// the parent screen doesn't have to thread them through build.
 class OfflineCacheTile extends ConsumerStatefulWidget {
   const OfflineCacheTile({super.key});
 
@@ -37,6 +39,9 @@ class _OfflineCacheTileState extends ConsumerState<OfflineCacheTile> {
           _loadCacheStats();
         }
       });
+      ref.listenManual(offlineManagerProvider, (prev, next) {
+        _loadCacheStats();
+      });
     });
   }
 
@@ -52,6 +57,28 @@ class _OfflineCacheTileState extends ConsumerState<OfflineCacheTile> {
         _cacheFileCount = count;
       });
     }
+  }
+
+  Future<void> _pickLimit() async {
+    final account = ref.read(activeAccountProvider);
+    if (account == null) return;
+    final picked = await pickOfflineCacheLimit(
+      context: context,
+      current: account.cacheLimitBytes,
+    );
+    if (picked == null ||
+        picked == (account.cacheLimitBytes ?? kDefaultCacheLimitBytes)) {
+      return;
+    }
+
+    final db = ref.read(databaseProvider);
+    await db.setCacheLimitBytes(account.id, picked);
+    final updated = await db.getAccountById(account.id);
+    if (updated != null) {
+      ref.read(activeAccountProvider.notifier).state = updated;
+    }
+    await ref.read(offlineManagerProvider).enforceLimit(account.id);
+    if (mounted) await _loadCacheStats();
   }
 
   Future<void> _clearOfflineCache() async {
@@ -91,10 +118,19 @@ class _OfflineCacheTileState extends ConsumerState<OfflineCacheTile> {
     );
   }
 
+  String _subtitle(AppLocalizations l10n, int? cacheLimitBytes) {
+    if (_cacheFileCount == 0) return l10n.accountOfflineNoFiles;
+    final used = fmt.formatBytes(_cacheSize);
+    final limit = resolvedCacheLimitBytes(cacheLimitBytes);
+    if (limit == null) return l10n.accountOfflineCacheUnlimited(used);
+    return l10n.accountOfflineCacheOfLimit(used, fmt.formatBytes(limit));
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final account = ref.watch(activeAccountProvider);
     final hasFiles = _cacheFileCount > 0;
 
     return AdaptiveListTile(
@@ -106,21 +142,22 @@ class _OfflineCacheTileState extends ConsumerState<OfflineCacheTile> {
         color: hasFiles ? theme.colorScheme.tertiary : null,
       ),
       title: Text(l10n.accountOfflineCacheTitle),
-      subtitle: Text(
-        hasFiles
-            ? l10n.accountOfflineCacheStats(
-                _cacheFileCount,
-                fmt.formatBytes(_cacheSize),
-              )
-            : l10n.accountOfflineNoFiles,
-      ),
-      trailing: hasFiles
-          ? AdaptiveTextButton(
+      subtitle: Text(_subtitle(l10n, account?.cacheLimitBytes)),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AdaptiveTextButton(
+            onPressed: _pickLimit,
+            child: Text(cacheLimitLabel(l10n, account?.cacheLimitBytes)),
+          ),
+          if (hasFiles)
+            AdaptiveTextButton(
               onPressed: _clearOfflineCache,
               isDestructive: true,
               child: Text(l10n.accountClear),
-            )
-          : null,
+            ),
+        ],
+      ),
     );
   }
 }

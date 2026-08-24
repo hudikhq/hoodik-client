@@ -603,11 +603,10 @@ final previewCacheProvider = Provider<PreviewCache>((ref) {
   return cache;
 });
 
-/// Manages encrypted offline file storage. Files are re-encrypted on disk
-/// with their per-file key so only the account owner can read them.
-///
-/// All downloaded files are cached indefinitely. Users can clear the cache
-/// manually from Account Settings.
+/// Encrypted-chunk offline cache. Unpinned files (preview, export, upload
+/// leftovers) are evicted when the account is over its size cap (default
+/// 8 GB). Pinned files stay until the user clears the cache; nothing is
+/// deleted on app exit. The cap is set in Account Settings.
 final offlineManagerProvider = ChangeNotifierProvider<OfflineManager>((ref) {
   return OfflineManager(ref.watch(databaseProvider));
 });

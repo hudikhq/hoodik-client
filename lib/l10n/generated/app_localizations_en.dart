@@ -452,6 +452,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountOfflineCacheTitle => 'Offline Cache';
 
   @override
+  String accountOfflineCacheOfLimit(String used, String limit) {
+    return '$used of $limit';
+  }
+
+  @override
+  String accountOfflineCacheUnlimited(String used) {
+    return '$used · Unlimited';
+  }
+
+  @override
+  String get accountCacheLimitTitle => 'Cache limit';
+
+  @override
+  String get accountCacheLimit2Gb => '2 GB';
+
+  @override
+  String get accountCacheLimit8Gb => '8 GB';
+
+  @override
+  String get accountCacheLimit32Gb => '32 GB';
+
+  @override
+  String get accountCacheLimitUnlimited => 'Unlimited';
+
+  @override
   String get accountOfflineClearBody =>
       'This will remove all offline copies of your files from this device. Your files on the server are not affected.';
 
@@ -1368,6 +1393,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String filesAvailableOfflineCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files available offline',
+      one: '1 file available offline',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String filesAvailableOfflinePartial(int ok, int total) {
+    return '$ok of $total files available offline';
+  }
+
+  @override
   String filesCacheFailed(String error) {
     return 'Failed to cache: $error';
   }
@@ -1515,6 +1556,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filesExport => 'Export';
 
   @override
+  String get filesExportBulkBody =>
+      'Each file will be downloaded and decrypted first. This can take a while, and you can pick where to send them once all the files are ready.';
+
+  @override
+  String filesExportBulkTitle(int count) {
+    return 'Export $count files?';
+  }
+
+  @override
+  String get filesExportedNone => 'Couldn\'t export any files';
+
+  @override
+  String filesExportedPartial(int success, int total) {
+    return 'Exported $success of $total files';
+  }
+
+  @override
+  String filesBulkFoldersSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count folders will be skipped.',
+      one: '1 folder will be skipped.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get filesBulkLargeExport =>
+      'This is a large export and may take several minutes.';
+
+  @override
+  String get filesBulkLargeDownload =>
+      'This is a large download and may take several minutes.';
+
+  @override
   String filesExportFailed(String error) {
     return 'Export failed: $error';
   }
@@ -1608,6 +1685,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filesMakeAvailableOffline => 'Make Available Offline';
+
+  @override
+  String get filesOfflineBulkBody =>
+      'Encrypted copies will download to this device. This can take a while. Files that are already offline are left as they are.';
+
+  @override
+  String filesOfflineBulkTitle(int count) {
+    return 'Make $count files available offline?';
+  }
+
+  @override
+  String get filesOfflineNone => 'Nothing to make available offline';
 
   @override
   String get filesMembers => 'Members';
@@ -1726,6 +1815,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filesSelect => 'Select';
+
+  @override
+  String get filesSelectAll => 'Select all';
 
   @override
   String get filesSelectFilesTooltip => 'Select files';

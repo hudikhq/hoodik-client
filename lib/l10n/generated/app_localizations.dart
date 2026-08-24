@@ -858,6 +858,48 @@ abstract class AppLocalizations {
   /// **'Offline Cache'**
   String get accountOfflineCacheTitle;
 
+  /// No description provided for @accountOfflineCacheOfLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {limit}'**
+  String accountOfflineCacheOfLimit(String used, String limit);
+
+  /// No description provided for @accountOfflineCacheUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} · Unlimited'**
+  String accountOfflineCacheUnlimited(String used);
+
+  /// No description provided for @accountCacheLimitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache limit'**
+  String get accountCacheLimitTitle;
+
+  /// No description provided for @accountCacheLimit2Gb.
+  ///
+  /// In en, this message translates to:
+  /// **'2 GB'**
+  String get accountCacheLimit2Gb;
+
+  /// No description provided for @accountCacheLimit8Gb.
+  ///
+  /// In en, this message translates to:
+  /// **'8 GB'**
+  String get accountCacheLimit8Gb;
+
+  /// No description provided for @accountCacheLimit32Gb.
+  ///
+  /// In en, this message translates to:
+  /// **'32 GB'**
+  String get accountCacheLimit32Gb;
+
+  /// No description provided for @accountCacheLimitUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited'**
+  String get accountCacheLimitUnlimited;
+
   /// No description provided for @accountOfflineClearBody.
   ///
   /// In en, this message translates to:
@@ -2466,6 +2508,18 @@ abstract class AppLocalizations {
   /// **'{name} available offline'**
   String filesAvailableOffline(String name);
 
+  /// No description provided for @filesAvailableOfflineCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 file available offline} other{{count} files available offline}}'**
+  String filesAvailableOfflineCount(int count);
+
+  /// No description provided for @filesAvailableOfflinePartial.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} of {total} files available offline'**
+  String filesAvailableOfflinePartial(int ok, int total);
+
   /// No description provided for @filesCacheFailed.
   ///
   /// In en, this message translates to:
@@ -2694,6 +2748,48 @@ abstract class AppLocalizations {
   /// **'Export'**
   String get filesExport;
 
+  /// No description provided for @filesExportBulkBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Each file will be downloaded and decrypted first. This can take a while, and you can pick where to send them once all the files are ready.'**
+  String get filesExportBulkBody;
+
+  /// No description provided for @filesExportBulkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export {count} files?'**
+  String filesExportBulkTitle(int count);
+
+  /// No description provided for @filesExportedNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t export any files'**
+  String get filesExportedNone;
+
+  /// No description provided for @filesExportedPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported {success} of {total} files'**
+  String filesExportedPartial(int success, int total);
+
+  /// No description provided for @filesBulkFoldersSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 folder will be skipped.} other{{count} folders will be skipped.}}'**
+  String filesBulkFoldersSkipped(int count);
+
+  /// No description provided for @filesBulkLargeExport.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a large export and may take several minutes.'**
+  String get filesBulkLargeExport;
+
+  /// No description provided for @filesBulkLargeDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a large download and may take several minutes.'**
+  String get filesBulkLargeDownload;
+
   /// No description provided for @filesExportFailed.
   ///
   /// In en, this message translates to:
@@ -2825,6 +2921,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Make Available Offline'**
   String get filesMakeAvailableOffline;
+
+  /// No description provided for @filesOfflineBulkBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted copies will download to this device. This can take a while. Files that are already offline are left as they are.'**
+  String get filesOfflineBulkBody;
+
+  /// No description provided for @filesOfflineBulkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make {count} files available offline?'**
+  String filesOfflineBulkTitle(int count);
+
+  /// No description provided for @filesOfflineNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to make available offline'**
+  String get filesOfflineNone;
 
   /// No description provided for @filesMembers.
   ///
@@ -3023,6 +3137,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select'**
   String get filesSelect;
+
+  /// No description provided for @filesSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get filesSelectAll;
 
   /// No description provided for @filesSelectFilesTooltip.
   ///

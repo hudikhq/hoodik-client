@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,9 +16,10 @@ import 'core/storage/no_backup.dart';
 import 'core/theme/hoodik_theme.dart';
 import 'core/utils/app_session.dart';
 import 'core/utils/bundled_licenses.dart';
-import 'core/utils/log_file_sink.dart';
+import 'core/utils/log_bootstrap.dart';
 import 'core/utils/log_redact.dart';
 import 'core/utils/logger.dart';
+import 'core/services/plaintext_temp.dart';
 import 'package:intl/intl.dart' show Intl;
 import 'core/widgets/adaptive.dart';
 import 'core/widgets/keyboard_dismiss.dart';
@@ -53,26 +53,8 @@ Future<void> main() async {
 
   registerBundledEditorLicenses();
 
-  // Every build writes to the rotating on-disk sink so the Privacy &
-  // Diagnostics export always has something to show — this matters in
-  // debug as much as in release, because macOS devs running the app from
-  // `flutter run` still need to reproduce the bug-report flow. Debug
-  // builds additionally mirror records to stdout for live tailing.
-  final sinks = <LogSink>[];
-  if (kDebugMode) {
-    sinks.add(stdoutLogSink);
-  }
-  try {
-    final fileSink = await LogFileSink.open();
-    sinks.add(fileSink.record);
-    unawaited(fileSink.pruneOlderThan(const Duration(days: 3)));
-  } catch (_) {
-    // Best-effort — never block app start on a logging failure.
-  }
-  configureLogging(
-    minLevel: kDebugMode ? Level.debug : Level.info,
-    sinks: sinks,
-  );
+  await bootstrapLogging();
+  unawaited(sweepPlaintextTemp());
 
   // Transfers the OS is still carrying are deliberately left alone here.
   // There is no account yet to judge them against, and cancelling on every
