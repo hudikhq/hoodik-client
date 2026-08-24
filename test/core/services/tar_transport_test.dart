@@ -66,6 +66,36 @@ void main() {
       );
     });
 
+    test('a throwing reader does not kill the poll silently', () async {
+      // How this hid for a day: the binding decoded its return wrong, so every
+      // read threw, and a throw inside a Timer.periodic callback goes to the
+      // zone. No error, no log, a bar at zero — indistinguishable from a
+      // progress hook nobody had wired.
+      var calls = 0;
+      final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
+        backend: _FakeDownloadBackend(),
+        stagingTarPath: stagingPath,
+        readProgress: (_) {
+          calls++;
+          throw StateError('binding decodes wrong');
+        },
+      );
+
+      final seen = <(int, int)>[];
+      final poll = transport.pollProgress(
+        fileId: 'file-123',
+        chunkCount: 4,
+        onProgress: (chunks, bytes) => seen.add((chunks, bytes)),
+        every: const Duration(milliseconds: 1),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 15));
+      poll.cancel();
+
+      expect(calls, greaterThan(1), reason: 'the timer keeps running');
+      expect(seen, isEmpty, reason: 'nothing is invented from a failed read');
+    });
+
     test(
       'a transfer with no counters yet reports nothing rather than zero',
       () async {

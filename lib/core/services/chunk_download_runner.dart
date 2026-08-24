@@ -88,10 +88,6 @@ class ChunkDownloadRunner {
     }
 
     if (_tarCapabilityCache.lookup(baseUrl) == false) {
-      _log.info(
-        'downloading per chunk — the server does not offer the archive',
-        fields: {'file_id': fileId, 'chunks': chunkCount},
-      );
       await _transport.downloadPerChunk(
         baseUrl: baseUrl,
         cookie: cookie,
@@ -107,10 +103,6 @@ class ChunkDownloadRunner {
     }
 
     try {
-      _log.info(
-        'downloading as one archive',
-        fields: {'file_id': fileId, 'chunks': chunkCount},
-      );
       await _transport.downloadAsTar(
         baseUrl: baseUrl,
         cookie: cookie,
