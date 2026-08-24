@@ -15,6 +15,48 @@ void main() {
   const chunkCount = 3;
 
   group('BinaryUploadRunner', () {
+    /// A server with the archive switched off answers `?format=tar` with 501.
+    /// Reading that from the capability and withholding the probe is what
+    /// keeps an upload from spending a refused request on every file — and
+    /// what kept the refusal off the user's screen, back when the fallback
+    /// could not recognise it.
+    test('a server that will not serve archives is never probed', () async {
+      final transport = FakeUploadTarTransport();
+      var perChunkInvocations = 0;
+
+      final usedTar = await BinaryUploadRunner(tarTransport: transport).run(
+        baseUrl: baseUrl,
+        transferToken: transferToken,
+        fileId: fileId,
+        stagingDir: stagingDir,
+        chunkCount: chunkCount,
+        tarSupported: false,
+        perChunk: () async => perChunkInvocations++,
+      );
+
+      expect(usedTar, isFalse);
+      expect(transport.calls, isEmpty, reason: 'no archive is packed or sent');
+      expect(perChunkInvocations, equals(1));
+    });
+
+    /// The default stays a probe. A server that advertises nothing either way
+    /// is the common case, and one upgraded between uploads has to be picked
+    /// up without a restart — which is why this leg caches no verdict.
+    test('a server that says nothing is still probed', () async {
+      final transport = FakeUploadTarTransport();
+
+      await BinaryUploadRunner(tarTransport: transport).run(
+        baseUrl: baseUrl,
+        transferToken: transferToken,
+        fileId: fileId,
+        stagingDir: stagingDir,
+        chunkCount: chunkCount,
+        perChunk: () async => fail('per-chunk must not run on tar success'),
+      );
+
+      expect(transport.calls, hasLength(1));
+    });
+
     test('happy path: tar succeeds and per-chunk is not invoked', () async {
       final transport = FakeUploadTarTransport();
       var perChunkInvocations = 0;

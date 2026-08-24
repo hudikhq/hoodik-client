@@ -281,15 +281,27 @@ e2e-compat-matrix:
 e2e-compat-clean:
     @./scripts/compat/teardown.sh
 
-# Prove the direct-transfer path against a real bucket protocol: the paired
-# hoodik server built from ../hoodik with presigned URLs on, and the live
-# round-trip test (register → direct upload → finalize → direct download →
-# byte-for-byte compare). Defaults to a MinIO the hoodik compose file
-# provides; export S3_* first (e.g. `set -a; source ../secrets/r2-testing.env;
-# set +a; S3_PREFIX=ci-live/ just e2e-direct`) to run the same thing against
-# a real bucket. Requires docker for the MinIO default and the ../hoodik
-# checkout either way. Refuses to start while something else holds :5443.
-e2e-direct:
+# Prove a transfer end to end against a real bucket protocol, on whichever
+# leg the server offers: the paired hoodik server built from ../hoodik, and
+# the live round trip (register → upload → finalize → download → byte-for-byte
+# compare).
+#
+# A file's bytes move one of three ways and the server picks which, so each
+# mode boots a server configured for one of them:
+#
+#   direct  presigned URLs — the bytes never touch the server
+#   tar     one archive through the server
+#   chunk   a request per chunk
+#
+# Every transfer bug this repo has shipped lived in whichever leg nothing
+# exercised, so all three run rather than the fastest one.
+#
+# Defaults to a MinIO the hoodik compose file provides; export S3_* first
+# (e.g. `set -a; source ../secrets/r2-testing.env; set +a; S3_PREFIX=ci-live/
+# just e2e-transfer direct`) to run the same thing against a real bucket.
+# Requires docker for the MinIO default and the ../hoodik checkout either way.
+# Refuses to start while something else holds :5443.
+e2e-transfer mode="direct":
     #!/usr/bin/env bash
     set -euo pipefail
     HOODIK=../hoodik
@@ -312,8 +324,16 @@ e2e-direct:
 
     (cd "$HOODIK" && cargo build --bin hoodik --release)
 
+    case "{{mode}}" in
+        direct) DIRECT=true;  TAR_OFF=false ;;
+        tar)    DIRECT=false; TAR_OFF=false ;;
+        chunk)  DIRECT=false; TAR_OFF=true  ;;
+        *) echo "unknown mode '{{mode}}' — use direct, tar or chunk" >&2; exit 2 ;;
+    esac
+
     DATA=$(mktemp -d)
-    STORAGE_PROVIDER=s3 S3_DIRECT_TRANSFER=true S3_DIRECT_ALLOW_INSECURE=true \
+    STORAGE_PROVIDER=s3 S3_DIRECT_TRANSFER=$DIRECT S3_DIRECT_ALLOW_INSECURE=true \
+    TAR_TRANSFER_DISABLED=$TAR_OFF \
     DATA_DIR="$DATA" DATABASE_URL="sqlite:$DATA/sqlite.db?mode=rwc" \
     SSL_DISABLED=true APP_URL=http://localhost:5443 APP_CLIENT_URL=http://localhost:5443 \
     MAILER_TYPE=none RUST_LOG=error \
@@ -326,9 +346,22 @@ e2e-direct:
         curl -fsS http://127.0.0.1:5443/api/liveness >/dev/null 2>&1 && break
         sleep 1
     done
-    if ! curl -fsS http://127.0.0.1:5443/api/readiness | grep -q '"direct_transfer":true'; then
-        echo "server does not advertise direct transfer:" >&2
-        curl -s http://127.0.0.1:5443/api/readiness >&2 || true
+    # A server that came up in the wrong shape would run the same test on the
+    # wrong leg and pass, which is the one outcome worse than failing.
+    CAPS=$(curl -fsS http://127.0.0.1:5443/api/capabilities)
+    case "{{mode}}" in
+        direct) EXPECT='"direct_transfer":true' ;;
+        tar)    EXPECT='"tar_transfer":true' ;;
+        chunk)  EXPECT='"tar_transfer":false' ;;
+    esac
+    if ! grep -q "$EXPECT" <<<"$CAPS"; then
+        echo "server is not configured for {{mode}} (want $EXPECT):" >&2
+        echo "$CAPS" >&2
+        exit 1
+    fi
+    if [ "{{mode}}" != "direct" ] && grep -q '"direct_transfer":true' <<<"$CAPS"; then
+        echo "direct transfer is on, so {{mode}} would never run:" >&2
+        echo "$CAPS" >&2
         exit 1
     fi
 
@@ -337,8 +370,8 @@ e2e-direct:
     # skipped run here means the round trip proved nothing. Require at least
     # one pass.
     flutter test --dart-define=HOODIK_LIVE=1 --tags live \
-        test/live/direct_transfer_live_test.dart | tee /tmp/e2e-direct-app.log
-    grep -qE "\+[1-9][0-9]*" /tmp/e2e-direct-app.log || {
+        test/live/transfer_live_test.dart | tee /tmp/e2e-transfer-{{mode}}.log
+    grep -qE "\+[1-9][0-9]*" /tmp/e2e-transfer-{{mode}}.log || {
         echo "the live test did not actually run — check the skip reasons above" >&2
         exit 1
     }

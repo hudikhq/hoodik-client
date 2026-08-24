@@ -58,15 +58,26 @@ class _FakePinStorage extends SecurePinStorage {
   Future<bool> has(String accountId) async => false;
 }
 
-Future<bool> _directTransferServerIsUp() async {
+/// Which legs the server under test offers, or null when nothing answers.
+///
+/// The round trip has to hold on every one of them, and which runs is the
+/// server's choice: presigned URLs when it offers them, one archive when it
+/// does not, a request per chunk when it offers neither. Every bug this test
+/// exists to catch has lived in whichever leg CI was not running, so it
+/// asserts the transfer rather than the configuration.
+Future<({bool direct, bool tar})?> _serverLegs() async {
   final client = HttpClient()..connectionTimeout = const Duration(seconds: 2);
   try {
-    final req = await client.getUrl(Uri.parse('$_serverUrl/api/readiness'));
+    final req = await client.getUrl(Uri.parse('$_serverUrl/api/capabilities'));
     final resp = await req.close();
-    final body = await resp.transform(utf8.decoder).join();
-    return (jsonDecode(body) as Map)['direct_transfer'] == true;
+    final body = jsonDecode(await resp.transform(utf8.decoder).join()) as Map;
+    return (
+      direct: body['direct_transfer'] == true,
+      // Absent means a server from before the switch, and those all bundle.
+      tar: body['tar_transfer'] != false,
+    );
   } catch (_) {
-    return false;
+    return null;
   } finally {
     client.close(force: true);
   }
@@ -125,8 +136,13 @@ void main() {
         markTestSkipped('set --dart-define=HOODIK_LIVE=1 to run the live test');
         return;
       }
-      if (!await _directTransferServerIsUp()) {
-        markTestSkipped('no direct-transfer server at $_serverUrl');
+      final legs = await _serverLegs();
+      if (legs == null) {
+        markTestSkipped('no server at $_serverUrl');
+        return;
+      }
+      if (!legs.direct) {
+        markTestSkipped('server does not sign urls — the relay case covers it');
         return;
       }
 
@@ -245,6 +261,135 @@ void main() {
         // A live failure is a remote contract failure, and Dio's default
         // message says only that a status code was unexpected. Which call,
         // and what the server said about it, is the whole diagnosis.
+        fail(
+          '${e.requestOptions.method} ${e.requestOptions.path} '
+          '-> ${e.response?.statusCode}: ${e.response?.data}',
+        );
+      }
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
+
+  /// The same round trip on the legs where the bytes go through the server:
+  /// one archive, or a request per chunk. Which of the two runs is the
+  /// server's choice, and the client reads it from the capability rather than
+  /// finding out from a refusal.
+  ///
+  /// Worth its own case rather than a branch in the one above: that one is the
+  /// presigned contract end to end — sign, PUT to the bucket, finalize — and
+  /// none of those calls exist here. A server that relays has nothing to sign.
+  test(
+    'a file sent through the server comes back byte for byte',
+    () async {
+      if (!_optedIn) {
+        markTestSkipped('set --dart-define=HOODIK_LIVE=1 to run the live test');
+        return;
+      }
+      final legs = await _serverLegs();
+      if (legs == null) {
+        markTestSkipped('no server at $_serverUrl');
+        return;
+      }
+      if (legs.direct) {
+        markTestSkipped('server signs urls — the direct case covers it');
+        return;
+      }
+      // ignore: avoid_print
+      print('relay round trip with tar=${legs.tar}');
+
+      try {
+        final server = (await db.getAllServers()).single;
+        final account = await auth.register(
+          server: server,
+          email: 'relay-${DateTime.now().microsecondsSinceEpoch}@example.com',
+          password: 'correct-horse-battery-staple-9',
+        );
+
+        final client = auth.activeClient!;
+        final fileCrypto = FileCrypto(
+          privateKeyPem: auth.decryptedPrivateKey!,
+          wrappingPrivateKeyPem: auth.decryptedWrappingPrivateKey,
+          crypto: const CryptoService(),
+        );
+
+        const cipher = 'aegis128l';
+        final plaintext = Uint8List.fromList(
+          List.generate(4096, (i) => (i * 11 + 5) % 251),
+        );
+        final fileKey = fileCrypto.generateFileKey(cipher: cipher);
+        final ciphertext = fileCrypto.encryptChunk(
+          data: plaintext,
+          fileKey: fileKey,
+          cipher: cipher,
+          chunkIndex: 0,
+        );
+
+        const name = 'relay-upload-probe.bin';
+        final entry = await client.files.createFileEntry(
+          encryptedKey: fileCrypto.encryptFileKey(
+            fileKey: fileKey,
+            publicKeyPem: account.wrappingPublicKey ?? account.publicKey!,
+          ),
+          nameHash: fileCrypto.hashFileName(name),
+          encryptedName: fileCrypto.encryptFileName(
+            name: name,
+            fileKey: fileKey,
+            cipher: cipher,
+          ),
+          mime: 'application/octet-stream',
+          size: plaintext.length,
+          chunks: 1,
+          searchTokensRoot: fileCrypto.tokenizeForSearch(name),
+          searchTokensFile: fileCrypto.tokenizeForSearchWithFileKey(
+            fileKey,
+            name,
+          ),
+        );
+        final fileId = entry['id'] as String;
+
+        // A server that relays must not sign, and one that does would send the
+        // client down the other leg — so this is the load-bearing difference
+        // between the two cases, not a detail.
+        expect(
+          await client.files.fetchChunkUrls(fileId),
+          isNull,
+          reason: 'a relaying server must not hand out bucket urls',
+        );
+
+        await client.files.uploadChunk(
+          fileId: fileId,
+          chunk: 0,
+          data: ciphertext,
+        );
+
+        final stored = await client.files.getFileMetadata(fileId);
+        expect(
+          stored['finished_upload_at'],
+          isNotNull,
+          reason: 'the last chunk did not commit the file',
+        );
+
+        final fetched = await client.files.downloadChunk(
+          fileId: fileId,
+          chunk: 0,
+        );
+        expect(
+          fetched,
+          equals(ciphertext),
+          reason: 'server returned other bytes',
+        );
+        expect(
+          fileCrypto.decryptChunk(
+            data: fetched,
+            fileKey: fileKey,
+            cipher: cipher,
+            chunkIndex: 0,
+          ),
+          equals(plaintext),
+        );
+
+        await client.files.deleteFile(fileId);
+      } on DioException catch (e) {
         fail(
           '${e.requestOptions.method} ${e.requestOptions.path} '
           '-> ${e.response?.statusCode}: ${e.response?.data}',

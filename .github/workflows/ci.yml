@@ -5,8 +5,8 @@ on:
         branches: [main]
     pull_request:
         branches: [main]
-    # For live-direct-r2: an on-demand run of the direct-transfer round trip
-    # against the real R2 testing bucket instead of MinIO.
+    # For e2e-transfer-r2: an on-demand run of the round trip against the real
+    # R2 testing bucket instead of MinIO.
     workflow_dispatch:
 
 jobs:
@@ -125,9 +125,20 @@ jobs:
                     sleep 20
                   done
 
-    live-direct:
-        name: Direct transfer against MinIO
+    # A file's bytes reach the device one of three ways and the server picks
+    # which, so all three are booted and exercised. Every transfer bug this
+    # repo has shipped — a progress bar that never moved, an archive refusal
+    # that reached the user instead of falling back, an FFI binding that threw
+    # on every call — lived in whichever leg nothing here was running.
+    e2e-transfer:
+        name: Transfer round trip (${{ matrix.mode }}, MinIO)
         runs-on: ubuntu-latest
+        strategy:
+            # One failing leg must not cancel the others: which legs pass tells
+            # you where the fault is.
+            fail-fast: false
+            matrix:
+                mode: [direct, tar, chunk]
         steps:
             - uses: actions/checkout@v4
 
@@ -151,7 +162,10 @@ jobs:
                   workspaces: |
                       rust -> target
                       ../hoodik -> target
-                  key: live-direct
+                  # Shared across the matrix: the three legs differ only in how
+                  # the same binary is configured, so they must not each build
+                  # and cache their own copy of it.
+                  key: e2e-transfer
 
             - uses: awalsh128/cache-apt-pkgs-action@latest
               with:
@@ -167,15 +181,15 @@ jobs:
 
             - run: flutter pub get
 
-            # The whole point of this job: the live round-trip test used to be
-            # manual-only, which left the app's presigned upload/download path
-            # with zero automated end-to-end coverage. `just e2e-direct` boots
-            # MinIO + the paired server with direct transfer on and runs it.
-            - name: Live direct-transfer round trip
-              run: just e2e-direct
+            # Boots MinIO and the paired server configured for this leg, then
+            # runs the round trip: register, upload, finalize, download,
+            # byte-for-byte compare. The recipe refuses to proceed if the
+            # server came up in a shape that would run some other leg.
+            - name: Live round trip
+              run: just e2e-transfer ${{ matrix.mode }}
 
-    live-direct-r2:
-        name: Direct transfer against R2 (manual)
+    e2e-transfer-r2:
+        name: Transfer round trip (direct, R2 — manual)
         # On demand only: it spends real R2 operations and needs the repo's
         # secrets, which forked PRs never see. The MinIO job above is the
         # hermetic per-PR gate; this one proves the same round trip against
@@ -225,7 +239,7 @@ jobs:
                   workspaces: |
                       rust -> target
                       ../hoodik -> target
-                  key: live-direct
+                  key: e2e-transfer
 
             - uses: awalsh128/cache-apt-pkgs-action@latest
               with:
@@ -242,4 +256,4 @@ jobs:
             - run: flutter pub get
 
             - name: Live direct-transfer round trip against R2
-              run: just e2e-direct
+              run: just e2e-transfer direct
