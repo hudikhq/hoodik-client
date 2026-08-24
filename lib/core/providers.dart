@@ -758,6 +758,9 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
         : null,
     directTransfer: capabilities?.directTransfer == true,
     tarCapabilityCache: _tarCacheFor(ref, client.baseUrl, capabilities),
+    // Uploads deliberately re-probe rather than cache, so they read the
+    // advertisement directly instead of the cache the download side seeds.
+    tarSupported: capabilities?.tarTransfer ?? true,
     chunkDownloadTransport: chunkTransport,
     uploadTarTransport: uploadTarTransport,
     database: ref.read(databaseProvider),

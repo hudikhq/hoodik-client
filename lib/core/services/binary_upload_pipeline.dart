@@ -65,6 +65,11 @@ class BinaryUploadPipeline {
   final String _defaultCipher;
   final Set<String> _cancelledFileIds;
 
+  /// Whether this server will accept a whole file as one archive. False only
+  /// when it says so outright; a server that does not advertise either way is
+  /// still probed, so an upgrade is picked up without a restart.
+  final bool _tarSupported;
+
   BinaryUploadPipeline({
     required ApiClient client,
     required FileCrypto fileCrypto,
@@ -81,7 +86,9 @@ class BinaryUploadPipeline {
     UploadStaging? uploadStaging,
     SharedFolderTargetResolver? sharedTarget,
     SharedFolderUpload? sharedUpload,
+    bool tarSupported = true,
   }) : _client = client,
+       _tarSupported = tarSupported,
        _workerManager = workerManager,
        _offlineManager = offlineManager,
        _accountId = accountId,
@@ -395,6 +402,7 @@ class BinaryUploadPipeline {
         );
       } else if (!wentDirect) {
         await _runner.run(
+          tarSupported: _tarSupported,
           baseUrl: _client.baseUrl,
           transferToken: transferToken,
           fileId: fileId,

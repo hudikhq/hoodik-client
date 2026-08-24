@@ -418,7 +418,14 @@ class TransferFailure {
   /// origin error class.
   static const int bodyMaxLength = 500;
 
-  const TransferFailure({this.cause, this.status, this.body});
+  /// The URL that failed. Carried because the fallback decides whether an
+  /// error is worth retrying per-chunk by looking for `?format=tar` in it —
+  /// and these failures arrive as a plain Exception with no request attached,
+  /// so a message without the URL reads as an unrelated error and the archive
+  /// refusal reaches the user instead of falling back.
+  final String? url;
+
+  const TransferFailure({this.cause, this.status, this.body, this.url});
 
   factory TransferFailure.fromTaskStatusUpdate(TaskStatusUpdate update) {
     final body = update.responseBody;
@@ -431,6 +438,7 @@ class TransferFailure {
       cause: update.exception?.description,
       status: update.responseStatusCode,
       body: trimmed,
+      url: update.task.url,
     );
   }
 
@@ -442,12 +450,14 @@ class TransferFailure {
     'status': status,
     'cause': cause,
     'body': body,
+    'url': url,
   };
 
   /// One-line human form for the rethrown `Exception` so callers up the
   /// stack still see something readable in `.toString()`.
   String get message {
     final buffer = StringBuffer(cause ?? 'unknown cause');
+    if (url != null) buffer.write(' for $url');
     if (status != null) buffer.write(' (status $status)');
     if (body != null) buffer.write(': $body');
     return buffer.toString();

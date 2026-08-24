@@ -271,4 +271,38 @@ void main() {
       },
     );
   });
+
+  /// The archive switch, seen from a client that did not read the capability.
+  ///
+  /// A server with TAR_TRANSFER_DISABLED answers `?format=tar` with 501. That
+  /// has to land as a fallback, not as an error in front of the user — an older
+  /// app has no way to know, and a switch flipped mid-session catches even a
+  /// current one.
+  ///
+  /// It did not, and the reason was the shape of the message rather than the
+  /// status: these failures arrive from the OS uploader as a plain Exception
+  /// with no request attached, and the URL was not in the text. `?format=tar`
+  /// appeared nowhere, so a refusal of the archive read as an unrelated error.
+  test('a 501 naming the tar URL falls back', () {
+    expect(
+      shouldFallbackToPerChunk(
+        Exception(
+          'Server error for https://drive.example.com/api/storage/abc'
+          '?format=tar (status 501): {"message":"tar_transfer_disabled"}',
+        ),
+      ),
+      isTrue,
+    );
+  });
+
+  test('the same 501 without the URL is not treated as a tar probe', () {
+    // Pinning the reason it broke: the status alone is not enough, because a
+    // 501 from any other route must not silently re-run as chunks.
+    expect(
+      shouldFallbackToPerChunk(
+        Exception('Server error (status 501): {"message":"unrelated"}'),
+      ),
+      isFalse,
+    );
+  });
 }

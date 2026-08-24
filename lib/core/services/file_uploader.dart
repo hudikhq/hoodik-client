@@ -52,6 +52,10 @@ class FileUploader {
   /// so it needs the flag itself.
   final bool _directTransfer;
   final UploadTarTransport? _uploadTarTransport;
+
+  /// Passed to the pipeline so an upload skips the archive on a server that
+  /// says it will not serve one, instead of learning it from a refusal.
+  final bool _tarSupported;
   final String? _accountId;
   final SharedFolderTargetResolver? _sharedTarget;
   final SharedFolderUpload? _sharedUpload;
@@ -72,6 +76,7 @@ class FileUploader {
     DirectChunkUploadService? directUpload,
     bool directTransfer = true,
     UploadTarTransport? uploadTarTransport,
+    bool tarSupported = true,
     String? accountId,
     SharedFolderTargetResolver? sharedTarget,
     SharedFolderUpload? sharedUpload,
@@ -86,6 +91,7 @@ class FileUploader {
        _directUpload = directUpload,
        _directTransfer = directTransfer,
        _uploadTarTransport = uploadTarTransport,
+       _tarSupported = tarSupported,
        _accountId = accountId,
        _sharedTarget = sharedTarget,
        _sharedUpload = sharedUpload;
@@ -121,6 +127,7 @@ class FileUploader {
     }
 
     final pipeline = BinaryUploadPipeline(
+      tarSupported: _tarSupported,
       client: _client,
       fileCrypto: _fileCrypto,
       publicKeyPem: _publicKeyPem,

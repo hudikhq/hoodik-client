@@ -60,6 +60,9 @@ void main() {
         'status': null,
         'cause': 'Operation timed out',
         'body': null,
+        // The failing URL rides along: the tar fallback decides by looking
+        // for `?format=tar` in it, and these arrive with no request attached.
+        'url': 'https://drive.example.com/api/storage/abc?format=tar',
       });
     });
 
@@ -125,6 +128,7 @@ void main() {
         'status',
         'cause',
         'body',
+        'url',
       });
     });
 
