@@ -236,6 +236,7 @@ class Capabilities {
     required this.fork,
     this.defaultCipher = 'aegis128l',
     this.directTransfer = false,
+    this.tarTransfer = true,
   });
 
   /// Fail-closed sentinel: everything off. Returned whenever the capability
@@ -249,7 +250,11 @@ class Capabilities {
       auditLog = false,
       fork = false,
       defaultCipher = 'aegis128l',
-      directTransfer = false;
+      directTransfer = false,
+      // The disabled sentinel means the probe could not be trusted, not that
+      // the archive is off. Leaving it on keeps the existing behaviour there:
+      // try the archive, fall back if the server refuses it.
+      tarTransfer = true;
 
   final bool sharingEnabled;
   final List<ShareRole> roles;
@@ -273,6 +278,16 @@ class Capabilities {
   /// to.
   final bool directTransfer;
 
+  /// Whether the server will bundle a file's chunks into one archive rather
+  /// than serving them a request at a time.
+  ///
+  /// Absent means a server from before the switch existed, and every one of
+  /// those bundles — so absence reads as `true`, the opposite of
+  /// [directTransfer], where absence means the feature was not there yet.
+  /// An operator turns it off when something in front of the server will not
+  /// carry a request that large; Cloudflare Tunnel stops at 100 MB.
+  final bool tarTransfer;
+
   factory Capabilities.fromJson(Map<String, dynamic> json) {
     final sharing = json['sharing'] as Map<String, dynamic>?;
     final roleList =
@@ -289,6 +304,7 @@ class Capabilities {
       fork: json['fork'] as bool? ?? false,
       defaultCipher: json['default_cipher'] as String? ?? 'aegis128l',
       directTransfer: json['direct_transfer'] as bool? ?? false,
+      tarTransfer: json['tar_transfer'] as bool? ?? true,
     );
   }
 }

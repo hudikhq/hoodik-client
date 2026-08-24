@@ -691,6 +691,21 @@ final transferOverlayRequestProvider = StateProvider<TransferOverlayRequest?>(
 /// The provider still rebuilds correctly on login/logout/account-switch via
 /// [apiClientProvider], [decryptedPrivateKeyProvider], and
 /// [activeAccountProvider].
+/// The shared tar cache, pre-answered when the server has already said it
+/// will not serve archives.
+///
+/// The runner consults this cache before it probes, so seeding it here means
+/// a download on such a server goes straight to per-chunk rather than
+/// spending a refused request to learn what the capability already said. The
+/// probe-and-fall-back path stays exactly as it was for servers that do not
+/// advertise either way, and for an operator who flips the switch while a
+/// transfer is already running.
+TarCapabilityCache _tarCacheFor(Ref ref, String baseUrl, Capabilities? caps) {
+  final cache = ref.read(tarCapabilityCacheProvider);
+  if (caps != null && !caps.tarTransfer) cache.markUnsupported(baseUrl);
+  return cache;
+}
+
 final fileOperationsProvider = Provider<FileOperations?>((ref) {
   final client = ref.watch(apiClientProvider);
   final pk = ref.watch(decryptedPrivateKeyProvider);
@@ -742,7 +757,7 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
         ? ref.read(directChunkUploadProvider)
         : null,
     directTransfer: capabilities?.directTransfer == true,
-    tarCapabilityCache: ref.read(tarCapabilityCacheProvider),
+    tarCapabilityCache: _tarCacheFor(ref, client.baseUrl, capabilities),
     chunkDownloadTransport: chunkTransport,
     uploadTarTransport: uploadTarTransport,
     database: ref.read(databaseProvider),
