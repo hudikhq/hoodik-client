@@ -55,6 +55,10 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
   /// download is allowed to finish and overwrite it.
   Future<void>? hold;
 
+  /// Every leg this transport can take. Named here so a test can fail when
+  /// the interface grows one and nobody wires its progress hook.
+  List<String> get legNames => const ['tar', 'perChunk', 'direct'];
+
   @override
   Future<void> downloadAsTar({
     required String baseUrl,
@@ -77,6 +81,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
         chunkCount: chunkCount,
         outputDir: outputDir,
         alreadyDownloaded: List.unmodifiable(alreadyDownloaded),
+        onProgress: onProgress,
       ),
     );
     final err = tarError;
@@ -108,6 +113,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
         chunkCount: chunkCount,
         outputDir: outputDir,
         alreadyDownloaded: List.unmodifiable(alreadyDownloaded),
+        onProgress: onProgress,
       ),
     );
     final err = perChunkError;
@@ -135,6 +141,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
         outputDir: outputDir,
         alreadyDownloaded: List.unmodifiable(alreadyDownloaded),
         directUrls: List.unmodifiable(urls),
+        onProgress: onProgress,
       ),
     );
     final err = directError;
@@ -160,6 +167,11 @@ class ChunkDownloadInvocation {
   /// through the server. Lets a test assert which path was taken.
   final List<String> directUrls;
 
+  /// The progress hook this leg was handed, or null if it was dropped on the
+  /// way. Every leg has to carry it: the bar is drawn from whichever one runs,
+  /// and a leg that loses it renders a transfer frozen at zero.
+  final void Function(int completedChunks, int transferredBytes)? onProgress;
+
   ChunkDownloadInvocation({
     required this.baseUrl,
     required this.cookie,
@@ -169,6 +181,7 @@ class ChunkDownloadInvocation {
     required this.outputDir,
     required this.alreadyDownloaded,
     this.directUrls = const [],
+    this.onProgress,
   });
 }
 
