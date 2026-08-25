@@ -9,6 +9,8 @@ import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
 import '../../../core/utils/format.dart' as fmt;
 import '../../../core/utils/l10n_lookup.dart';
+import '../../../core/utils/log_redact.dart';
+import '../../../core/utils/logger.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/helpers/file_helpers.dart' show formatErrorMessage;
@@ -16,6 +18,8 @@ import '../widgets/markdown_preview_webview.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
 import '../widgets/version_row.dart';
+
+const _log = Logger('VersionHistoryScreen');
 
 /// Push as `/notes/:fileId/history`. The screen owns its own data load
 /// and surfaces back to the editor via the `restored` value passed to
@@ -161,12 +165,45 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
       final client = ref.read(apiClientProvider)!;
       await client.versions.restore(fileId: widget.fileId, version: v.version);
       _activeVersionChanged = true;
+      await _reindexRestoredBody(v);
       _showInfo(_l10n.notesRestoredVersion(v.version));
       await _load();
     } catch (e) {
       _showError(_l10n.notesRestoreFailed(formatErrorMessage(e)));
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Index the body that was just restored.
+  ///
+  /// The restore itself cannot: it names a version and sends no body, and the
+  /// server has only ciphertext, so it clears the body tags and marks the file
+  /// for the owner's sweep. Until that sweep runs the note is not findable by
+  /// its own words — and it has just been decrypted to be displayed, so the
+  /// tags cost one tokenize rather than a download.
+  ///
+  /// Best effort on purpose. The restore has already succeeded by this point,
+  /// and failing the whole action over the index would undo nothing and tell
+  /// the user the restore did not happen. The sweep is still the backstop.
+  Future<void> _reindexRestoredBody(FileVersion v) async {
+    final client = ref.read(apiClientProvider);
+    final fileCrypto = ref.read(fileCryptoProvider);
+    final key = _fileKey;
+    if (client == null || fileCrypto == null || key == null) return;
+
+    try {
+      final body = utf8.decode(await _decryptVersion(v), allowMalformed: true);
+      await client.versions.replaceContentTokens(
+        fileId: widget.fileId,
+        rootTokens: fileCrypto.tokenizeForSearch(body),
+        fileTokens: fileCrypto.tokenizeForSearchWithFileKey(key, body),
+      );
+    } catch (e) {
+      _log.warn(
+        'could not index the restored body — the sweep will',
+        fields: {'file_id': widget.fileId, 'error': describeError(e)},
+      );
     }
   }
 

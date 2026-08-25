@@ -43,6 +43,28 @@ class VersionsClient {
     return Uint8List.fromList(resp.data ?? const []);
   }
 
+  /// `PUT /api/storage/{fileId}/content-tokens` — replace the note-body
+  /// search tags, leaving the name and extra sources alone.
+  ///
+  /// Sent after a restore. That request names a version and carries no body,
+  /// and the server holds only ciphertext, so it cannot index the text it
+  /// just restored — it clears the body tags and enrols the file in the
+  /// owner's sweep. Having already decrypted the restored version to show it,
+  /// the client holds exactly what the server could not derive.
+  Future<void> replaceContentTokens({
+    required String fileId,
+    required List<String> rootTokens,
+    required List<String> fileTokens,
+  }) async {
+    await _dio.put(
+      '/api/storage/$fileId/content-tokens',
+      data: {
+        'content_tokens_root': rootTokens,
+        'content_tokens_file': fileTokens,
+      },
+    );
+  }
+
   /// `POST /api/storage/{fileId}/versions/{version}/restore` — pointer
   /// flip plus chunk copy, server-side. Returns the file with the new
   /// active version slot already swapped in.
