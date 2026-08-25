@@ -5,12 +5,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
+import '../../../core/services/plaintext_temp.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
@@ -311,9 +310,8 @@ class _NotesSidebarState extends ConsumerState<NotesSidebar> {
     }
   }
 
-  /// Download + decrypt the note and hand it to the platform share sheet
-  /// (mobile) or a save dialog (desktop). Mirrors the files-screen export
-  /// flow without any of its bulk-selection plumbing.
+  /// Download + decrypt the note and hand it to the share sheet (mobile)
+  /// or a save dialog (desktop). Same path as a single-file files export.
   Future<void> _handleExportNote(FileItem file) async {
     final ops = ref.read(fileOperationsProvider);
     final key = _snapshot.keys[file.id];
@@ -323,8 +321,10 @@ class _NotesSidebarState extends ConsumerState<NotesSidebar> {
 
     String savePath;
     if (isMobile) {
-      final tmpDir = await getTemporaryDirectory();
-      savePath = p.join(tmpDir.path, displayName);
+      savePath = await plaintextTempPath(
+        fileId: file.id,
+        basename: displayName,
+      );
     } else {
       final picked = await FilePicker.platform.saveFile(
         dialogTitle: _l10n.notesSaveNoteDialogTitle,

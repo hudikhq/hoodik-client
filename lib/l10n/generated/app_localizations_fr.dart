@@ -458,6 +458,31 @@ class AppLocalizationsFr extends AppLocalizations {
   String get accountOfflineCacheTitle => 'Cache hors ligne';
 
   @override
+  String accountOfflineCacheOfLimit(String used, String limit) {
+    return '$used sur $limit';
+  }
+
+  @override
+  String accountOfflineCacheUnlimited(String used) {
+    return '$used · Illimité';
+  }
+
+  @override
+  String get accountCacheLimitTitle => 'Limite du cache';
+
+  @override
+  String get accountCacheLimit2Gb => '2 Go';
+
+  @override
+  String get accountCacheLimit8Gb => '8 Go';
+
+  @override
+  String get accountCacheLimit32Gb => '32 Go';
+
+  @override
+  String get accountCacheLimitUnlimited => 'Illimité';
+
+  @override
   String get accountOfflineClearBody =>
       'Cela supprimera toutes les copies hors ligne de vos fichiers sur cet appareil. Vos fichiers sur le serveur ne sont pas affectés.';
 
@@ -1394,6 +1419,22 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String filesAvailableOfflineCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fichiers disponibles hors ligne',
+      one: '$count fichier disponible hors ligne',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String filesAvailableOfflinePartial(int ok, int total) {
+    return '$ok fichiers sur $total disponibles hors ligne';
+  }
+
+  @override
   String filesCacheFailed(String error) {
     return 'Échec de la mise en cache : $error';
   }
@@ -1543,6 +1584,42 @@ class AppLocalizationsFr extends AppLocalizations {
   String get filesExport => 'Exporter';
 
   @override
+  String get filesExportBulkBody =>
+      'Chaque fichier sera d’abord téléchargé et déchiffré. Cela peut prendre un moment, et vous pourrez choisir où les envoyer une fois tous les fichiers prêts.';
+
+  @override
+  String filesExportBulkTitle(int count) {
+    return 'Exporter $count fichiers ?';
+  }
+
+  @override
+  String get filesExportedNone => 'Impossible d’exporter les fichiers';
+
+  @override
+  String filesExportedPartial(int success, int total) {
+    return '$success fichiers exportés sur $total';
+  }
+
+  @override
+  String filesBulkFoldersSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dossiers seront ignorés.',
+      one: '$count dossier sera ignoré.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get filesBulkLargeExport =>
+      'Cet export est volumineux et peut prendre plusieurs minutes.';
+
+  @override
+  String get filesBulkLargeDownload =>
+      'Ce téléchargement est volumineux et peut prendre plusieurs minutes.';
+
+  @override
   String filesExportFailed(String error) {
     return 'Échec de l’export : $error';
   }
@@ -1636,6 +1713,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get filesMakeAvailableOffline => 'Rendre disponible hors ligne';
+
+  @override
+  String get filesOfflineBulkBody =>
+      'Des copies chiffrées seront téléchargées sur cet appareil. Cela peut prendre un moment. Les fichiers déjà hors ligne restent inchangés.';
+
+  @override
+  String filesOfflineBulkTitle(int count) {
+    return 'Rendre $count fichiers disponibles hors ligne ?';
+  }
+
+  @override
+  String get filesOfflineNone => 'Rien à rendre disponible hors ligne';
 
   @override
   String get filesMembers => 'Membres';
@@ -1754,6 +1843,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get filesSelect => 'Sélectionner';
+
+  @override
+  String get filesSelectAll => 'Tout sélectionner';
 
   @override
   String get filesSelectFilesTooltip => 'Sélectionner des fichiers';
@@ -2531,6 +2623,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get serviceFileAlreadyExists => 'Le fichier existe déjà';
+
+  @override
+  String get serviceTransferSelectionName => 'Éléments sélectionnés';
+
+  @override
+  String get serviceUploadPartialConflict =>
+      'Un envoi interrompu portant ce nom contient un contenu différent. Supprimez-le pour envoyer ce fichier.';
 
   @override
   String get serviceFileNoEncryptionKey =>
@@ -3339,4 +3438,62 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get widgetUpdateRestart => 'Redémarrer';
+
+  @override
+  String get searchRequiresUpdate =>
+      'La recherche nécessite une mise à jour. Vos fichiers sont intacts : mettez Hoodik à jour pour les retrouver.';
+
+  @override
+  String get searchViewFolder => 'Afficher le dossier';
+
+  @override
+  String get reindexTitle => 'Amélioration de l\'index de recherche';
+
+  @override
+  String get reindexExplanation =>
+      'Nous avons renforcé le hachage de vos noms de fichiers et de vos notes pour la recherche, les rendant bien plus difficiles à casser. Vos fichiers doivent être réindexés sur cet appareil pour utiliser le nouveau format. Les notes sont téléchargées et déchiffrées ici, ce qui peut prendre un moment. Les fichiers pas encore traités n\'apparaîtront pas dans la recherche.';
+
+  @override
+  String reindexProgress(int done, int total) {
+    return '$done sur $total fichiers';
+  }
+
+  @override
+  String reindexFailed(int count) {
+    return '$count fichiers n\'ont pas pu être réindexés et seront retentés la prochaine fois.';
+  }
+
+  @override
+  String get reindexBackground => 'Continuer en arrière-plan';
+
+  @override
+  String get reindexCancel => 'Annuler';
+
+  @override
+  String get serverTooOldForSearch =>
+      'Ce serveur est trop ancien pour la recherche. Demandez à son administrateur de mettre Hoodik à jour en 2.5.0 ou plus récent.';
+
+  @override
+  String get appBelowMinimumVersion =>
+      'Ce serveur nécessite une version plus récente de l\'application. Mettez Hoodik à jour pour continuer.';
+
+  @override
+  String get appBelowRecommendedVersion =>
+      'Une version plus récente de l\'application est disponible pour ce serveur.';
+
+  @override
+  String get serverBelowMinimumTitle => 'Ce serveur est trop ancien';
+
+  @override
+  String serverBelowMinimumBody(String required, String reported) {
+    return 'Hoodik $required ou plus récent est nécessaire pour utiliser cette application en toute sécurité. Celui-ci annonce $reported. Mettez le serveur à jour, puis réessayez.';
+  }
+
+  @override
+  String get serverVersionUnknown =>
+      'une version trop ancienne pour être annoncée';
+
+  @override
+  String get serverBelowRecommendedVersion =>
+      'Ce serveur est plus ancien que la version pour laquelle cette application a été conçue. Certaines fonctions peuvent manquer jusqu\'à sa mise à jour.';
 }

@@ -45,6 +45,13 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- app_links delivers hoodik:// connect links; the engine's own
+                 deep-link handler would feed the same URI into the router a
+                 second time, where its path parses as "/" and replaces the
+                 add-server screen the link handler just navigated to. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

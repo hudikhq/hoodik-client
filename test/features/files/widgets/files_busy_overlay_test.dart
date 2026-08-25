@@ -34,9 +34,10 @@ void main() {
     expect(find.text('Preparing…'), findsNothing);
   });
 
-  testWidgets('preparing shows spinner with label', (tester) async {
+  // The picker's load phase surfaces as a transfer row now — a slow
+  // iCloud export must not lock the whole screen behind a backdrop.
+  testWidgets('preparing no longer blocks the screen', (tester) async {
     await pump(tester, preparing: true);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('Preparing…'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 }

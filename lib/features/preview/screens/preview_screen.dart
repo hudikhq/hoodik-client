@@ -6,12 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
+import '../../../core/services/plaintext_temp.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/preview_providers.dart';
@@ -146,9 +145,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
 
     String savePath;
     if (isMobile) {
-      // On mobile (iOS & Android): download to temp, then open share sheet.
-      final tmpDir = await getTemporaryDirectory();
-      savePath = p.join(tmpDir.path, fileName);
+      savePath = await plaintextTempPath(fileId: file.id, basename: fileName);
     } else {
       // On desktop: show a save-file dialog.
       final picked = await FilePicker.platform.saveFile(

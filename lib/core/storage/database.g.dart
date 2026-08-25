@@ -1691,7 +1691,7 @@ class $CachedFilesTable extends CachedFiles
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: Constant(CachePolicyType.auto.name),
+    defaultValue: const Constant('auto'),
   ).withConverter<CachePolicyType>($CachedFilesTable.$convertercachePolicy);
   static const VerificationMeta _syncedAtMeta = const VerificationMeta(
     'syncedAt',
@@ -3515,6 +3515,531 @@ class PendingUploadsCompanion extends UpdateCompanion<PendingUpload> {
   }
 }
 
+class $PendingDownloadsTable extends PendingDownloads
+    with TableInfo<$PendingDownloadsTable, PendingDownload> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PendingDownloadsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fileIdMeta = const VerificationMeta('fileId');
+  @override
+  late final GeneratedColumn<String> fileId = GeneratedColumn<String>(
+    'file_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _chunkCountMeta = const VerificationMeta(
+    'chunkCount',
+  );
+  @override
+  late final GeneratedColumn<int> chunkCount = GeneratedColumn<int>(
+    'chunk_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fileSizeMeta = const VerificationMeta(
+    'fileSize',
+  );
+  @override
+  late final GeneratedColumn<int> fileSize = GeneratedColumn<int>(
+    'file_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _outputDirMeta = const VerificationMeta(
+    'outputDir',
+  );
+  @override
+  late final GeneratedColumn<String> outputDir = GeneratedColumn<String>(
+    'output_dir',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<String?, String> outputPath =
+      GeneratedColumn<String>(
+        'output_path',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<String?>($PendingDownloadsTable.$converteroutputPath);
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    accountId,
+    fileId,
+    chunkCount,
+    fileSize,
+    outputDir,
+    outputPath,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pending_downloads';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PendingDownload> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('file_id')) {
+      context.handle(
+        _fileIdMeta,
+        fileId.isAcceptableOrUnknown(data['file_id']!, _fileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fileIdMeta);
+    }
+    if (data.containsKey('chunk_count')) {
+      context.handle(
+        _chunkCountMeta,
+        chunkCount.isAcceptableOrUnknown(data['chunk_count']!, _chunkCountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_chunkCountMeta);
+    }
+    if (data.containsKey('file_size')) {
+      context.handle(
+        _fileSizeMeta,
+        fileSize.isAcceptableOrUnknown(data['file_size']!, _fileSizeMeta),
+      );
+    }
+    if (data.containsKey('output_dir')) {
+      context.handle(
+        _outputDirMeta,
+        outputDir.isAcceptableOrUnknown(data['output_dir']!, _outputDirMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_outputDirMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {accountId, fileId},
+  ];
+  @override
+  PendingDownload map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PendingDownload(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      )!,
+      fileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_id'],
+      )!,
+      chunkCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}chunk_count'],
+      )!,
+      fileSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}file_size'],
+      )!,
+      outputDir: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}output_dir'],
+      )!,
+      outputPath: $PendingDownloadsTable.$converteroutputPath.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}output_path'],
+        ),
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PendingDownloadsTable createAlias(String alias) {
+    return $PendingDownloadsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<String?, String?> $converteroutputPath =
+      const AtRestTextConverter();
+}
+
+class PendingDownload extends DataClass implements Insertable<PendingDownload> {
+  final int id;
+  final String accountId;
+  final String fileId;
+
+  /// How many chunks the finished file has, so resume can tell "all present"
+  /// from "stopped partway" without asking the server.
+  final int chunkCount;
+
+  /// Size of the finished file, so a resumed transfer can show a real
+  /// percentage, speed and ETA rather than a bar stuck at zero. Kept here
+  /// rather than read back off `cached_files`, which only holds what the user
+  /// has browsed to recently.
+  final int fileSize;
+
+  /// Where the chunks are being collected, so a resumed transfer writes into
+  /// the same place rather than starting a second one alongside it.
+  final String outputDir;
+
+  /// Where the finished, decrypted file was headed, so a resume can land it
+  /// where the user asked rather than only filling the cache.
+  ///
+  /// Sealed at rest for the same reason [CachedFiles.decryptedName] is: a save
+  /// path names the file, and often says something about the person too.
+  /// Null for a download with no destination, which is what pinning a file for
+  /// offline use is.
+  final String? outputPath;
+  final DateTime createdAt;
+  const PendingDownload({
+    required this.id,
+    required this.accountId,
+    required this.fileId,
+    required this.chunkCount,
+    required this.fileSize,
+    required this.outputDir,
+    this.outputPath,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['account_id'] = Variable<String>(accountId);
+    map['file_id'] = Variable<String>(fileId);
+    map['chunk_count'] = Variable<int>(chunkCount);
+    map['file_size'] = Variable<int>(fileSize);
+    map['output_dir'] = Variable<String>(outputDir);
+    if (!nullToAbsent || outputPath != null) {
+      map['output_path'] = Variable<String>(
+        $PendingDownloadsTable.$converteroutputPath.toSql(outputPath),
+      );
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  PendingDownloadsCompanion toCompanion(bool nullToAbsent) {
+    return PendingDownloadsCompanion(
+      id: Value(id),
+      accountId: Value(accountId),
+      fileId: Value(fileId),
+      chunkCount: Value(chunkCount),
+      fileSize: Value(fileSize),
+      outputDir: Value(outputDir),
+      outputPath: outputPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(outputPath),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory PendingDownload.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PendingDownload(
+      id: serializer.fromJson<int>(json['id']),
+      accountId: serializer.fromJson<String>(json['accountId']),
+      fileId: serializer.fromJson<String>(json['fileId']),
+      chunkCount: serializer.fromJson<int>(json['chunkCount']),
+      fileSize: serializer.fromJson<int>(json['fileSize']),
+      outputDir: serializer.fromJson<String>(json['outputDir']),
+      outputPath: serializer.fromJson<String?>(json['outputPath']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'accountId': serializer.toJson<String>(accountId),
+      'fileId': serializer.toJson<String>(fileId),
+      'chunkCount': serializer.toJson<int>(chunkCount),
+      'fileSize': serializer.toJson<int>(fileSize),
+      'outputDir': serializer.toJson<String>(outputDir),
+      'outputPath': serializer.toJson<String?>(outputPath),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  PendingDownload copyWith({
+    int? id,
+    String? accountId,
+    String? fileId,
+    int? chunkCount,
+    int? fileSize,
+    String? outputDir,
+    Value<String?> outputPath = const Value.absent(),
+    DateTime? createdAt,
+  }) => PendingDownload(
+    id: id ?? this.id,
+    accountId: accountId ?? this.accountId,
+    fileId: fileId ?? this.fileId,
+    chunkCount: chunkCount ?? this.chunkCount,
+    fileSize: fileSize ?? this.fileSize,
+    outputDir: outputDir ?? this.outputDir,
+    outputPath: outputPath.present ? outputPath.value : this.outputPath,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  PendingDownload copyWithCompanion(PendingDownloadsCompanion data) {
+    return PendingDownload(
+      id: data.id.present ? data.id.value : this.id,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      fileId: data.fileId.present ? data.fileId.value : this.fileId,
+      chunkCount: data.chunkCount.present
+          ? data.chunkCount.value
+          : this.chunkCount,
+      fileSize: data.fileSize.present ? data.fileSize.value : this.fileSize,
+      outputDir: data.outputDir.present ? data.outputDir.value : this.outputDir,
+      outputPath: data.outputPath.present
+          ? data.outputPath.value
+          : this.outputPath,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingDownload(')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('fileId: $fileId, ')
+          ..write('chunkCount: $chunkCount, ')
+          ..write('fileSize: $fileSize, ')
+          ..write('outputDir: $outputDir, ')
+          ..write('outputPath: $outputPath, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    accountId,
+    fileId,
+    chunkCount,
+    fileSize,
+    outputDir,
+    outputPath,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PendingDownload &&
+          other.id == this.id &&
+          other.accountId == this.accountId &&
+          other.fileId == this.fileId &&
+          other.chunkCount == this.chunkCount &&
+          other.fileSize == this.fileSize &&
+          other.outputDir == this.outputDir &&
+          other.outputPath == this.outputPath &&
+          other.createdAt == this.createdAt);
+}
+
+class PendingDownloadsCompanion extends UpdateCompanion<PendingDownload> {
+  final Value<int> id;
+  final Value<String> accountId;
+  final Value<String> fileId;
+  final Value<int> chunkCount;
+  final Value<int> fileSize;
+  final Value<String> outputDir;
+  final Value<String?> outputPath;
+  final Value<DateTime> createdAt;
+  const PendingDownloadsCompanion({
+    this.id = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.fileId = const Value.absent(),
+    this.chunkCount = const Value.absent(),
+    this.fileSize = const Value.absent(),
+    this.outputDir = const Value.absent(),
+    this.outputPath = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  PendingDownloadsCompanion.insert({
+    this.id = const Value.absent(),
+    required String accountId,
+    required String fileId,
+    required int chunkCount,
+    this.fileSize = const Value.absent(),
+    required String outputDir,
+    this.outputPath = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : accountId = Value(accountId),
+       fileId = Value(fileId),
+       chunkCount = Value(chunkCount),
+       outputDir = Value(outputDir);
+  static Insertable<PendingDownload> custom({
+    Expression<int>? id,
+    Expression<String>? accountId,
+    Expression<String>? fileId,
+    Expression<int>? chunkCount,
+    Expression<int>? fileSize,
+    Expression<String>? outputDir,
+    Expression<String>? outputPath,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (accountId != null) 'account_id': accountId,
+      if (fileId != null) 'file_id': fileId,
+      if (chunkCount != null) 'chunk_count': chunkCount,
+      if (fileSize != null) 'file_size': fileSize,
+      if (outputDir != null) 'output_dir': outputDir,
+      if (outputPath != null) 'output_path': outputPath,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  PendingDownloadsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? accountId,
+    Value<String>? fileId,
+    Value<int>? chunkCount,
+    Value<int>? fileSize,
+    Value<String>? outputDir,
+    Value<String?>? outputPath,
+    Value<DateTime>? createdAt,
+  }) {
+    return PendingDownloadsCompanion(
+      id: id ?? this.id,
+      accountId: accountId ?? this.accountId,
+      fileId: fileId ?? this.fileId,
+      chunkCount: chunkCount ?? this.chunkCount,
+      fileSize: fileSize ?? this.fileSize,
+      outputDir: outputDir ?? this.outputDir,
+      outputPath: outputPath ?? this.outputPath,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
+    }
+    if (fileId.present) {
+      map['file_id'] = Variable<String>(fileId.value);
+    }
+    if (chunkCount.present) {
+      map['chunk_count'] = Variable<int>(chunkCount.value);
+    }
+    if (fileSize.present) {
+      map['file_size'] = Variable<int>(fileSize.value);
+    }
+    if (outputDir.present) {
+      map['output_dir'] = Variable<String>(outputDir.value);
+    }
+    if (outputPath.present) {
+      map['output_path'] = Variable<String>(
+        $PendingDownloadsTable.$converteroutputPath.toSql(outputPath.value),
+      );
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingDownloadsCompanion(')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('fileId: $fileId, ')
+          ..write('chunkCount: $chunkCount, ')
+          ..write('fileSize: $fileSize, ')
+          ..write('outputDir: $outputDir, ')
+          ..write('outputPath: $outputPath, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $McpSettingsTable extends McpSettings
     with TableInfo<$McpSettingsTable, McpSetting> {
   @override
@@ -5266,6 +5791,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CachedFilesTable cachedFiles = $CachedFilesTable(this);
   late final $OfflineFilesTable offlineFiles = $OfflineFilesTable(this);
   late final $PendingUploadsTable pendingUploads = $PendingUploadsTable(this);
+  late final $PendingDownloadsTable pendingDownloads = $PendingDownloadsTable(
+    this,
+  );
   late final $McpSettingsTable mcpSettings = $McpSettingsTable(this);
   late final $McpAuditLogTable mcpAuditLog = $McpAuditLogTable(this);
   late final $TrustedFingerprintsTable trustedFingerprints =
@@ -5280,6 +5808,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cachedFiles,
     offlineFiles,
     pendingUploads,
+    pendingDownloads,
     mcpSettings,
     mcpAuditLog,
     trustedFingerprints,
@@ -7342,6 +7871,269 @@ typedef $$PendingUploadsTableProcessedTableManager =
       PendingUpload,
       PrefetchHooks Function()
     >;
+typedef $$PendingDownloadsTableCreateCompanionBuilder =
+    PendingDownloadsCompanion Function({
+      Value<int> id,
+      required String accountId,
+      required String fileId,
+      required int chunkCount,
+      Value<int> fileSize,
+      required String outputDir,
+      Value<String?> outputPath,
+      Value<DateTime> createdAt,
+    });
+typedef $$PendingDownloadsTableUpdateCompanionBuilder =
+    PendingDownloadsCompanion Function({
+      Value<int> id,
+      Value<String> accountId,
+      Value<String> fileId,
+      Value<int> chunkCount,
+      Value<int> fileSize,
+      Value<String> outputDir,
+      Value<String?> outputPath,
+      Value<DateTime> createdAt,
+    });
+
+class $$PendingDownloadsTableFilterComposer
+    extends Composer<_$AppDatabase, $PendingDownloadsTable> {
+  $$PendingDownloadsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fileId => $composableBuilder(
+    column: $table.fileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get chunkCount => $composableBuilder(
+    column: $table.chunkCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fileSize => $composableBuilder(
+    column: $table.fileSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get outputDir => $composableBuilder(
+    column: $table.outputDir,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<String?, String, String> get outputPath =>
+      $composableBuilder(
+        column: $table.outputPath,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PendingDownloadsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PendingDownloadsTable> {
+  $$PendingDownloadsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fileId => $composableBuilder(
+    column: $table.fileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get chunkCount => $composableBuilder(
+    column: $table.chunkCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fileSize => $composableBuilder(
+    column: $table.fileSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get outputDir => $composableBuilder(
+    column: $table.outputDir,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get outputPath => $composableBuilder(
+    column: $table.outputPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PendingDownloadsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PendingDownloadsTable> {
+  $$PendingDownloadsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get fileId =>
+      $composableBuilder(column: $table.fileId, builder: (column) => column);
+
+  GeneratedColumn<int> get chunkCount => $composableBuilder(
+    column: $table.chunkCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get fileSize =>
+      $composableBuilder(column: $table.fileSize, builder: (column) => column);
+
+  GeneratedColumn<String> get outputDir =>
+      $composableBuilder(column: $table.outputDir, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<String?, String> get outputPath =>
+      $composableBuilder(
+        column: $table.outputPath,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$PendingDownloadsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PendingDownloadsTable,
+          PendingDownload,
+          $$PendingDownloadsTableFilterComposer,
+          $$PendingDownloadsTableOrderingComposer,
+          $$PendingDownloadsTableAnnotationComposer,
+          $$PendingDownloadsTableCreateCompanionBuilder,
+          $$PendingDownloadsTableUpdateCompanionBuilder,
+          (
+            PendingDownload,
+            BaseReferences<
+              _$AppDatabase,
+              $PendingDownloadsTable,
+              PendingDownload
+            >,
+          ),
+          PendingDownload,
+          PrefetchHooks Function()
+        > {
+  $$PendingDownloadsTableTableManager(
+    _$AppDatabase db,
+    $PendingDownloadsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PendingDownloadsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PendingDownloadsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PendingDownloadsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> accountId = const Value.absent(),
+                Value<String> fileId = const Value.absent(),
+                Value<int> chunkCount = const Value.absent(),
+                Value<int> fileSize = const Value.absent(),
+                Value<String> outputDir = const Value.absent(),
+                Value<String?> outputPath = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => PendingDownloadsCompanion(
+                id: id,
+                accountId: accountId,
+                fileId: fileId,
+                chunkCount: chunkCount,
+                fileSize: fileSize,
+                outputDir: outputDir,
+                outputPath: outputPath,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String accountId,
+                required String fileId,
+                required int chunkCount,
+                Value<int> fileSize = const Value.absent(),
+                required String outputDir,
+                Value<String?> outputPath = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => PendingDownloadsCompanion.insert(
+                id: id,
+                accountId: accountId,
+                fileId: fileId,
+                chunkCount: chunkCount,
+                fileSize: fileSize,
+                outputDir: outputDir,
+                outputPath: outputPath,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PendingDownloadsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PendingDownloadsTable,
+      PendingDownload,
+      $$PendingDownloadsTableFilterComposer,
+      $$PendingDownloadsTableOrderingComposer,
+      $$PendingDownloadsTableAnnotationComposer,
+      $$PendingDownloadsTableCreateCompanionBuilder,
+      $$PendingDownloadsTableUpdateCompanionBuilder,
+      (
+        PendingDownload,
+        BaseReferences<_$AppDatabase, $PendingDownloadsTable, PendingDownload>,
+      ),
+      PendingDownload,
+      PrefetchHooks Function()
+    >;
 typedef $$McpSettingsTableCreateCompanionBuilder =
     McpSettingsCompanion Function({
       required String accountId,
@@ -8203,6 +8995,8 @@ class $AppDatabaseManager {
       $$OfflineFilesTableTableManager(_db, _db.offlineFiles);
   $$PendingUploadsTableTableManager get pendingUploads =>
       $$PendingUploadsTableTableManager(_db, _db.pendingUploads);
+  $$PendingDownloadsTableTableManager get pendingDownloads =>
+      $$PendingDownloadsTableTableManager(_db, _db.pendingDownloads);
   $$McpSettingsTableTableManager get mcpSettings =>
       $$McpSettingsTableTableManager(_db, _db.mcpSettings);
   $$McpAuditLogTableTableManager get mcpAuditLog =>

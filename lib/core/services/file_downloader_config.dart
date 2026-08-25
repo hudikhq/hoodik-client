@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../storage/database.dart';
+import '../storage/pending_downloads_dao.dart';
 import '../utils/l10n_lookup.dart';
 import '../utils/log_redact.dart';
 import '../utils/logger.dart';
@@ -11,7 +13,6 @@ import '../utils/logger.dart';
 const _log = Logger('FileDownloaderConfig');
 
 Future<void>? _configuring;
-Future<void>? _startupCleanup;
 StreamSubscription<TaskUpdate>? _sharedSub;
 
 /// Registered update handlers keyed by task-ID prefix.
@@ -38,28 +39,198 @@ void unregisterTaskUpdateHandler(String prefix) {
 
 /// Shared one-time configuration for the [FileDownloader] singleton.
 ///
-/// Both [BackgroundDownloadService] and [BackgroundUploadService] call this
-/// before enqueuing tasks. Returns the same future on repeated calls so
-/// the setup runs exactly once.
+/// Every service that enqueues an OS-native task calls this first. Returns
+/// the same future on repeated calls so the setup runs exactly once.
 Future<void> ensureFileDownloaderConfigured() {
   return _configuring ??= _doConfigure();
 }
 
-/// Cancel all orphaned tasks and purge stale records from the
-/// [FileDownloader] persistent database.
+/// Cancel every task the app owns and purge the [FileDownloader] database.
 ///
-/// Call on cold start (before any downloads are enqueued) and on account
-/// switch (via [resetFileDownloaderState]) to prevent ghost downloads from
-/// consuming bandwidth.
-Future<void> cleanUpFileDownloader() {
-  return _startupCleanup ??= _doCleanUp();
-}
-
-Future<void> _doCleanUp() async {
+/// Call this on logout, where nothing in flight belongs to the session that
+/// comes next.
+///
+/// Never on cold start, and never from [ensureFileDownloaderConfigured] — the
+/// OS keeps transfers running across a kill, and throwing them away the first
+/// time anything touches the downloader means a large download can never
+/// survive being backgrounded out of memory. It starts over every launch
+/// instead. Cold start goes through [adoptTransfersForAccount], which keeps
+/// this account's work and cancels only what belongs elsewhere; an account
+/// switch goes through the same path, so the incoming account's own transfers
+/// survive it.
+Future<void> cleanUpFileDownloader() async {
   for (final group in _managedGroups) {
     await FileDownloader().cancelAll(group: group);
     await FileDownloader().database.deleteAllRecords(group: group);
   }
+}
+
+/// Keep the transfers belonging to [accountId] and cancel the rest.
+///
+/// The OS transfer queue is process-wide and outlives any single session, so a
+/// cold start can be holding work from whichever account was last signed in.
+/// Task ids carry their owner (see [transferTaskId]), which is what makes them
+/// separable without asking the server anything.
+Future<void> adoptTransfersForAccount(String accountId) async {
+  await ensureFileDownloaderConfigured();
+
+  // Replay whatever the OS buffered while the app was gone, so the sweep
+  // below sees finished tasks as finished rather than as still in flight.
+  await FileDownloader().resumeFromBackground();
+
+  final foreign = <String>[];
+
+  for (final group in _managedGroups) {
+    for (final record in await FileDownloader().database.allRecords(
+      group: group,
+    )) {
+      final owner = accountIdFromTaskId(record.task.taskId);
+      if (owner != null && owner != accountId) {
+        foreign.add(record.task.taskId);
+      }
+      // An id with no owner in it was written by a version of the app that
+      // predates this encoding, and survives an upgrade in the OS queue. It
+      // cannot be attributed, so it is left running rather than cancelled:
+      // guessing wrong kills a transfer the user is watching, and everything
+      // these tasks write is ciphertext under their own account's directory
+      // either way. Nothing the app creates now lands here.
+    }
+  }
+
+  if (foreign.isNotEmpty) {
+    await FileDownloader().cancelTasksWithIds(foreign);
+    for (final id in foreign) {
+      await FileDownloader().database.deleteRecordWithId(id);
+    }
+  }
+
+  // Tasks the OS dropped: anything recorded as still running but absent from
+  // the native queue. A user force-quitting from the iOS App Switcher takes
+  // every background transfer with it, and desktop loses them all on quit,
+  // since the plugin runs those in-process. Re-enqueued from the record, so
+  // the presigned URL rides along and no manifest has to be fetched to
+  // resume.
+  //
+  // Runs after the sweep above so a foreign account's work is cancelled rather
+  // than rescheduled.
+  final (rescheduled, failed) = await FileDownloader().rescheduleKilledTasks();
+  if (rescheduled.isNotEmpty || failed.isNotEmpty) {
+    _log.info(
+      'transfers re-queued after an interrupted session',
+      fields: {'rescheduled': rescheduled.length, 'failed': failed.length},
+    );
+  }
+}
+
+/// Settle the OS transfer queue against the account that just signed in, and
+/// return the downloads that need picking back up.
+///
+/// The queue outlives the process, so at sign-in it may be carrying work for
+/// whoever was signed in last. This account's transfers keep running,
+/// everyone else's are cancelled, and the bookkeeping rows are pruned in the
+/// same pass so the two cannot disagree about what is still expected to
+/// finish.
+///
+/// Every row this account still holds comes back, including the files the OS
+/// is carrying right now. Those need picking back up just as much as the ones
+/// it dropped: the pipeline that was decrypting them and drawing their
+/// progress bar died with the previous process, so without an owner in this
+/// one their chunks land on disk and nothing ever finishes the file or tells
+/// the user it is happening. Re-driving a live transfer costs nothing — chunks
+/// already on disk are skipped and tasks the OS still has are left to run.
+Future<List<PendingDownload>> reconcileTransfersForAccount({
+  required AppDatabase db,
+  required String accountId,
+}) async {
+  await adoptTransfersForAccount(accountId);
+  await db.clearPendingDownloadsForOtherAccounts(accountId);
+
+  final unfinished = await db.getPendingDownloads(accountId);
+  if (unfinished.isNotEmpty) {
+    _log.info(
+      'downloads left unfinished by a previous session',
+      fields: {'count': unfinished.length},
+    );
+  }
+  return unfinished;
+}
+
+/// Task ids [group] currently has in the OS queue, including any waiting to
+/// retry.
+///
+/// A transfer picked back up after a relaunch is driven by a fresh pipeline
+/// while the OS may still be carrying part of it. Enqueueing a task id the
+/// native queue already holds puts two writers on one output file, so a resume
+/// skips those and lets the task that is already running report into the new
+/// owner instead.
+Future<Set<String>> tasksInFlight(String group) async {
+  final tasks = await FileDownloader().allTasks(group: group);
+  return {for (final task in tasks) task.taskId};
+}
+
+/// Task id encoding: `{prefix}|{accountId}|{fileId}[|{chunk}]`.
+///
+/// The owner has to travel with the task because the OS hands these back after
+/// a restart with nothing but the id to go on.
+///
+/// `|` rather than `:` because [BackgroundTarTransfer] prepends its own prefix
+/// to whatever it is given, so the leading segment is not always what the
+/// caller passed. Reading the account and file from fixed positions *after*
+/// the first separator is stable under that double-prefixing; splitting on
+/// `:` and trusting position zero was not.
+String transferTaskId({
+  required String prefix,
+  required String accountId,
+  required String fileId,
+  int? chunk,
+}) {
+  final base = '$prefix|$accountId|$fileId';
+  return chunk == null ? base : '$base|$chunk';
+}
+
+/// The account a task belongs to, or null for an id that predates this
+/// encoding — which is treated as "not mine" rather than guessed at.
+String? accountIdFromTaskId(String taskId) {
+  final parts = taskId.split('|');
+  return parts.length >= 3 ? parts[1] : null;
+}
+
+String? fileIdFromTaskId(String taskId) {
+  final parts = taskId.split('|');
+  return parts.length >= 3 ? parts[2] : null;
+}
+
+/// Drop the plugin's records for a file whose transfer is finished, cancelled
+/// or failed.
+///
+/// Those records exist so an interrupted transfer can be re-queued from them,
+/// which is worth nothing once the file is settled — and a stale "enqueued"
+/// record for a cancelled chunk is worse than nothing, because
+/// [FileDownloader.rescheduleKilledTasks] would put it back. They also
+/// accumulate: one 10 GB file is ~2500 of them, and every sign-in walks the
+/// whole table.
+Future<void> forgetTaskRecords({
+  required String group,
+  required String accountId,
+  required String fileId,
+  required int chunkCount,
+}) async {
+  for (var chunk = 0; chunk < chunkCount; chunk++) {
+    await FileDownloader().database.deleteRecordWithId(
+      transferTaskId(
+        prefix: group,
+        accountId: accountId,
+        fileId: fileId,
+        chunk: chunk,
+      ),
+    );
+  }
+}
+
+/// The chunk a task carries, or null for a whole-file task like the tar leg.
+int? chunkFromTaskId(String taskId) {
+  final parts = taskId.split('|');
+  return parts.length >= 4 ? int.tryParse(parts[3]) : null;
 }
 
 /// Groups the app owns. Any new `background_downloader` task must register
@@ -67,6 +238,8 @@ Future<void> _doCleanUp() async {
 const List<String> _managedGroups = [
   'chunk-downloads',
   'chunk-uploads',
+  'direct-chunks',
+  'direct-chunk-uploads',
   'tar-downloads',
   'tar-uploads',
 ];
@@ -76,7 +249,6 @@ const List<String> _managedGroups = [
 /// starts clean.
 void resetFileDownloaderState() {
   _configuring = null;
-  _startupCleanup = null;
 }
 
 void _ensureListening() {
@@ -104,11 +276,30 @@ void _dispatch(TaskUpdate update) {
 
 Future<void> _doConfigure() async {
   final configs = <(String, dynamic)>[
-    // (maxConcurrent, maxConcurrentByHost, maxConcurrentByGroup)
-    // Unlimited total / per-host, 6 per group.
-    // Downloads (group 'chunk-downloads'): 1 tar task, well under 6.
-    // Uploads  (group 'chunk-uploads'):    6 concurrent chunk uploads.
-    (Config.holdingQueue, (null, null, 6)),
+    // Hand every task straight to the OS on mobile, with nothing held back.
+    //
+    // The plugin's holding queue keeps running while the app is suspended but
+    // dies with the process if the app is killed, while tasks already given to
+    // URLSession or WorkManager survive it: background session state lives in
+    // nsurlsessiond, outside the app, and WorkManager persists to Room. Capping
+    // the holding queue therefore decided how much of a transfer was durable.
+    // At six per group a 2560-chunk download had six chunks in the durable tier
+    // and 2554 in the volatile one. Both platforms meter concurrency
+    // themselves, so the cap bought nothing and cost almost all of the file's
+    // resumability.
+    //
+    // Whether a device stays happy with a few thousand queued background tasks
+    // is only answerable on TestFlight and Play internal testing. If one is
+    // not, put a bound back by replacing Config.never with
+    // `(null, null, <n>)`. A value change, not a redesign.
+    if (Platform.isIOS || Platform.isAndroid)
+      (Config.holdingQueue, Config.never),
+    // Desktop is deliberately absent. There the plugin runs every task in its
+    // own isolates with no OS queue underneath, and Config.never means
+    // unlimited rather than durable: it would put every chunk of a large file
+    // on the wire at once. The plugin's own bound applies instead, and nothing
+    // survives a quit on desktop regardless, so a relaunch resumes through
+    // rescheduleKilledTasks.
   ];
 
   if (Platform.isAndroid) {
@@ -117,11 +308,26 @@ Future<void> _doConfigure() async {
 
   await FileDownloader().configure(globalConfig: configs);
 
+  // Subscribe before tracking starts: `trackTasks` replays the tasks that
+  // finished while the app was suspended, and those updates are only useful
+  // if something is already listening.
+  _ensureListening();
+
+  // Persist every task to the plugin's own database. Without this the
+  // database is empty, [adoptTransfersForAccount] sees no records and adopts
+  // nothing, and [FileDownloader.rescheduleKilledTasks] is a no-op — which
+  // makes surviving a kill impossible however durable the OS queue is.
+  await FileDownloader().trackTasks();
+
   if (Platform.isAndroid) {
     // Android 13+ requires runtime permission for notifications.
     await Permission.notification.request();
 
-    for (final group in const ['chunk-downloads', 'tar-downloads']) {
+    for (final group in const [
+      'chunk-downloads',
+      'direct-chunks',
+      'tar-downloads',
+    ]) {
       FileDownloader().configureNotificationForGroup(
         group,
         running: TaskNotification(
@@ -135,7 +341,11 @@ Future<void> _doConfigure() async {
         progressBar: true,
       );
     }
-    for (final group in const ['chunk-uploads', 'tar-uploads']) {
+    for (final group in const [
+      'chunk-uploads',
+      'direct-chunk-uploads',
+      'tar-uploads',
+    ]) {
       FileDownloader().configureNotificationForGroup(
         group,
         running: TaskNotification(
@@ -150,8 +360,4 @@ Future<void> _doConfigure() async {
       );
     }
   }
-
-  // Cancel orphaned tasks and purge stale database records left over from
-  // a previous app session (or account switch).
-  await cleanUpFileDownloader();
 }

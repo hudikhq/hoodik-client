@@ -6,10 +6,8 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/widgets/adaptive.dart';
-import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../helpers/file_helpers.dart';
-import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
 
 /// Show a text input dialog and return the entered value, or null if cancelled.
@@ -99,6 +97,80 @@ Future<bool> confirmLeaveShare({
   return result ?? false;
 }
 
+Future<bool> confirmBulkExport({
+  required BuildContext context,
+  required int fileCount,
+  required int folderCount,
+  required bool isLarge,
+}) {
+  final l10n = AppLocalizations.of(context);
+  return _confirmBulk(
+    context: context,
+    title: l10n.filesExportBulkTitle(fileCount),
+    body: _bulkBody(
+      l10n.filesExportBulkBody,
+      folderCount: folderCount,
+      isLarge: isLarge,
+      large: l10n.filesBulkLargeExport,
+      foldersSkipped: l10n.filesBulkFoldersSkipped,
+    ),
+    confirmLabel: l10n.filesExport,
+  );
+}
+
+Future<bool> confirmBulkOffline({
+  required BuildContext context,
+  required int fileCount,
+  required int folderCount,
+  required bool isLarge,
+}) {
+  final l10n = AppLocalizations.of(context);
+  return _confirmBulk(
+    context: context,
+    title: l10n.filesOfflineBulkTitle(fileCount),
+    body: _bulkBody(
+      l10n.filesOfflineBulkBody,
+      folderCount: folderCount,
+      isLarge: isLarge,
+      large: l10n.filesBulkLargeDownload,
+      foldersSkipped: l10n.filesBulkFoldersSkipped,
+    ),
+    confirmLabel: l10n.commonDownload,
+  );
+}
+
+String _bulkBody(
+  String lead, {
+  required int folderCount,
+  required bool isLarge,
+  required String large,
+  required String Function(int count) foldersSkipped,
+}) {
+  final parts = <String>[lead];
+  if (folderCount > 0) parts.add(foldersSkipped(folderCount));
+  if (isLarge) parts.add(large);
+  return parts.join('\n\n');
+}
+
+Future<bool> _confirmBulk({
+  required BuildContext context,
+  required String title,
+  required String body,
+  required String confirmLabel,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final result = await showAdaptiveAlert<bool>(
+    context: context,
+    title: title,
+    content: body,
+    actions: [
+      AdaptiveDialogAction(label: l10n.commonCancel, value: false),
+      AdaptiveDialogAction(label: confirmLabel, value: true),
+    ],
+  );
+  return result ?? false;
+}
+
 /// Show file detail information in a dialog.
 void showFileDetailsDialog({
   required BuildContext context,
@@ -129,7 +201,6 @@ void showFileDetailsDialog({
               formatFileDate(file.createdAt),
             ),
             _detailRow(ctx, l10n.filesIdLabel, file.id),
-            if (file.sha256 != null) _copyableRow(ctx, 'SHA-256', file.sha256!),
           ],
         ),
         actions: [
@@ -222,48 +293,6 @@ Widget _detailRow(BuildContext context, String label, String value) {
           ),
         ),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 12))),
-      ],
-    ),
-  );
-}
-
-/// A detail row with a copy-to-clipboard button. Used for long values like
-/// hashes where the user may want to copy the full string.
-Widget _copyableRow(BuildContext context, String label, String value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 72,
-          child: Text(
-            label,
-            style: TextStyle(color: context.colors.textMuted, fontSize: 12),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 4),
-        GestureDetector(
-          onTap: () {
-            Clipboard.setData(ClipboardData(text: value));
-            AppNotification.show(
-              context,
-              message: AppLocalizations.of(
-                context,
-              ).filesCopiedToClipboard(label),
-              duration: const Duration(seconds: 2),
-            );
-          },
-          child: Icon(AppIcons.copy, size: 16, color: context.colors.iconMuted),
-        ),
       ],
     ),
   );

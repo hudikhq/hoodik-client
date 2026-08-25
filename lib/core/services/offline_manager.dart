@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -7,24 +8,64 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../src/rust/api.dart' as rust;
 import '../storage/database.dart';
+import '../storage/pending_downloads_dao.dart';
 import '../utils/format.dart' as fmt;
 import '../utils/log_redact.dart';
 import '../utils/logger.dart';
+import 'offline_cache_lru.dart';
+import 'plaintext_temp.dart';
 
 const _log = Logger('OfflineManager');
 
 /// Manages encrypted offline file storage. Files are stored as raw
 /// server-encrypted chunks (no re-encryption; decryptable only with the
-/// per-file symmetric key). Cached indefinitely until the user clears the
-/// cache from Account Settings. Peak memory during decrypt is ~4 MB (one
-/// chunk), not the full file size.
+/// per-file symmetric key). Unpinned files are evicted when the account is
+/// over its size cap (default 8 GB); pinned files stay until the user
+/// clears the cache. Peak memory during decrypt is ~4 MB (one chunk).
 ///
 /// Layout: `{applicationSupportDirectory}/offline_cache/{accountId}/{fileId}/NNNNNN.enc`
 class OfflineManager extends ChangeNotifier {
   final AppDatabase _db;
   String? _basePath;
+  Future<void>? _enforcing;
+
+  /// File IDs [TransferManager] currently has in flight. Set by
+  /// [FileDownloader] so LRU can skip them without importing the overlay.
+  Set<String> Function()? activeTransferIds;
 
   OfflineManager(this._db);
+
+  /// Note that a download is in flight, or refresh it if one already is.
+  ///
+  /// Lives here because this is what already owns the database and the
+  /// on-disk chunk state a resume has to diff against. Only the intent is
+  /// stored — never the presigned URLs, which stay valid for days and have no
+  /// business persisting past the transfer they belong to.
+  Future<void> recordPendingDownload({
+    required String accountId,
+    required String fileId,
+    required int chunkCount,
+    required int fileSize,
+    required String outputDir,
+    String? outputPath,
+  }) => _db.recordPendingDownload(
+    accountId: accountId,
+    fileId: fileId,
+    chunkCount: chunkCount,
+    fileSize: fileSize,
+    outputDir: outputDir,
+    outputPath: outputPath,
+  );
+
+  /// Forget a download once its chunks are all on disk, or the user drops it.
+  Future<void> clearPendingDownload({
+    required String accountId,
+    required String fileId,
+  }) => _db.clearPendingDownload(accountId: accountId, fileId: fileId);
+
+  /// Downloads this account expected to finish but has not.
+  Future<List<PendingDownload>> pendingDownloads(String accountId) =>
+      _db.getPendingDownloads(accountId);
 
   /// Register that encrypted chunks for a file are stored in [chunksDir].
   /// Call after a chunk download completes to record the file in the cache.
@@ -43,13 +84,16 @@ class OfflineManager extends ChangeNotifier {
       }
     }
 
+    final existing = await _db.getOfflineFile(accountId, fileId);
+    final keepPinned = pinned || (existing?.pinned ?? false);
+
     await _db.insertOfflineFile(
       OfflineFilesCompanion(
         accountId: Value(accountId),
         fileId: Value(fileId),
         localPath: Value(chunksDir),
         sizeOnDisk: Value(totalSize),
-        pinned: Value(pinned),
+        pinned: Value(keepPinned),
         downloadedAt: Value(DateTime.now()),
         lastAccessedAt: Value(DateTime.now()),
       ),
@@ -59,7 +103,7 @@ class OfflineManager extends ChangeNotifier {
       'registered chunks',
       fields: {
         'file_id': fileId,
-        'pinned': pinned,
+        'pinned': keepPinned,
         'chunks': chunkCount,
         'size_bytes': totalSize,
         'size_human': fmt.formatBytes(totalSize),
@@ -67,14 +111,14 @@ class OfflineManager extends ChangeNotifier {
     );
 
     notifyListeners();
+    await enforceLimit(accountId, keep: {fileId});
   }
 
   /// Decrypt cached chunks to a temp file and return the path.
   ///
   /// Returns `null` if no chunks are cached for this file. The caller is
-  /// responsible for reading or sharing the temp file. Temp files live in
-  /// the system temp directory and are cleaned up by [PreviewCache.dispose]
-  /// on logout.
+  /// responsible for reading or sharing the temp file. Plaintext lives in
+  /// `hoodik_plaintext/` and is swept on startup and logout.
   ///
   /// Uses the Rust FFI `decryptChunksToFile` which reads one chunk at a
   /// time (~4 MB peak memory) — safe for large files.
@@ -98,11 +142,8 @@ class OfflineManager extends ChangeNotifier {
     }
 
     try {
-      final tempDir = await getTemporaryDirectory();
-      if (!await tempDir.exists()) {
-        await tempDir.create(recursive: true);
-      }
-      final tempPath = p.join(tempDir.path, 'hoodik_$fileId.$extension');
+      final dir = await plaintextTempDirectory();
+      final tempPath = p.join(dir.path, 'hoodik_$fileId.$extension');
 
       await rust.decryptChunksToFile(
         chunksDir: entry.localPath,
@@ -242,6 +283,33 @@ class OfflineManager extends ChangeNotifier {
   /// Total bytes used by offline files for an account.
   Future<int> getCacheSize(String accountId) {
     return _db.getOfflineCacheSize(accountId);
+  }
+
+  /// Reclaim unpinned files until this account is at or under its cap.
+  Future<void> enforceLimit(
+    String accountId, {
+    Set<String> keep = const {},
+    Future<Set<String>> Function()? osInFlightIds,
+  }) async {
+    final previous = _enforcing;
+    final gate = Completer<void>();
+    _enforcing = gate.future;
+    try {
+      if (previous != null) await previous;
+      await enforceOfflineCacheLimit(
+        db: _db,
+        accountId: accountId,
+        remove: removeCachedFile,
+        keep: keep,
+        activeTransferIds: activeTransferIds,
+        osInFlightIds: osInFlightIds,
+      );
+    } catch (e) {
+      _log.warn('cache eviction failed', fields: {'error': describeError(e)});
+    } finally {
+      gate.complete();
+      if (identical(_enforcing, gate.future)) _enforcing = null;
+    }
   }
 
   /// Number of offline files for an account.

@@ -28,6 +28,11 @@ class NotesMainArea extends StatelessWidget {
   final VoidCallback onExportPdf;
   final VoidCallback onHideKeyboard;
 
+  /// iOS only — how much of the editor's frame the keyboard and floating
+  /// toolbar cover, so the host can shrink the page's scroll container to
+  /// match. See [IosEditorLayout].
+  final ValueChanged<double> onBottomInsetChanged;
+
   const NotesMainArea({
     super.key,
     required this.tabs,
@@ -42,6 +47,7 @@ class NotesMainArea extends StatelessWidget {
     required this.onHistory,
     required this.onExportPdf,
     required this.onHideKeyboard,
+    required this.onBottomInsetChanged,
   });
 
   @override
@@ -64,7 +70,12 @@ class NotesMainArea extends StatelessWidget {
           )
         : null;
     if (Platform.isIOS) {
-      return IosEditorLayout(tabBar: tabBar, toolbar: toolbar, editor: editor);
+      return IosEditorLayout(
+        tabBar: tabBar,
+        toolbar: toolbar,
+        editor: editor,
+        onBottomInsetChanged: onBottomInsetChanged,
+      );
     }
     return Column(
       children: [

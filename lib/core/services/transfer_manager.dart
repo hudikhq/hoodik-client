@@ -11,19 +11,22 @@ import '../utils/l10n_lookup.dart';
 /// HTTP transfers (the long-running part) are delegated to OS-native
 /// background workers, while encrypt/decrypt run in Dart isolates or Rust FFI.
 enum TransferType {
+  uploadPrepare,
   uploadEncrypt,
   uploadHttp,
   downloadHttp,
   downloadDecrypt;
 
   String get label => switch (this) {
+    uploadPrepare => ambientL10n.filesPreparing,
     uploadEncrypt => ambientL10n.serviceTransferEncrypting,
     uploadHttp => ambientL10n.serviceTransferUploading,
     downloadHttp => ambientL10n.serviceTransferDownloading,
     downloadDecrypt => ambientL10n.serviceTransferDecrypting,
   };
 
-  bool get isUpload => this == uploadEncrypt || this == uploadHttp;
+  bool get isUpload =>
+      this == uploadPrepare || this == uploadEncrypt || this == uploadHttp;
 
   /// Whether this is a network transfer (meaningful speed/ETA).
   bool get isNetworkTransfer => this == uploadHttp || this == downloadHttp;
@@ -44,6 +47,15 @@ class _SpeedSample {
 class TransferItem {
   final String id;
   String? fileId;
+
+  /// Which operation this item is a stage of.
+  ///
+  /// One upload is two items — encrypt, then ship — and one download is two
+  /// the other way round. They cannot be matched on `fileId`: encryption runs
+  /// before the server has been told the file exists, so the encrypt stage
+  /// only knows its staging id while the upload stage knows the real one.
+  /// Falls back to `fileId`, which is all a download needs.
+  final String? groupId;
   final String fileName;
   final TransferType type;
   final bool onWorker;
@@ -66,9 +78,15 @@ class TransferItem {
   /// Rolling window of speed samples (last 5 seconds).
   final List<_SpeedSample> _speedSamples = [];
 
+  /// What was already transferred when this stage was created. Non-zero only
+  /// for a resumed download, where a previous session's bytes are on disk
+  /// before this one has moved any.
+  late final int _startedBytes;
+
   TransferItem({
     required this.id,
     this.fileId,
+    this.groupId,
     required this.fileName,
     required this.type,
     this.onWorker = false,
@@ -81,7 +99,9 @@ class TransferItem {
     required this.startedAt,
     this.lastChunkAt,
     this.errorMessage,
-  });
+  }) {
+    _startedBytes = transferredBytes;
+  }
 
   /// Progress as a fraction from 0.0 to 1.0.
   double get progress => totalBytes > 0 ? transferredBytes / totalBytes : 0;
@@ -101,11 +121,15 @@ class TransferItem {
   /// Speed in bytes per second based on a rolling 5-second window.
   double get bytesPerSecond {
     if (_speedSamples.length < 2) {
-      // Not enough samples; fall back to overall average.
-      if (transferredBytes == 0) return 0;
+      // Not enough samples; fall back to the average over what this stage has
+      // actually moved. A resumed download opens with the previous session's
+      // bytes already counted, and dividing those by the seconds since it was
+      // picked back up reads as several GB/s and an ETA of nothing.
+      final moved = transferredBytes - _startedBytes;
+      if (moved <= 0) return 0;
       final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
       if (elapsed <= 0) return 0;
-      return transferredBytes / (elapsed / 1000.0);
+      return moved / (elapsed / 1000.0);
     }
 
     final oldest = _speedSamples.first.timestamp;
@@ -210,26 +234,61 @@ class TransferManager extends ChangeNotifier {
   /// Receives the server-side fileId so the caller can propagate to workers/Rust.
   void Function(String fileId)? onCancelRequested;
 
+  /// Invoked with the cancelled item itself, for state that must not depend
+  /// on the in-flight transfer surviving to observe [onCancelRequested] —
+  /// the pending-queue row and the server-side partial upload. Wired by the
+  /// sync layer.
+  void Function(TransferItem item)? onCancelPersist;
+
   /// Start tracking a new transfer. Returns the created [TransferItem].
+  /// Begin a stage, and retire the finished stage it follows.
+  ///
+  /// A completed stage of the same operation is dropped rather than left in
+  /// the list. Both stages render as "Done {size}" once they finish — the
+  /// stage name only appears while one is running — so keeping the earlier one
+  /// showed the same file twice with identical text and read as the upload
+  /// having run twice.
+  ///
+  /// [completedChunks] and [transferredBytes] seed a stage that is already
+  /// part-way through, which is what a download resumed after the app was
+  /// killed is. Seeding rather than letting the first progress report carry
+  /// the jump keeps it out of the speed window: bytes fetched by a previous
+  /// session arriving at once reads as several GB/s and an ETA of nothing.
   TransferItem startTransfer({
     required String fileName,
     required TransferType type,
     required int totalBytes,
     required int totalChunks,
     String? fileId,
+    String? groupId,
     bool onWorker = false,
     bool silent = false,
+    int completedChunks = 0,
+    int transferredBytes = 0,
   }) {
+    final group = groupId ?? fileId;
+    if (group != null) {
+      _transfers.removeWhere(
+        (t) =>
+            t.status == TransferStatus.completed &&
+            (t.groupId ?? t.fileId) == group &&
+            t.type.isUpload == type.isUpload,
+      );
+    }
+
     final item = TransferItem(
       id: 'transfer_${_nextId++}_${DateTime.now().millisecondsSinceEpoch}',
       fileId: fileId,
+      groupId: groupId,
       fileName: fileName,
       type: type,
       onWorker: onWorker,
       silent: silent,
       status: TransferStatus.active,
       totalBytes: totalBytes,
+      transferredBytes: transferredBytes,
       totalChunks: totalChunks,
+      completedChunks: completedChunks,
       startedAt: DateTime.now(),
     );
     _transfers.insert(0, item);
@@ -308,9 +367,16 @@ class TransferManager extends ChangeNotifier {
   }
 
   /// Mark a transfer as failed.
+  ///
+  /// A cancelled transfer stays cancelled. The pipelines report every way a
+  /// transfer can end here, cancellation included — it reaches them as a
+  /// thrown [TransferCancelledException] like any other error — and flipping
+  /// it to failed told the user their deliberate cancel had gone wrong, with
+  /// a retry button beside it.
   void failTransfer(String transferId, String error) {
     final item = _findById(transferId);
     if (item == null) return;
+    if (item.status == TransferStatus.cancelled) return;
     item.status = TransferStatus.failed;
     item.errorMessage = error;
     item.lastChunkAt = DateTime.now();
@@ -329,6 +395,7 @@ class TransferManager extends ChangeNotifier {
     if (item.fileId != null) {
       onCancelRequested?.call(item.fileId!);
     }
+    onCancelPersist?.call(item);
 
     item.status = TransferStatus.cancelled;
     item.errorMessage = ambientL10n.serviceTransferCancelled;

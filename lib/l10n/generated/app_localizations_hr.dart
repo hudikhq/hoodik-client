@@ -456,6 +456,31 @@ class AppLocalizationsHr extends AppLocalizations {
   String get accountOfflineCacheTitle => 'Offline cache';
 
   @override
+  String accountOfflineCacheOfLimit(String used, String limit) {
+    return '$used od $limit';
+  }
+
+  @override
+  String accountOfflineCacheUnlimited(String used) {
+    return '$used · Neograničeno';
+  }
+
+  @override
+  String get accountCacheLimitTitle => 'Ograničenje predmemorije';
+
+  @override
+  String get accountCacheLimit2Gb => '2 GB';
+
+  @override
+  String get accountCacheLimit8Gb => '8 GB';
+
+  @override
+  String get accountCacheLimit32Gb => '32 GB';
+
+  @override
+  String get accountCacheLimitUnlimited => 'Neograničeno';
+
+  @override
   String get accountOfflineClearBody =>
       'Ovo će ukloniti sve offline kopije tvojih datoteka s ovog uređaja. Tvoje datoteke na serveru ostaju netaknute.';
 
@@ -1384,6 +1409,23 @@ class AppLocalizationsHr extends AppLocalizations {
   }
 
   @override
+  String filesAvailableOfflineCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count datoteka dostupno izvan mreže',
+      few: '$count datoteke dostupne izvan mreže',
+      one: '$count datoteka dostupna izvan mreže',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String filesAvailableOfflinePartial(int ok, int total) {
+    return '$ok od $total datoteka dostupno izvan mreže';
+  }
+
+  @override
   String filesCacheFailed(String error) {
     return 'Keširanje nije uspjelo: $error';
   }
@@ -1534,6 +1576,43 @@ class AppLocalizationsHr extends AppLocalizations {
   String get filesExport => 'Izvezi';
 
   @override
+  String get filesExportBulkBody =>
+      'Svaka datoteka će se prvo preuzeti i dešifrirati. To može potrajati, a mjesto slanja biraš kad sve datoteke budu spremne.';
+
+  @override
+  String filesExportBulkTitle(int count) {
+    return 'Izvesti $count datoteka?';
+  }
+
+  @override
+  String get filesExportedNone => 'Nije uspio izvoz nijedne datoteke';
+
+  @override
+  String filesExportedPartial(int success, int total) {
+    return 'Izvezeno $success od $total datoteka';
+  }
+
+  @override
+  String filesBulkFoldersSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mapa bit će preskočeno.',
+      few: '$count mape bit će preskočene.',
+      one: '$count mapa bit će preskočena.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get filesBulkLargeExport =>
+      'Ovo je velik izvoz i može potrajati nekoliko minuta.';
+
+  @override
+  String get filesBulkLargeDownload =>
+      'Ovo je veliko preuzimanje i može potrajati nekoliko minuta.';
+
+  @override
   String filesExportFailed(String error) {
     return 'Izvoz nije uspio: $error';
   }
@@ -1628,6 +1707,18 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get filesMakeAvailableOffline => 'Učini dostupnim offline';
+
+  @override
+  String get filesOfflineBulkBody =>
+      'Šifrirane kopije preuzet će se na ovaj uređaj. To može potrajati. Datoteke koje su već izvan mreže ostaju kakve jesu.';
+
+  @override
+  String filesOfflineBulkTitle(int count) {
+    return 'Učiniti $count datoteka dostupnima izvan mreže?';
+  }
+
+  @override
+  String get filesOfflineNone => 'Nema ništa za učiniti dostupnim izvan mreže';
 
   @override
   String get filesMembers => 'Članovi';
@@ -1747,6 +1838,9 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get filesSelect => 'Odaberi';
+
+  @override
+  String get filesSelectAll => 'Odaberi sve';
 
   @override
   String get filesSelectFilesTooltip => 'Odaberi datoteke';
@@ -2524,6 +2618,13 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get serviceFileAlreadyExists => 'Datoteka već postoji';
+
+  @override
+  String get serviceTransferSelectionName => 'Odabrane stavke';
+
+  @override
+  String get serviceUploadPartialConflict =>
+      'Prekinuto prenošenje s ovim imenom sadrži drugačiji sadržaj. Obriši ga da bi prenio ovu datoteku.';
 
   @override
   String get serviceFileNoEncryptionKey => 'Datoteka nema enkripcijski ključ';
@@ -3330,4 +3431,61 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get widgetUpdateRestart => 'Ponovno pokreni';
+
+  @override
+  String get searchRequiresUpdate =>
+      'Pretraga traži ažuriranje aplikacije. Datoteke su sigurne — ažuriraj Hoodik da ih ponovno pretražuješ.';
+
+  @override
+  String get searchViewFolder => 'Prikaži folder';
+
+  @override
+  String get reindexTitle => 'Nadogradnja search indeksa';
+
+  @override
+  String get reindexExplanation =>
+      'Pojačali smo hashiranje naziva datoteka i bilješki za pretragu pa ih je puno teže probiti. Datoteke treba ponovno indeksirati na ovom uređaju da koriste novi format. Bilješke se pritom preuzimaju i dekriptiraju, pa to može potrajati. Datoteke koje još nisu obrađene neće se pojaviti u pretrazi.';
+
+  @override
+  String reindexProgress(int done, int total) {
+    return '$done od $total datoteka';
+  }
+
+  @override
+  String reindexFailed(int count) {
+    return '$count datoteka nije uspjelo ponovno indeksirati, pokušat ćemo ponovno sljedeći put.';
+  }
+
+  @override
+  String get reindexBackground => 'Nastavi u pozadini';
+
+  @override
+  String get reindexCancel => 'Odustani';
+
+  @override
+  String get serverTooOldForSearch =>
+      'Ovaj server je prestar za pretragu. Traži od administratora da ažurira Hoodik na 2.5.0 ili noviji.';
+
+  @override
+  String get appBelowMinimumVersion =>
+      'Ovaj server traži noviju verziju aplikacije. Ažuriraj Hoodik da nastaviš.';
+
+  @override
+  String get appBelowRecommendedVersion =>
+      'Za ovaj server dostupna je novija verzija aplikacije.';
+
+  @override
+  String get serverBelowMinimumTitle => 'Ovaj server je prestar';
+
+  @override
+  String serverBelowMinimumBody(String required, String reported) {
+    return 'Za sigurno korištenje ove aplikacije potreban je Hoodik $required ili noviji. Ovaj javlja $reported. Ažuriraj server pa pokušaj ponovno.';
+  }
+
+  @override
+  String get serverVersionUnknown => 'verzija prestara da se javi';
+
+  @override
+  String get serverBelowRecommendedVersion =>
+      'Ovaj server zaostaje za verzijom za koju je aplikacija građena. Dok se ne ažurira, neke stvari mogu nedostajati.';
 }

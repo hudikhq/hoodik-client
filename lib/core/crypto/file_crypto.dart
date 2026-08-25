@@ -180,16 +180,44 @@ class FileCrypto {
     return _hexEncode(ciphertext);
   }
 
-  /// Compute SHA-256 hash of a file/directory name (UTF-8 bytes).
-  String hashFileName(String name) {
-    return _crypto.sha256(data: utf8.encode(name));
-  }
+  /// The account-wide search key, derived once per instance from whichever
+  /// private key this account has. Cached because every upload, rename and
+  /// query needs it.
+  String? _rootKey;
 
-  /// Tokenize and hash a name for search.
-  /// Returns a list of token hashes (without weights).
-  List<String> tokenizeForSearch(String name) {
-    return _crypto.tokenizeAndHashForSearch(name);
-  }
+  String get searchRootKey => _rootKey ??= _crypto.searchRootKey(
+    (wrappingPrivateKeyPem?.isNotEmpty ?? false)
+        ? wrappingPrivateKeyPem!
+        : privateKeyPem,
+  );
+
+  /// Keyed `name_hash` for a file or directory name.
+  ///
+  /// Was a bare SHA-256 of the plaintext name, which a dictionary of common
+  /// file names reverses without needing a rainbow table at all.
+  String hashFileName(String name) => _crypto.searchTag(searchRootKey, name);
+
+  /// One keyed tag of a whole value under [key] — the exact-match unit: the
+  /// keyed digest columns, the digest tags in the index, and the query-side
+  /// tag that answers a pasted digest without it ever crossing the wire.
+  String exactTag(String key, String value) => _crypto.searchTag(key, value);
+
+  /// Tags for text under the account key: everything this user owns.
+  List<String> tokenizeForSearch(String name) =>
+      _crypto.searchTags(searchRootKey, name);
+
+  /// Tags for text under a file's own key. This is the scope every recipient
+  /// of a share searches through, so it is written for every file even when
+  /// the file is not shared — that is what makes sharing free of index work.
+  List<String> tokenizeForSearchWithFileKey(Uint8List fileKey, String name) =>
+      _crypto.searchTags(_crypto.searchFileKey(fileKey), name);
+
+  /// A file's search key as hex, for callers that hold raw key bytes.
+  String searchFileKeyHex(Uint8List fileKey) => _crypto.searchFileKey(fileKey);
+
+  /// Bare tags for a query, as the search route receives them.
+  List<String> queryTags(String key, String text) =>
+      _crypto.searchQueryTags(key, text);
 
   /// Encrypt a data chunk with the file's symmetric key. [chunkIndex] derives
   /// a per-chunk nonce — encrypting every chunk with the key blob as-is would

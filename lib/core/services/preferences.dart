@@ -37,6 +37,22 @@ class Preferences {
     return Preferences(prefs);
   }
 
+  // ── Re-index sweep ────────────────────────────────────────────────
+  static const _kReindexGaveUp = 'reindex.gaveUpFileIds';
+
+  /// Files the sweep has tried and failed on, so it stops asking.
+  ///
+  /// Without this the sweep is a trap: a file it can never index stays
+  /// pending forever, so the dialog returns on every single launch with no
+  /// way for the user to make it stop. They are still retried quietly on
+  /// later sweeps — a file that becomes readable again recovers on its own —
+  /// but they no longer earn a modal.
+  Set<String> get reindexGaveUpFileIds =>
+      (_prefs.getStringList(_kReindexGaveUp) ?? const []).toSet();
+
+  Future<void> setReindexGaveUpFileIds(Set<String> ids) =>
+      _prefs.setStringList(_kReindexGaveUp, ids.toList());
+
   // ── Files screen view mode ────────────────────────────────────────
   static const _kFilesViewMode = 'files.viewMode';
 

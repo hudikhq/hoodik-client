@@ -111,13 +111,36 @@ class ProductionMcpGateway implements McpGateway {
     required String query,
     String? dirId,
     int? limit,
-  }) {
-    // The MCP tool hands over a plaintext query; it stops here. Tokenize +
-    // hash on-device so only hashes reach the wire, same as the search UI.
-    final crypto = _ref.read(cryptoServiceProvider);
+  }) async {
+    // The MCP tool hands over a plaintext query; it stops here. Tokenized and
+    // tagged on-device so only tags reach the wire, same as the search UI.
+    final fileCrypto = _ref.read(fileCryptoProvider);
+    if (fileCrypto == null) {
+      throw StateError('Cannot search without an unlocked private key');
+    }
+
+    // Files shared with this account are tagged under each file's own key, so
+    // without these the agent would quietly see only what the user owns and
+    // report shared files as missing.
+    final sharedKeys = await _ref.read(incomingSearchKeysProvider.future);
+
+    // One exact-match tag per scope rides along, same as the search UI —
+    // what lets the agent find a file by pasting its content digest.
+    final exact = query.trim().toLowerCase();
+    final rootKey = fileCrypto.searchRootKey;
+
     return _client().search.searchFiles(
-      searchTokensHashed: crypto.tokenizeAndHashForSearch(query),
-      hash: SearchClient.hashLookup(query),
+      rootTags: [
+        ...fileCrypto.queryTags(rootKey, query),
+        fileCrypto.exactTag(rootKey, exact),
+      ],
+      fileTags: sharedKeys.expand((key) {
+        final fileKey = fileCrypto.searchFileKeyHex(key);
+        return [
+          ...fileCrypto.queryTags(fileKey, query),
+          fileCrypto.exactTag(fileKey, exact),
+        ];
+      }).toList(),
       dirId: dirId,
       limit: limit ?? 20,
     );

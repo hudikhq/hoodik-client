@@ -2,6 +2,7 @@ import '../utils/log_redact.dart';
 import '../utils/logger.dart';
 import 'chunk_download_transport.dart';
 import 'tar_fallback.dart';
+import 'transfer_errors.dart';
 
 const _log = Logger('ChunkDownloadRunner');
 
@@ -31,7 +32,61 @@ class ChunkDownloadRunner {
     required int chunkCount,
     required String outputDir,
     required List<int> alreadyDownloaded,
+    required String accountId,
+    List<String> directUrls = const [],
+    Future<List<String>?> Function()? refreshDirectUrls,
+    void Function(int completedChunks, int transferredBytes)? onProgress,
   }) async {
+    // Direct transfer wins over tar when the server offers it. The tar exists
+    // to spare the server N requests; when the chunks aren't coming from the
+    // server at all, bundling them through it is the one thing worth avoiding.
+    if (_coversEveryChunk(directUrls, chunkCount)) {
+      Future<void> fetch(List<String> urls) => _transport.downloadDirectChunks(
+        fileId: fileId,
+        urls: urls,
+        fileSize: fileSize,
+        outputDir: outputDir,
+        alreadyDownloaded: alreadyDownloaded,
+        accountId: accountId,
+        onProgress: onProgress,
+      );
+
+      try {
+        await fetch(directUrls);
+      } on TransferCancelledException {
+        // A cancel is an answer, not a failure — retrying it with a fresh
+        // manifest would restart the transfer the user just stopped.
+        rethrow;
+      } catch (e) {
+        // Signed URLs are long-lived but not eternal, and a transfer the OS
+        // carried across several launches can outlive them. One fresh manifest
+        // is cheap — the chunks already on disk are skipped, so the retry only
+        // refetches what is genuinely missing — and anything that fails twice
+        // is a real failure.
+        final refreshed = await refreshDirectUrls?.call();
+        if (refreshed == null || !_coversEveryChunk(refreshed, chunkCount)) {
+          rethrow;
+        }
+        _log.info(
+          'retrying direct download with a fresh manifest',
+          fields: {'file_id': fileId, 'error': describeError(e)},
+        );
+        await fetch(refreshed);
+      }
+      return;
+    }
+
+    if (directUrls.isNotEmpty) {
+      _log.info(
+        'manifest does not cover every chunk — downloading through the server',
+        fields: {
+          'file_id': fileId,
+          'urls': directUrls.length,
+          'chunks': chunkCount,
+        },
+      );
+    }
+
     if (_tarCapabilityCache.lookup(baseUrl) == false) {
       await _transport.downloadPerChunk(
         baseUrl: baseUrl,
@@ -41,6 +96,8 @@ class ChunkDownloadRunner {
         chunkCount: chunkCount,
         outputDir: outputDir,
         alreadyDownloaded: alreadyDownloaded,
+        accountId: accountId,
+        onProgress: onProgress,
       );
       return;
     }
@@ -54,6 +111,8 @@ class ChunkDownloadRunner {
         chunkCount: chunkCount,
         outputDir: outputDir,
         alreadyDownloaded: alreadyDownloaded,
+        accountId: accountId,
+        onProgress: onProgress,
       );
       _tarCapabilityCache.markSupported(baseUrl);
     } catch (e) {
@@ -71,7 +130,20 @@ class ChunkDownloadRunner {
         chunkCount: chunkCount,
         outputDir: outputDir,
         alreadyDownloaded: alreadyDownloaded,
+        accountId: accountId,
+        onProgress: onProgress,
       );
     }
   }
 }
+
+/// Whether the manifest can carry the whole transfer on its own.
+///
+/// A partial manifest is not worth splitting the file across two transports:
+/// the bucket leg would survive suspension and the server leg would not, so
+/// the transfer as a whole still would not. Better to take one path that
+/// works for every chunk.
+bool _coversEveryChunk(List<String> urls, int chunkCount) =>
+    urls.length == chunkCount &&
+    chunkCount > 0 &&
+    urls.every((url) => url.isNotEmpty);

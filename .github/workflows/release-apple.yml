@@ -91,7 +91,9 @@ jobs:
 
             - name: Clone hoodik (for shared Rust crates)
               if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
-              run: git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+              uses: ./.github/actions/clone-hoodik
+              with:
+                  pinned: ${{ vars.HOODIK_BRANCH }}
 
             - uses: dtolnay/rust-toolchain@stable
               if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'

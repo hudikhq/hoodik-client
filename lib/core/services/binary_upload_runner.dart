@@ -19,6 +19,11 @@ typedef PerChunkUploadFn = Future<void> Function();
 /// after the operator deploys a tar-capable build. The cost of always
 /// probing is a single failed POST per legacy server per upload, in
 /// exchange for transparent recovery the moment the server gains support.
+///
+/// A server that says outright it will not serve archives is the exception:
+/// [tarSupported] is read fresh from the capability on every run, so it
+/// withholds the probe without caching anything, and the moment the operator
+/// turns archives back on the next upload uses one again.
 class BinaryUploadRunner {
   final UploadTarTransport _tarTransport;
 
@@ -47,7 +52,13 @@ class BinaryUploadRunner {
     required PerChunkUploadFn perChunk,
     void Function(UploadTarResult)? onTarResult,
     void Function(int transferred, int total)? onTarProgress,
+    bool tarSupported = true,
   }) async {
+    if (!tarSupported) {
+      await perChunk();
+      return false;
+    }
+
     try {
       final result = await _tarTransport.uploadAsTar(
         baseUrl: baseUrl,

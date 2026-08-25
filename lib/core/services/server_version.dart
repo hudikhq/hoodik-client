@@ -1,3 +1,22 @@
+/// The oldest server this app will talk to.
+///
+/// Not a nudge — below this the app refuses to run. 2.5.0 is where the keyed
+/// search index landed: an older server still stores the reversible digests
+/// this build cannot produce, so anything written to it is indexed in a shape
+/// it will never match. Nothing about that is visible at the time, which is
+/// why it is a refusal and not a banner.
+///
+/// Raising this locks out everyone whose server has not been updated yet, so
+/// it moves rarely, and never in the same release as a feature that could
+/// have been made to degrade instead.
+const minimumServerVersion = '2.5.0';
+
+/// The server this build is made for. Above the minimum, so a server between
+/// the two works while missing what this release was written against — worth
+/// a nudge and nothing more. Cheap to raise, which is the point of keeping it
+/// separate from the number that locks people out.
+const recommendedServerVersion = '2.5.0';
+
 /// Result of a `/api/liveness` probe. Captures whether the server is
 /// reachable and — from v1.16.0 onward — which version is running, so
 /// the UI can nudge self-hosters to upgrade when their server predates
@@ -10,9 +29,67 @@ class LivenessInfo {
   /// `/api/liveness` without a `version` field.
   final String? version;
 
-  const LivenessInfo({required this.alive, this.version});
+  /// Oldest app this server will serve, as reported by `/api/liveness`.
+  /// `null` on servers predating the field.
+  final String? minimumClientVersion;
 
-  const LivenessInfo.offline() : alive = false, version = null;
+  /// App version this server is built to work with. `null` on servers
+  /// predating the field.
+  final String? recommendedClientVersion;
+
+  const LivenessInfo({
+    required this.alive,
+    this.version,
+    this.minimumClientVersion,
+    this.recommendedClientVersion,
+  });
+
+  const LivenessInfo.offline()
+    : alive = false,
+      version = null,
+      minimumClientVersion = null,
+      recommendedClientVersion = null;
+
+  /// This app is too old for the server and must be updated before it can
+  /// work. Blocks rather than nudges.
+  bool isClientBelowMinimum(String clientVersion) =>
+      alive &&
+      minimumClientVersion != null &&
+      compareSemver(clientVersion, minimumClientVersion!) < 0;
+
+  /// This app still works but is behind what the server is built for. Worth a
+  /// nudge and nothing more, which is why it is a separate number from the
+  /// minimum: raising the recommendation is cheap, raising the minimum breaks
+  /// people.
+  bool isClientBelowRecommended(String clientVersion) =>
+      alive &&
+      recommendedClientVersion != null &&
+      compareSemver(clientVersion, recommendedClientVersion!) < 0 &&
+      !isClientBelowMinimum(clientVersion);
+
+  /// The server is older than [minimumServerVersion], so this app refuses to
+  /// work against it.
+  ///
+  /// A server that reports no version at all predates the field, which
+  /// arrived in v1.16.0, and so is far below the minimum — absence is a
+  /// deterministic answer here, not a missing one. A version that parses to
+  /// nothing (a homemade `dev` build) compares equal and is let through:
+  /// [compareSemver] refuses to guess, and guessing wrong here locks someone
+  /// out of their own server.
+  bool get isServerBelowMinimum {
+    if (!alive) return false;
+    if (version == null) return true;
+    return compareSemver(version!, minimumServerVersion) < 0;
+  }
+
+  /// The server works but is behind what this build was written against.
+  /// Worth a nudge, never a block — which is why it is a separate number
+  /// from [minimumServerVersion].
+  bool get isServerBelowRecommended =>
+      alive &&
+      version != null &&
+      compareSemver(version!, recommendedServerVersion) < 0 &&
+      !isServerBelowMinimum;
 
   /// True iff we have **verified evidence** that this server is older
   /// than what's currently published. Two independent signals qualify:

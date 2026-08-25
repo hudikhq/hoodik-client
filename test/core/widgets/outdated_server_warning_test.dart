@@ -7,7 +7,11 @@ import 'package:hoodik_app/core/storage/database.dart';
 import 'package:hoodik_app/core/widgets/outdated_server_warning.dart';
 import 'package:hoodik_app/l10n/generated/app_localizations.dart';
 
-const _latestRelease = '1.15.0';
+// Both above minimumServerVersion: this banner is the softer of the two,
+// and a server below the minimum never reaches it — ServerVersionGate stands
+// in for the shell before any of this renders.
+const _latestRelease = '2.7.0';
+const _usableButBehind = '2.5.0';
 
 Server _server({String url = 'https://self-hosted.example'}) {
   return Server(
@@ -44,7 +48,12 @@ void main() {
     await tester.pumpWidget(
       _pump(
         server: null,
-        liveness: const LivenessInfo(alive: true, version: '1.9.0'),
+        liveness: const LivenessInfo(
+          alive: true,
+          version: _usableButBehind,
+          minimumClientVersion: '1.0.0',
+          recommendedClientVersion: '1.0.0',
+        ),
       ),
     );
     await tester.pump();
@@ -69,7 +78,12 @@ void main() {
     await tester.pumpWidget(
       _pump(
         server: _server(),
-        liveness: const LivenessInfo(alive: true, version: '99.0.0'),
+        liveness: const LivenessInfo(
+          alive: true,
+          version: '99.0.0',
+          minimumClientVersion: '1.0.0',
+          recommendedClientVersion: '1.0.0',
+        ),
       ),
     );
     await tester.pump();
@@ -95,7 +109,12 @@ void main() {
       await tester.pumpWidget(
         _pump(
           server: _server(),
-          liveness: const LivenessInfo(alive: true, version: '0.1.0'),
+          liveness: const LivenessInfo(
+            alive: true,
+            version: _usableButBehind,
+            minimumClientVersion: '1.0.0',
+            recommendedClientVersion: '1.0.0',
+          ),
           latestRelease: null,
         ),
       );
@@ -110,11 +129,19 @@ void main() {
       await tester.pumpWidget(
         _pump(
           server: _server(),
-          liveness: const LivenessInfo(alive: true, version: '1.9.0'),
+          liveness: const LivenessInfo(
+            alive: true,
+            version: _usableButBehind,
+            minimumClientVersion: '1.0.0',
+            recommendedClientVersion: '1.0.0',
+          ),
         ),
       );
       await tester.pump();
-      expect(find.textContaining('1.9.0', findRichText: true), findsOneWidget);
+      expect(
+        find.textContaining(_usableButBehind, findRichText: true),
+        findsOneWidget,
+      );
       expect(
         find.textContaining('v$_latestRelease', findRichText: true),
         findsOneWidget,
@@ -122,26 +149,28 @@ void main() {
     },
   );
 
-  testWidgets(
-    'shows banner when server omits version field even if GitHub unreachable',
-    (tester) async {
-      // The version field landed in v1.16.0 — its absence is independently
-      // verified evidence the server is older. We do NOT need GitHub for
-      // this branch, so the banner shows with or without a known latest.
-      await tester.pumpWidget(
-        _pump(
-          server: _server(),
-          liveness: const LivenessInfo(alive: true, version: null),
-          latestRelease: null,
-        ),
-      );
-      await tester.pump();
-      expect(
-        find.textContaining('older than v1.16.0', findRichText: true),
-        findsOneWidget,
-      );
-    },
-  );
+  testWidgets('defers to the compatibility banner when the server predates the '
+      'compat fields', (tester) async {
+    // A server that omits `version` predates v1.16.0, so it also predates
+    // the 2.5.0 compat fields — which makes it a server this app cannot
+    // search at all. ServerCompatibilityWarning says exactly that, and
+    // needs GitHub no more than this branch did, so stacking a vaguer
+    // "upgrade available" line above it would only push the useful message
+    // down the screen.
+    await tester.pumpWidget(
+      _pump(
+        server: _server(),
+        liveness: const LivenessInfo(alive: true, version: null),
+        latestRelease: null,
+      ),
+    );
+    await tester.pump();
+    expect(find.textContaining('Upgrade', findRichText: true), findsNothing);
+    expect(
+      find.textContaining('older than v1.16.0', findRichText: true),
+      findsNothing,
+    );
+  });
 
   testWidgets('dismiss button hides the banner for that server URL only', (
     tester,
@@ -149,7 +178,12 @@ void main() {
     await tester.pumpWidget(
       _pump(
         server: _server(),
-        liveness: const LivenessInfo(alive: true, version: '1.9.0'),
+        liveness: const LivenessInfo(
+          alive: true,
+          version: _usableButBehind,
+          minimumClientVersion: '1.0.0',
+          recommendedClientVersion: '1.0.0',
+        ),
       ),
     );
     await tester.pump();

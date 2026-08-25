@@ -16,8 +16,8 @@ const _log = Logger('WorkerManager');
 /// Manages the lifecycle of worker isolates (decrypt, encrypt) and
 /// routes messages between them and the main isolate.
 ///
-/// Uploads and downloads are handled by [BackgroundUploadService] and
-/// [BackgroundDownloadService] using OS-native URLSession (iOS) /
+/// Uploads and downloads are handled by [BackgroundUploadService] and the
+/// services behind [ChunkDownloadPipeline], using OS-native URLSession (iOS) /
 /// WorkManager (Android) for background-safe transfers.
 class WorkerManager {
   final TransferManager transferManager;

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -140,9 +141,28 @@ class FilesForkController {
               cipher: cipher,
             );
 
+      // Name and body on separate sources. Concatenating them left stale body
+      // words in the name source after a later rename, and nothing revisits a
+      // fork to repair it. Only for a note: decoding arbitrary bytes as text
+      // would tag a video with whatever its header happened to look like.
+      final nameTokens = fileCrypto.tokenizeForSearch(displayName);
+      final nameTokensFile = fileCrypto.tokenizeForSearchWithFileKey(
+        newKey,
+        displayName,
+      );
+      final noteBody = source.editable
+          ? utf8.decode(plaintext, allowMalformed: true)
+          : null;
+
       final size = plaintext.length;
       final chunks = (size / kUploadChunkSize).ceil().clamp(1, 1 << 30);
+      // Keyed under the fork's new key before it touches the wire, like
+      // every other digest write.
       final sha256 = fileCrypto.sha256(plaintext);
+      final keyedSha256 = fileCrypto.exactTag(
+        fileCrypto.searchFileKeyHex(newKey),
+        sha256,
+      );
       final newFileId = const Uuid().v4();
       final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
@@ -168,10 +188,21 @@ class FilesForkController {
         'mime': source.mime,
         'size': size,
         'chunks': chunks,
-        'sha256': sha256,
+        'sha256': keyedSha256,
         'cipher': cipher,
         'encrypted_key': wrappedKey,
-        'search_tokens_hashed': fileCrypto.tokenizeForSearch(displayName),
+        'search_tokens_root': nameTokens,
+        // The fork is a distinct file under `newKey`, so its file scope is
+        // keyed on that — tagging under the source's key would index it for
+        // whoever holds the original instead.
+        'search_tokens_file': nameTokensFile,
+        if (noteBody != null) ...{
+          'content_tokens_root': fileCrypto.tokenizeForSearch(noteBody),
+          'content_tokens_file': fileCrypto.tokenizeForSearchWithFileKey(
+            newKey,
+            noteBody,
+          ),
+        },
         'event_signature': eventSignature,
         'timestamp': timestamp,
       };
@@ -233,10 +264,18 @@ class FilesForkController {
       await client.files.uploadChunk(fileId: fileId, chunk: i, data: encrypted);
     }
 
+    // Same keying as every hash persist: the column under the file's search
+    // key, plus the digest tags that answer a pasted-digest search.
+    final fileSearchKey = fileCrypto.searchFileKeyHex(fileKey);
+    final keyed = fileCrypto.exactTag(fileSearchKey, sha256);
     await client.files.updateFileHashesWithToken(
       fileId: fileId,
       transferToken: token.token,
-      sha256: sha256,
+      sha256: keyed,
+      searchTokensRoot: [
+        '${fileCrypto.exactTag(fileCrypto.searchRootKey, sha256)}:1',
+      ],
+      searchTokensFile: ['$keyed:1'],
     );
   }
 

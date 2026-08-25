@@ -9,6 +9,7 @@ import '../utils/l10n_lookup.dart';
 import '../workers/worker_manager.dart';
 import 'background_upload_service.dart';
 import 'binary_upload_pipeline.dart';
+import 'direct_chunk_upload.dart';
 import 'binary_upload_transport.dart';
 import 'offline_manager.dart';
 import 'shared_folder_target.dart';
@@ -44,7 +45,17 @@ class FileUploader {
   final WorkerManager? _workerManager;
   final OfflineManager? _offlineManager;
   final BackgroundUploadService? _backgroundUploadService;
+  final DirectChunkUploadService? _directUpload;
+
+  /// Whether the server advertises bucket URLs. The binary pipeline learns
+  /// this from [_directUpload] being present; a note is written here instead,
+  /// so it needs the flag itself.
+  final bool _directTransfer;
   final UploadTarTransport? _uploadTarTransport;
+
+  /// Passed to the pipeline so an upload skips the archive on a server that
+  /// says it will not serve one, instead of learning it from a refusal.
+  final bool _tarSupported;
   final String? _accountId;
   final SharedFolderTargetResolver? _sharedTarget;
   final SharedFolderUpload? _sharedUpload;
@@ -62,7 +73,10 @@ class FileUploader {
     WorkerManager? workerManager,
     OfflineManager? offlineManager,
     BackgroundUploadService? backgroundUploadService,
+    DirectChunkUploadService? directUpload,
+    bool directTransfer = true,
     UploadTarTransport? uploadTarTransport,
+    bool tarSupported = true,
     String? accountId,
     SharedFolderTargetResolver? sharedTarget,
     SharedFolderUpload? sharedUpload,
@@ -74,7 +88,10 @@ class FileUploader {
        _workerManager = workerManager,
        _offlineManager = offlineManager,
        _backgroundUploadService = backgroundUploadService,
+       _directUpload = directUpload,
+       _directTransfer = directTransfer,
        _uploadTarTransport = uploadTarTransport,
+       _tarSupported = tarSupported,
        _accountId = accountId,
        _sharedTarget = sharedTarget,
        _sharedUpload = sharedUpload;
@@ -95,6 +112,7 @@ class FileUploader {
     String localPath, {
     String? parentDirId,
     void Function(double progress)? onProgress,
+    String? stagingId,
   }) async {
     final wm = _workerManager;
     final offline = _offlineManager;
@@ -109,6 +127,7 @@ class FileUploader {
     }
 
     final pipeline = BinaryUploadPipeline(
+      tarSupported: _tarSupported,
       client: _client,
       fileCrypto: _fileCrypto,
       publicKeyPem: _publicKeyPem,
@@ -120,6 +139,7 @@ class FileUploader {
       tarTransport: tarTransport,
       transferManager: _transferManager,
       backgroundUploadService: _backgroundUploadService,
+      directUpload: _directUpload,
       sharedTarget: _sharedTarget,
       sharedUpload: _sharedUpload,
     );
@@ -127,6 +147,7 @@ class FileUploader {
       localPath,
       parentDirId: parentDirId,
       onProgress: onProgress,
+      stagingId: stagingId,
     );
   }
 
@@ -156,7 +177,16 @@ class FileUploader {
       fileKey: fileKey,
       cipher: cipher,
     );
-    final searchTokens = _fileCrypto.tokenizeForSearch(name);
+    final nameTokens = _fileCrypto.tokenizeForSearch(name);
+    final nameTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
+      fileKey,
+      name,
+    );
+    final contentTokens = _fileCrypto.tokenizeForSearch(content);
+    final contentTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
+      fileKey,
+      content,
+    );
 
     var fileId = await multiKeyCreateOrNull(
       resolver: _sharedTarget,
@@ -171,7 +201,10 @@ class FileUploader {
       chunks: totalChunks,
       size: fileSize,
       editable: true,
-      searchTokensHashed: searchTokens,
+      searchTokensRoot: nameTokens,
+      searchTokensFile: nameTokensFile,
+      contentTokensRoot: contentTokens,
+      contentTokensFile: contentTokensFile,
     );
     if (fileId == null) {
       final encryptedKey = _fileCrypto.encryptFileKey(
@@ -187,12 +220,24 @@ class FileUploader {
         chunks: totalChunks,
         parentDirId: parentDirId,
         cipher: cipher,
-        searchTokensHashed: searchTokens,
+        searchTokensRoot: nameTokens,
+        searchTokensFile: nameTokensFile,
+        contentTokensRoot: contentTokens,
+        contentTokensFile: contentTokensFile,
         editable: true,
       );
       fileId = entry['id'] as String;
     }
-    await _encryptAndUploadContent(fileId, bytes, fileKey, cipher, totalChunks);
+    // The creator of a note owns it on every create path, shared folders
+    // included.
+    await _encryptAndUploadContent(
+      fileId,
+      bytes,
+      fileKey,
+      cipher,
+      totalChunks,
+      isOwner: true,
+    );
 
     return fileId;
   }
@@ -228,15 +273,24 @@ class FileUploader {
     final totalChunks = (fileSize / kUploadChunkSize).ceil().clamp(1, 1 << 30);
 
     String? encryptedName;
-    List<String>? searchTokens;
     if (name != null) {
       encryptedName = _fileCrypto.encryptFileName(
         name: name,
         fileKey: fileKey,
         cipher: cipher,
       );
-      searchTokens = _fileCrypto.tokenizeForSearch(name);
     }
+
+    // Body only. The title lives in a different source; sending it here would
+    // wipe the name the moment a save follows a rename. An editor does not
+    // hold the owner's root key, so they refresh only the file scope.
+    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
+      fileKey,
+      content,
+    );
+    final searchTokens = file.isOwner
+        ? _fileCrypto.tokenizeForSearch(content)
+        : null;
 
     try {
       await _client.storage.replaceContent(
@@ -244,7 +298,8 @@ class FileUploader {
         size: fileSize,
         chunks: totalChunks,
         encryptedName: encryptedName,
-        searchTokensHashed: searchTokens,
+        searchTokensRoot: searchTokens,
+        searchTokensFile: searchTokensFile,
         force: force,
       );
     } on DioException catch (e) {
@@ -254,49 +309,115 @@ class FileUploader {
       rethrow;
     }
 
-    await _encryptAndUploadContent(fileId, bytes, fileKey, cipher, totalChunks);
+    await _encryptAndUploadContent(
+      fileId,
+      bytes,
+      fileKey,
+      cipher,
+      totalChunks,
+      isOwner: file.isOwner,
+    );
   }
 
   /// Encrypt [plaintext] and upload it as chunks on the main thread, then
   /// finalize the server entry with its SHA-256. Used by both note-create
   /// and note-update flows — the server-side pending-version dance
   /// happens upstream in [updateNoteContent].
+  ///
+  /// [isOwner] gates the digest's root-scope tag the same way the word
+  /// tokens are gated upstream: an editor does not hold the owner's root
+  /// key, so a tag produced here would sit in the owner's scope unmatchable.
   Future<void> _encryptAndUploadContent(
     String fileId,
     Uint8List plaintext,
     Uint8List fileKey,
     String cipher,
-    int totalChunks,
-  ) async {
+    int totalChunks, {
+    required bool isOwner,
+  }) async {
     final token = await _client.auth.requestTransferToken(
       fileId: fileId,
       action: 'upload',
     );
 
+    // Encrypted up front rather than chunk by chunk as they go out: the
+    // server signs each chunk's exact ciphertext length into its URL, so the
+    // lengths have to be known before any URL is asked for. A note is small
+    // enough that holding it twice costs nothing.
+    final encrypted = <int, Uint8List>{
+      for (var i = 0; i < totalChunks; i++)
+        i: _fileCrypto.encryptChunk(
+          data: plaintext.sublist(
+            i * kUploadChunkSize,
+            ((i + 1) * kUploadChunkSize).clamp(0, plaintext.length),
+          ),
+          fileKey: fileKey,
+          cipher: cipher,
+          chunkIndex: i,
+        ),
+    };
+
+    // Not asked for at all on a server that does not serve bucket URLs: the
+    // request is refused every time, and a note save is frequent enough that
+    // one dead round trip per keystroke-batch is worth skipping. The refusal
+    // still decides it whenever the flag says yes.
+    final manifest = !_directTransfer
+        ? null
+        : await _client.files.fetchUploadUrls(
+            fileId: fileId,
+            transferToken: token.token,
+            chunkSizes: {
+              for (final entry in encrypted.entries)
+                entry.key: entry.value.length,
+            },
+          );
+
+    // Covers every chunk or none of them: a note is written in one shot, and a
+    // half-direct write would need the same commit either way for no gain.
+    final direct =
+        manifest != null &&
+        manifest.urls.length >= totalChunks &&
+        !manifest.urls.take(totalChunks).any((url) => url.isEmpty);
+
     for (var i = 0; i < totalChunks; i++) {
-      final start = i * kUploadChunkSize;
-      final end = (start + kUploadChunkSize).clamp(0, plaintext.length);
-      final chunkPlain = plaintext.sublist(start, end);
+      if (direct) {
+        await _client.files.putChunkDirect(
+          url: manifest.urls[i],
+          data: encrypted[i]!,
+        );
+      } else {
+        await _client.files.uploadChunk(
+          fileId: fileId,
+          chunk: i,
+          data: encrypted[i]!,
+        );
+      }
+    }
 
-      final encrypted = _fileCrypto.encryptChunk(
-        data: chunkPlain,
-        fileKey: fileKey,
-        cipher: cipher,
-        chunkIndex: i,
-      );
-
-      await _client.files.uploadChunk(
+    // Nothing tells the server a bucket write landed, so the client says so.
+    // The relaying route commits itself as its own last chunk arrives.
+    if (direct) {
+      await _client.files.finalizeDirectUpload(
         fileId: fileId,
-        chunk: i,
-        data: encrypted,
+        transferToken: token.token,
       );
     }
 
+    // Keyed before it touches the wire: the column stores the digest under
+    // the file's search key so any key-holder can run the resume equality
+    // check, and the digest tags are what make the note findable by pasting
+    // its digest into search. The bare digest never leaves this function.
     final sha256 = _fileCrypto.sha256(plaintext);
+    final fileSearchKey = _fileCrypto.searchFileKeyHex(fileKey);
+    final keyed = _fileCrypto.exactTag(fileSearchKey, sha256);
     await _client.files.updateFileHashesWithToken(
       fileId: fileId,
       transferToken: token.token,
-      sha256: sha256,
+      sha256: keyed,
+      searchTokensRoot: isOwner
+          ? ['${_fileCrypto.exactTag(_fileCrypto.searchRootKey, sha256)}:1']
+          : null,
+      searchTokensFile: ['$keyed:1'],
     );
   }
 }

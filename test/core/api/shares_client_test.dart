@@ -366,22 +366,34 @@ void main() {
       expect(caps.fork, isTrue);
     });
 
-    test('404 (pre-1.16 server) fails closed to disabled', () async {
-      final env = _buildDio([_Reply.empty(status: 404)]);
+    // Failing closed is the caller's job now, not this method's. Only the
+    // caller can tell a server that answered — a 404 from a pre-1.16 build —
+    // from a request that never landed, and it retries the second rather than
+    // pinning the whole session to a probe lost while the phone changed
+    // networks.
+    test(
+      '404 (pre-1.16 server) throws for the caller to fail closed on',
+      () async {
+        final env = _buildDio([_Reply.empty(status: 404)]);
 
-      final caps = await SharesClient(env.dio).getCapabilities();
+        await expectLater(
+          SharesClient(env.dio).getCapabilities(),
+          throwsA(isA<DioException>()),
+        );
+      },
+    );
 
-      expect(caps.sharingEnabled, isFalse);
-      expect(caps.roles, isEmpty);
-    });
+    test(
+      'an unparseable body throws rather than reading as disabled',
+      () async {
+        final env = _buildDio([_Reply.jsonList([])]);
 
-    test('unparseable body fails closed to disabled', () async {
-      final env = _buildDio([_Reply.jsonList([])]);
-
-      final caps = await SharesClient(env.dio).getCapabilities();
-
-      expect(caps.sharingEnabled, isFalse);
-    });
+        await expectLater(
+          SharesClient(env.dio).getCapabilities(),
+          throwsA(anything),
+        );
+      },
+    );
   });
 
   group('SharesClient.patchMe', () {

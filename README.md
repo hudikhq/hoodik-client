@@ -128,7 +128,7 @@ Path patches in `rust/.cargo/config.toml` point at `../../hoodik/cryptfns` and
 - Account-to-account sharing and share groups
 - Public link management
 - Search that tokenizes on-device with BERT and sends only SHA-256 hashes
-- Offline caching with LRU eviction and pin/unpin, plus a pending upload queue
+- Offline caching with LRU eviction (8 GB default, pinned files exempt, not on app exit) and pin/unpin, plus a pending upload queue
 - Embedded MCP server on desktop, giving local AI agents access to your storage
   without the server ever seeing plaintext (see [MCP.md](MCP.md))
 - Admin panel for users, invitations and server settings

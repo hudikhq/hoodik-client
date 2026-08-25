@@ -13,6 +13,7 @@ import '../../../core/workers/worker_messages.dart';
 import '../../shares/services/incoming_shares.dart';
 import '../../shares/shared_constants.dart';
 import '../widgets/file_sort_controls.dart';
+import 'files_selection.dart';
 import 'files_state.dart';
 
 const _log = Logger('FilesNotifier');
@@ -21,7 +22,8 @@ const _log = Logger('FilesNotifier');
 /// screen. Lives per-`dirId` via [filesNotifierProvider] so switching
 /// directories gets a fresh view while keeping each directory's cache
 /// hot across navigation.
-class FilesNotifier extends FamilyNotifier<FilesState, String?> {
+class FilesNotifier extends FamilyNotifier<FilesState, String?>
+    with FilesSelection {
   String? _dirId;
   Timer? _offlineRefreshTimer;
   final Set<String> _refreshedTransferIds = {};
@@ -362,45 +364,6 @@ class FilesNotifier extends FamilyNotifier<FilesState, String?> {
           f,
     ];
     if (changed) state = state.copyWith(files: updated);
-  }
-
-  void enterSelectionMode(String fileId) {
-    state = state.copyWith(
-      selectionMode: true,
-      selectedIds: _selectable(fileId)
-          ? {...state.selectedIds, fileId}
-          : state.selectedIds,
-    );
-  }
-
-  /// Rows the selection bar's actions can't touch never enter the set. The
-  /// guard lives here rather than only in the checkbox so a second entry
-  /// point — select-all, a keyboard shortcut — can't put one back in.
-  bool _selectable(String fileId) {
-    final file = state.files?.where((f) => f.id == fileId).firstOrNull;
-    return file == null || canSelectFile(file);
-  }
-
-  void exitSelectionMode() {
-    state = state.copyWith(selectionMode: false, selectedIds: {});
-  }
-
-  void toggleSelection(String fileId) {
-    if (!_selectable(fileId)) return;
-    final next = {...state.selectedIds};
-    if (next.contains(fileId)) {
-      next.remove(fileId);
-    } else {
-      next.add(fileId);
-    }
-    state = state.copyWith(
-      selectedIds: next,
-      selectionMode: next.isEmpty ? false : state.selectionMode,
-    );
-  }
-
-  void enterEmptySelectionMode() {
-    state = state.copyWith(selectionMode: true);
   }
 
   void toggleSort(SortField field) {

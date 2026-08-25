@@ -858,6 +858,48 @@ abstract class AppLocalizations {
   /// **'Offline Cache'**
   String get accountOfflineCacheTitle;
 
+  /// No description provided for @accountOfflineCacheOfLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} of {limit}'**
+  String accountOfflineCacheOfLimit(String used, String limit);
+
+  /// No description provided for @accountOfflineCacheUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} · Unlimited'**
+  String accountOfflineCacheUnlimited(String used);
+
+  /// No description provided for @accountCacheLimitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache limit'**
+  String get accountCacheLimitTitle;
+
+  /// No description provided for @accountCacheLimit2Gb.
+  ///
+  /// In en, this message translates to:
+  /// **'2 GB'**
+  String get accountCacheLimit2Gb;
+
+  /// No description provided for @accountCacheLimit8Gb.
+  ///
+  /// In en, this message translates to:
+  /// **'8 GB'**
+  String get accountCacheLimit8Gb;
+
+  /// No description provided for @accountCacheLimit32Gb.
+  ///
+  /// In en, this message translates to:
+  /// **'32 GB'**
+  String get accountCacheLimit32Gb;
+
+  /// No description provided for @accountCacheLimitUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited'**
+  String get accountCacheLimitUnlimited;
+
   /// No description provided for @accountOfflineClearBody.
   ///
   /// In en, this message translates to:
@@ -2466,6 +2508,18 @@ abstract class AppLocalizations {
   /// **'{name} available offline'**
   String filesAvailableOffline(String name);
 
+  /// No description provided for @filesAvailableOfflineCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 file available offline} other{{count} files available offline}}'**
+  String filesAvailableOfflineCount(int count);
+
+  /// No description provided for @filesAvailableOfflinePartial.
+  ///
+  /// In en, this message translates to:
+  /// **'{ok} of {total} files available offline'**
+  String filesAvailableOfflinePartial(int ok, int total);
+
   /// No description provided for @filesCacheFailed.
   ///
   /// In en, this message translates to:
@@ -2694,6 +2748,48 @@ abstract class AppLocalizations {
   /// **'Export'**
   String get filesExport;
 
+  /// No description provided for @filesExportBulkBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Each file will be downloaded and decrypted first. This can take a while, and you can pick where to send them once all the files are ready.'**
+  String get filesExportBulkBody;
+
+  /// No description provided for @filesExportBulkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export {count} files?'**
+  String filesExportBulkTitle(int count);
+
+  /// No description provided for @filesExportedNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t export any files'**
+  String get filesExportedNone;
+
+  /// No description provided for @filesExportedPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported {success} of {total} files'**
+  String filesExportedPartial(int success, int total);
+
+  /// No description provided for @filesBulkFoldersSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 folder will be skipped.} other{{count} folders will be skipped.}}'**
+  String filesBulkFoldersSkipped(int count);
+
+  /// No description provided for @filesBulkLargeExport.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a large export and may take several minutes.'**
+  String get filesBulkLargeExport;
+
+  /// No description provided for @filesBulkLargeDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a large download and may take several minutes.'**
+  String get filesBulkLargeDownload;
+
   /// No description provided for @filesExportFailed.
   ///
   /// In en, this message translates to:
@@ -2825,6 +2921,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Make Available Offline'**
   String get filesMakeAvailableOffline;
+
+  /// No description provided for @filesOfflineBulkBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted copies will download to this device. This can take a while. Files that are already offline are left as they are.'**
+  String get filesOfflineBulkBody;
+
+  /// No description provided for @filesOfflineBulkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make {count} files available offline?'**
+  String filesOfflineBulkTitle(int count);
+
+  /// No description provided for @filesOfflineNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to make available offline'**
+  String get filesOfflineNone;
 
   /// No description provided for @filesMembers.
   ///
@@ -3023,6 +3137,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select'**
   String get filesSelect;
+
+  /// No description provided for @filesSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get filesSelectAll;
 
   /// No description provided for @filesSelectFilesTooltip.
   ///
@@ -4248,6 +4368,18 @@ abstract class AppLocalizations {
   /// **'File already exists'**
   String get serviceFileAlreadyExists;
 
+  /// No description provided for @serviceTransferSelectionName.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected items'**
+  String get serviceTransferSelectionName;
+
+  /// No description provided for @serviceUploadPartialConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'An interrupted upload with this name holds different content. Delete it to upload this file.'**
+  String get serviceUploadPartialConflict;
+
   /// No description provided for @serviceFileNoEncryptionKey.
   ///
   /// In en, this message translates to:
@@ -5468,6 +5600,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restart'**
   String get widgetUpdateRestart;
+
+  /// No description provided for @searchRequiresUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Search needs an app update. Your files are safe — update Hoodik to search them again.'**
+  String get searchRequiresUpdate;
+
+  /// No description provided for @searchViewFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'View folder'**
+  String get searchViewFolder;
+
+  /// No description provided for @reindexTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search index upgrade'**
+  String get reindexTitle;
+
+  /// No description provided for @reindexExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ve strengthened how your file names and notes are hashed for search, making them far harder to crack. Your files need re-indexing on this device to use the new format. Notes are downloaded and decrypted here, which is why this can take a moment. Files that haven\'t been processed yet won\'t turn up in search.'**
+  String get reindexExplanation;
+
+  /// No description provided for @reindexProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} files'**
+  String reindexProgress(int done, int total);
+
+  /// No description provided for @reindexFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files couldn\'t be re-indexed and will be retried next time.'**
+  String reindexFailed(int count);
+
+  /// No description provided for @reindexBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue in background'**
+  String get reindexBackground;
+
+  /// No description provided for @reindexCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get reindexCancel;
+
+  /// No description provided for @serverTooOldForSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'This server is too old for search. Ask whoever runs it to update Hoodik to 2.5.0 or newer.'**
+  String get serverTooOldForSearch;
+
+  /// No description provided for @appBelowMinimumVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'This server needs a newer version of the app. Update Hoodik to keep using it.'**
+  String get appBelowMinimumVersion;
+
+  /// No description provided for @appBelowRecommendedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'A newer version of the app is available for this server.'**
+  String get appBelowRecommendedVersion;
+
+  /// No description provided for @serverBelowMinimumTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This server is too old'**
+  String get serverBelowMinimumTitle;
+
+  /// No description provided for @serverBelowMinimumBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Hoodik {required} or newer is needed to use this app safely. This one reports {reported}. Update the server, then try again.'**
+  String serverBelowMinimumBody(String required, String reported);
+
+  /// No description provided for @serverVersionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'a version too old to say'**
+  String get serverVersionUnknown;
+
+  /// No description provided for @serverBelowRecommendedVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'This server is behind the version this app was built for. Some things may be missing until it is updated.'**
+  String get serverBelowRecommendedVersion;
 }
 
 class _AppLocalizationsDelegate

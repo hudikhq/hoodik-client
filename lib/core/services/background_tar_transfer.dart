@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:background_downloader/background_downloader.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as p;
 
 import '../utils/logger.dart';
 import 'file_downloader_config.dart';
+import 'transfer_errors.dart';
 
 const _log = Logger('BackgroundTarTransfer');
 
@@ -27,7 +29,17 @@ class BackgroundTarTransfer {
 
   Future<void>? _configuring;
 
-  BackgroundTarTransfer({required this.baseUrl});
+  /// How a task's stored record is read. Injectable because the real one
+  /// goes through the plugin's platform channel, which a unit test has no
+  /// way to answer.
+  final Future<TaskRecord?> Function(String taskId) _recordLookup;
+
+  BackgroundTarTransfer({
+    required this.baseUrl,
+    Future<TaskRecord?> Function(String taskId)? recordLookup,
+  }) : _recordLookup =
+           recordLookup ??
+           ((taskId) => FileDownloader().database.recordForId(taskId));
 
   Future<void> _configure() => _configuring ??= _doConfigure();
 
@@ -51,6 +63,12 @@ class BackgroundTarTransfer {
     void Function(int transferred, int total)? onProgress,
   }) async {
     await _configure();
+
+    // Same file already downloading: join it rather than replace it. One entry
+    // exists per task id, so registering a second left the first caller
+    // holding a completer nothing would ever complete.
+    final running = _downloads[taskId];
+    if (running != null) return running.completer.future;
 
     final completer = Completer<void>();
     _downloads[taskId] = _PendingDownload(
@@ -77,6 +95,16 @@ class BackgroundTarTransfer {
       retries: 3,
       allowPause: false,
     );
+
+    // A transfer picked back up after a relaunch may still be in the OS queue
+    // from the previous session. The entry registered above adopts it, and a
+    // second task would only race it into the same archive.
+    if ((await tasksInFlight(downloadGroup)).contains(task.taskId)) {
+      // It may also have finished already, in which case its update is long
+      // gone and only the stored record still says so.
+      await settleFinishedTransfers();
+      return completer.future;
+    }
 
     final ok = await FileDownloader().enqueue(task);
     if (!ok) {
@@ -135,32 +163,108 @@ class BackgroundTarTransfer {
     return completer.future;
   }
 
-  /// Cancel an in-flight tar transfer previously started with [taskId].
+  /// Cancel the in-flight tar transfers that belong to [fileId].
   ///
-  /// Cancels the OS-native task and fails the awaited future so the caller
-  /// can propagate the cancellation. Safe to call when no transfer with the
-  /// given ID is active.
-  Future<void> cancel(String taskId) async {
-    final download = _downloads.remove(taskId);
-    final upload = _uploads.remove(taskId);
+  /// The legs register under different encodings — the download leg carries a
+  /// composite `prefix|account|file` id, the upload leg the bare file id — so
+  /// cancellation matches on the file rather than trusting the caller to know
+  /// which encoding a leg used. Cancelling with the bare id used to find no
+  /// download entry at all: the OS kept fetching and the "cancelled" transfer
+  /// later reported itself complete. Fails the awaited future with the typed
+  /// cancellation so callers treat it as an answer, not a failure to retry.
+  /// Safe to call when nothing for the file is active.
+  Future<void> cancel(String fileId) async {
+    bool mine(String taskId) =>
+        taskId == fileId || fileIdFromTaskId(taskId) == fileId;
 
-    if (download != null) {
+    for (final taskId in _downloads.keys.where(mine).toList()) {
+      final download = _downloads.remove(taskId);
+      if (download == null) continue;
       await FileDownloader().cancelTaskWithId('$_downloadTaskPrefix$taskId');
       if (!download.completer.isCompleted) {
-        download.completer.completeError(Exception('Tar download cancelled'));
+        download.completer.completeError(TransferCancelledException(fileId));
       }
     }
-    if (upload != null) {
+    for (final taskId in _uploads.keys.where(mine).toList()) {
+      final upload = _uploads.remove(taskId);
+      if (upload == null) continue;
       await FileDownloader().cancelTaskWithId('$_uploadTaskPrefix$taskId');
       if (!upload.completer.isCompleted) {
-        upload.completer.completeError(Exception('Tar upload cancelled'));
+        upload.completer.completeError(TransferCancelledException(fileId));
       }
     }
   }
 
-  /// Replay buffered OS events after the app resumes from background.
-  Future<void> resumeFromBackground() =>
-      FileDownloader().resumeFromBackground();
+  /// Replay buffered OS events after the app resumes from background, then
+  /// settle anything the replay could not deliver.
+  ///
+  /// `resumeFromBackground` is one-shot for the life of the process — the
+  /// plugin sets a flag on the first call and never clears it — and more than
+  /// one place in this app asks for it. Whoever asks first gets the buffered
+  /// events; everyone after that gets a no-op. A tar leg waiting on a status
+  /// update that was already spent, or delivered before this service
+  /// registered its handler, would wait for the rest of the process.
+  ///
+  /// So the replay is a fast path, not the truth. The truth is the plugin's
+  /// own database, which `trackTasks` keeps across a suspend and which no
+  /// amount of reading can consume.
+  Future<void> resumeFromBackground() async {
+    await FileDownloader().resumeFromBackground();
+    await settleFinishedTransfers();
+  }
+
+  /// Register a pending download without going near the platform channel, so
+  /// [settleFinishedTransfers] can be exercised without a plugin host.
+  @visibleForTesting
+  void debugRegisterDownload({
+    required String taskId,
+    required String outputPath,
+    required int totalBytes,
+    required Completer<void> completer,
+  }) {
+    _downloads[taskId] = _PendingDownload(
+      totalBytes: totalBytes,
+      outputPath: outputPath,
+      completer: completer,
+      onProgress: null,
+    );
+  }
+
+  /// Complete any pending transfer whose task has already reached a terminal
+  /// state, according to the plugin's persisted record.
+  ///
+  /// Safe to call at any time: a task still running has no terminal record,
+  /// and one already completed here is skipped.
+  @visibleForTesting
+  Future<void> settleFinishedTransfers() async {
+    for (final entry in _downloads.entries.toList()) {
+      final pending = entry.value;
+      if (pending.completer.isCompleted) continue;
+
+      final record = await _recordLookup('$_downloadTaskPrefix${entry.key}');
+      if (record == null) continue;
+
+      switch (record.status) {
+        case TaskStatus.complete:
+          _downloads.remove(entry.key);
+          pending.completer.complete();
+        case TaskStatus.failed || TaskStatus.notFound:
+          _downloads.remove(entry.key);
+          _deleteIfExists(pending.outputPath);
+          _log.warn(
+            'tar download settled as failed from its stored record',
+            fields: {'task_id': entry.key},
+          );
+          pending.completer.completeError(Exception('Tar download failed'));
+        case TaskStatus.canceled:
+          _downloads.remove(entry.key);
+          _deleteIfExists(pending.outputPath);
+          pending.completer.completeError(Exception('Tar download cancelled'));
+        default:
+          break;
+      }
+    }
+  }
 
   /// Cancel all pending transfers, remove their database records, and
   /// release the shared update handlers. Safe to call multiple times.
@@ -314,7 +418,14 @@ class TransferFailure {
   /// origin error class.
   static const int bodyMaxLength = 500;
 
-  const TransferFailure({this.cause, this.status, this.body});
+  /// The URL that failed. Carried because the fallback decides whether an
+  /// error is worth retrying per-chunk by looking for `?format=tar` in it —
+  /// and these failures arrive as a plain Exception with no request attached,
+  /// so a message without the URL reads as an unrelated error and the archive
+  /// refusal reaches the user instead of falling back.
+  final String? url;
+
+  const TransferFailure({this.cause, this.status, this.body, this.url});
 
   factory TransferFailure.fromTaskStatusUpdate(TaskStatusUpdate update) {
     final body = update.responseBody;
@@ -327,6 +438,7 @@ class TransferFailure {
       cause: update.exception?.description,
       status: update.responseStatusCode,
       body: trimmed,
+      url: update.task.url,
     );
   }
 
@@ -338,12 +450,14 @@ class TransferFailure {
     'status': status,
     'cause': cause,
     'body': body,
+    'url': url,
   };
 
   /// One-line human form for the rethrown `Exception` so callers up the
   /// stack still see something readable in `.toString()`.
   String get message {
     final buffer = StringBuffer(cause ?? 'unknown cause');
+    if (url != null) buffer.write(' for $url');
     if (status != null) buffer.write(' (status $status)');
     if (body != null) buffer.write(': $body');
     return buffer.toString();

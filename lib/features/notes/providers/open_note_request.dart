@@ -17,12 +17,16 @@ class OpenNoteRequest {
   /// True when the request came from the Files branch. Closing the last
   /// workspace tab then switches the shell back to Files instead of
   /// stranding the user on the Notes landing screen.
-  final bool returnToFiles;
+  /// The shell branch to return to when the last tab closes, or null to
+  /// stay in Notes. A note is opened from several places — the file list,
+  /// search — and closing it should land back where it was opened from
+  /// rather than always in Files.
+  final int? returnToBranchIndex;
 
   const OpenNoteRequest({
     required this.fileId,
     required this.epoch,
-    this.returnToFiles = false,
+    this.returnToBranchIndex,
   });
 }
 
@@ -33,12 +37,12 @@ final openNoteRequestProvider = StateProvider<OpenNoteRequest?>((ref) => null);
 void requestOpenNoteFromWidget(
   WidgetRef ref,
   String fileId, {
-  bool returnToFiles = false,
+  int? returnToBranchIndex,
 }) {
   final prev = ref.read(openNoteRequestProvider);
   ref.read(openNoteRequestProvider.notifier).state = OpenNoteRequest(
     fileId: fileId,
     epoch: (prev?.epoch ?? 0) + 1,
-    returnToFiles: returnToFiles,
+    returnToBranchIndex: returnToBranchIndex,
   );
 }

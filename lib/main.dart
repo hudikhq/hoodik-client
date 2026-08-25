@@ -2,14 +2,13 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
+import 'core/services/client_identity.dart';
 import 'core/platform/tray_integration.dart';
 import 'core/services/connect_link.dart';
-import 'core/services/file_downloader_config.dart';
 import 'core/services/preferences.dart';
 import 'core/services/share_handler.dart';
 import 'core/storage/at_rest_cipher.dart';
@@ -17,9 +16,10 @@ import 'core/storage/no_backup.dart';
 import 'core/theme/hoodik_theme.dart';
 import 'core/utils/app_session.dart';
 import 'core/utils/bundled_licenses.dart';
-import 'core/utils/log_file_sink.dart';
+import 'core/utils/log_bootstrap.dart';
 import 'core/utils/log_redact.dart';
 import 'core/utils/logger.dart';
+import 'core/services/plaintext_temp.dart';
 import 'package:intl/intl.dart' show Intl;
 import 'core/widgets/adaptive.dart';
 import 'core/widgets/keyboard_dismiss.dart';
@@ -42,6 +42,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
   await RustLib.init();
+  // Before any client is built: ApiClient stamps this on every request, and
+  // a request that went out without it would look like one from an app too
+  // old to have it.
+  await loadClientIdentity();
 
   // Stamp the session boundary before anything else — the bug-report
   // export uses this to filter "current session only" logs.
@@ -49,29 +53,14 @@ Future<void> main() async {
 
   registerBundledEditorLicenses();
 
-  // Every build writes to the rotating on-disk sink so the Privacy &
-  // Diagnostics export always has something to show — this matters in
-  // debug as much as in release, because macOS devs running the app from
-  // `flutter run` still need to reproduce the bug-report flow. Debug
-  // builds additionally mirror records to stdout for live tailing.
-  final sinks = <LogSink>[];
-  if (kDebugMode) {
-    sinks.add(stdoutLogSink);
-  }
-  try {
-    final fileSink = await LogFileSink.open();
-    sinks.add(fileSink.record);
-    unawaited(fileSink.pruneOlderThan(const Duration(days: 3)));
-  } catch (_) {
-    // Best-effort — never block app start on a logging failure.
-  }
-  configureLogging(
-    minLevel: kDebugMode ? Level.debug : Level.info,
-    sinks: sinks,
-  );
+  await bootstrapLogging();
+  unawaited(sweepPlaintextTemp());
 
-  // Purges orphaned downloads from a killed-then-restarted session that would compete for bandwidth.
-  await cleanUpFileDownloader();
+  // Transfers the OS is still carrying are deliberately left alone here.
+  // There is no account yet to judge them against, and cancelling on every
+  // launch meant a large download could never survive the app being killed —
+  // it started over each time. Sign-in reconciles them instead: this account's
+  // work is adopted, anything else is cancelled.
 
   // Loaded synchronously so early provider reads (view mode, landing branch) don't need to await.
   final preferences = await Preferences.load();
@@ -120,18 +109,6 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
     ref.listenManual(workerManagerProvider, (prev, next) {
       if (next != null && next != prev) {
         _initWorkers();
-      }
-    });
-
-    // Configure BackgroundDownloadService when it becomes available (login).
-    ref.listenManual(backgroundDownloadServiceProvider, (prev, next) {
-      if (next != null && next != prev) {
-        next.configure().catchError((e) {
-          _log.warn(
-            'background download service configure failed',
-            fields: {'error': redactException(e)},
-          );
-        });
       }
     });
 
@@ -192,7 +169,6 @@ class _HoodikAppState extends ConsumerState<HoodikApp>
       ref.read(workerManagerProvider)?.notifyResumed();
 
       // Replay buffered OS download events so the UI catches up on progress.
-      ref.read(backgroundDownloadServiceProvider)?.resumeFromBackground();
       ref.read(backgroundTarTransferProvider)?.resumeFromBackground();
 
       // Prune MCP audit entries past the user's retention window. Debounced

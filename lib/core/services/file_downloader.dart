@@ -3,12 +3,12 @@ import 'dart:typed_data';
 
 import '../api/api_client.dart';
 import '../crypto/file_crypto.dart';
+import '../storage/database.dart';
 import '../utils/l10n_lookup.dart';
 import '../utils/logger.dart';
-import '../workers/worker_messages.dart';
-import 'background_download_service.dart';
 import 'chunk_download_pipeline.dart';
 import 'chunk_download_transport.dart';
+import 'file_downloader_pin.dart';
 import 'offline_manager.dart';
 import 'tar_fallback.dart';
 import 'transfer_errors.dart';
@@ -32,10 +32,14 @@ class FileDownloader {
   final FileCrypto _fileCrypto;
   final TransferManager? _transferManager;
   final OfflineManager? _offlineManager;
-  final BackgroundDownloadService? _backgroundDownloadService;
   final TarCapabilityCache? _tarCapabilityCache;
   final ChunkDownloadTransport? _chunkDownloadTransport;
+  final AppDatabase? _database;
   final String? _accountId;
+
+  /// Passed to the chunk pipeline, which skips asking for a bucket manifest
+  /// on a server that does not serve them.
+  final bool _directTransfer;
 
   /// File IDs with pending cancellation (for main-thread fallback loops).
   final Set<String> _cancelledFileIds = {};
@@ -45,29 +49,29 @@ class FileDownloader {
     required FileCrypto fileCrypto,
     TransferManager? transferManager,
     OfflineManager? offlineManager,
-    BackgroundDownloadService? backgroundDownloadService,
     TarCapabilityCache? tarCapabilityCache,
     ChunkDownloadTransport? chunkDownloadTransport,
+    AppDatabase? database,
     String? accountId,
+    bool directTransfer = true,
   }) : _client = client,
+       _database = database,
        _fileCrypto = fileCrypto,
        _transferManager = transferManager,
        _offlineManager = offlineManager,
-       _backgroundDownloadService = backgroundDownloadService,
        _tarCapabilityCache = tarCapabilityCache,
        _chunkDownloadTransport = chunkDownloadTransport,
-       _accountId = accountId;
-
-  /// Prefer the OS-native downloader when the platform supports it and the
-  /// wiring is in place. Used for [downloadAndPinOffline] which still goes
-  /// through [BackgroundDownloadService] so the download survives app
-  /// suspension on iOS/Android. [downloadFileToDisk] uses the Rust FFI
-  /// pipeline on all platforms (see [_useChunkPipeline]).
-  bool get _useBackgroundDownloader =>
-      _backgroundDownloadService != null &&
-      _offlineManager != null &&
-      _accountId != null &&
-      (Platform.isIOS || Platform.isAndroid || Platform.isMacOS);
+       _directTransfer = directTransfer,
+       _accountId = accountId {
+    _offlineManager?.activeTransferIds = () {
+      final ids = <String>{};
+      for (final t in _transferManager?.activeTransfers ?? const []) {
+        final id = t.fileId;
+        if (id != null) ids.add(id);
+      }
+      return ids;
+    };
+  }
 
   /// Whether [ChunkDownloadPipeline] can run — requires the offline store
   /// for chunk placement, the capability cache for tar fallback, and a
@@ -81,10 +85,34 @@ class FileDownloader {
       _tarCapabilityCache != null &&
       _chunkDownloadTransport != null;
 
+  /// Pick up the chunk downloads a previous session left unfinished.
+  ///
+  /// Called at sign-in with every row this account still has, whether or not
+  /// the OS is carrying the transfer: what died with the previous process is
+  /// the owner, and without one nothing draws the progress, decrypts the
+  /// result or clears the row. A no-op on a build that cannot run the chunk
+  /// pipeline, which is also the only place those rows are ever written.
+  Future<void> resumeInterruptedDownloads(List<PendingDownload> rows) async {
+    if (rows.isEmpty || !_useChunkPipeline) return;
+    await _pipeline().resumeInterrupted(rows);
+  }
+
+  ChunkDownloadPipeline _pipeline() => ChunkDownloadPipeline(
+    client: _client,
+    offlineManager: _offlineManager!,
+    tarCapabilityCache: _tarCapabilityCache!,
+    accountId: _accountId!,
+    transport: _chunkDownloadTransport!,
+    database: _database,
+    fileCrypto: _fileCrypto,
+    transferManager: _transferManager,
+    directTransfer: _directTransfer,
+  );
+
   /// Request cancellation of the main-thread transfer loop for [fileId].
   /// The loop checks between chunks and throws [TransferCancelledException]
-  /// at the next boundary. No-op for background downloader transfers —
-  /// those are cancelled directly through [BackgroundDownloadService].
+  /// at the next boundary. No-op for pipeline transfers — the OS-native tasks
+  /// behind those are cancelled through the services that own them.
   void requestCancel(String fileId) {
     _cancelledFileIds.add(fileId);
   }
@@ -103,15 +131,29 @@ class FileDownloader {
     String? displayName,
     bool showInTransfers = true,
   }) async {
-    await _client.ensureFreshSession();
-
     final totalChunks = file.chunks ?? 1;
     final totalBytes = file.size ?? 0;
+    final name = displayName ?? file.id.substring(0, 8);
+
+    if (_useChunkPipeline) {
+      return _pipeline().fetchAndDecrypt(
+        file,
+        fileKey: fileKey,
+        displayName: name,
+        totalChunks: totalChunks,
+        totalBytes: totalBytes,
+        silent: !showInTransfers,
+        onProgress: onProgress,
+      );
+    }
+
+    await _client.ensureFreshSession();
+
     final builder = BytesBuilder(copy: false);
 
     final transferItem = showInTransfers
         ? _transferManager?.startTransfer(
-            fileName: displayName ?? file.id.substring(0, 8),
+            fileName: name,
             type: TransferType.downloadHttp,
             totalBytes: totalBytes,
             totalChunks: totalChunks,
@@ -186,6 +228,7 @@ class FileDownloader {
     required String outputPath,
     String? displayName,
     Future<void> Function()? onComplete,
+    void Function(String error)? onError,
   }) {
     final totalChunks = file.chunks ?? 1;
     final totalBytes = file.size ?? 0;
@@ -200,14 +243,7 @@ class FileDownloader {
           'size_kb': totalBytes ~/ 1024,
         },
       );
-      ChunkDownloadPipeline(
-        client: _client,
-        offlineManager: _offlineManager!,
-        tarCapabilityCache: _tarCapabilityCache!,
-        accountId: _accountId!,
-        transport: _chunkDownloadTransport!,
-        transferManager: _transferManager,
-      ).run(
+      _pipeline().run(
         file,
         fileKey: fileKey,
         outputPath: outputPath,
@@ -215,6 +251,7 @@ class FileDownloader {
         totalChunks: totalChunks,
         totalBytes: totalBytes,
         onComplete: onComplete,
+        onError: onError,
       );
       return;
     }
@@ -234,6 +271,7 @@ class FileDownloader {
       displayName: name,
       transferItem: transferItem,
       onComplete: onComplete,
+      onError: onError,
     );
   }
 
@@ -252,93 +290,55 @@ class FileDownloader {
     void Function()? onComplete,
     void Function(String error)? onError,
   }) {
-    if (_offlineManager == null || _accountId == null) {
-      onError?.call(ambientL10n.serviceOfflineManagerUnavailable);
-      return;
-    }
-
     final totalChunks = file.chunks ?? 1;
     final totalBytes = file.size ?? 0;
-    final useBg = _useBackgroundDownloader;
     final name = displayName ?? file.id.substring(0, 8);
-
-    final transferItem = _transferManager?.startTransfer(
-      fileName: name,
-      type: TransferType.downloadHttp,
-      totalBytes: totalBytes,
-      totalChunks: totalChunks,
-      fileId: file.id,
-      onWorker: useBg,
-      silent: silent,
-    );
 
     () async {
       try {
-        final chunksPath = await _offlineManager.chunksDir(_accountId, file.id);
-
-        if (useBg) {
-          final transferToken = await _requestTransferToken(file.id);
-
-          _backgroundDownloadService!.downloadChunks(
-            cmd: DownloadChunksCommand(
-              fileId: file.id,
-              totalChunks: totalChunks,
-              fileSize: totalBytes,
-              outputDir: chunksPath,
-              transferToken: transferToken,
-            ),
-            transferId: transferItem?.id,
-            onComplete: () async {
-              if (transferItem != null) {
-                _transferManager?.completeTransfer(transferItem.id);
-              }
-              await _offlineManager.registerChunks(
-                accountId: _accountId,
-                fileId: file.id,
-                chunksDir: chunksPath,
-                chunkCount: totalChunks,
-                pinned: pinned,
-              );
-              onComplete?.call();
-            },
-            onError: (error) {
-              if (transferItem != null) {
-                _transferManager?.failTransfer(transferItem.id, error);
-              }
-              onError?.call(error);
-            },
-          );
-        } else {
-          await _pinOfflineMainThread(
+        if (_useChunkPipeline) {
+          await _pipeline().fetchChunks(
             file,
-            chunksPath: chunksPath,
+            displayName: name,
             totalChunks: totalChunks,
             totalBytes: totalBytes,
             pinned: pinned,
-            transferItem: transferItem,
-            onComplete: onComplete,
-            onError: onError,
+            silent: silent,
           );
+          onComplete?.call();
+          return;
         }
+
+        if (_offlineManager == null || _accountId == null) {
+          onError?.call(ambientL10n.serviceOfflineManagerUnavailable);
+          return;
+        }
+
+        await pinOfflineOnMainThread(
+          client: _client,
+          offlineManager: _offlineManager,
+          accountId: _accountId,
+          transferManager: _transferManager,
+          file: file,
+          chunksPath: await _offlineManager.chunksDir(_accountId, file.id),
+          totalChunks: totalChunks,
+          totalBytes: totalBytes,
+          pinned: pinned,
+          transferItem: _transferManager?.startTransfer(
+            fileName: name,
+            type: TransferType.downloadHttp,
+            totalBytes: totalBytes,
+            totalChunks: totalChunks,
+            fileId: file.id,
+            silent: silent,
+          ),
+          onComplete: onComplete,
+          onError: onError,
+        );
       } catch (e) {
-        if (transferItem != null) {
-          _transferManager?.failTransfer(transferItem.id, e.toString());
-        }
         onError?.call(e.toString());
       }
     }();
-  }
-
-  /// Bearer token for direct transfer uploads/downloads. Refreshes the
-  /// session first so callers (including the background download service)
-  /// don't have to.
-  Future<String> _requestTransferToken(String fileId) async {
-    await _client.ensureFreshSession();
-    final token = await _client.auth.requestTransferToken(
-      fileId: fileId,
-      action: 'download',
-    );
-    return token.token;
   }
 
   Future<void> _downloadOnMainThread(
@@ -348,6 +348,7 @@ class FileDownloader {
     String? displayName,
     TransferItem? transferItem,
     Future<void> Function()? onComplete,
+    void Function(String error)? onError,
   }) async {
     final totalChunks = file.chunks ?? 1;
     final totalBytes = file.size ?? 0;
@@ -385,58 +386,6 @@ class FileDownloader {
           transferItem.id,
           e.toString().replaceFirst('Exception: ', ''),
         );
-      }
-    }
-  }
-
-  Future<void> _pinOfflineMainThread(
-    FileItem file, {
-    required String chunksPath,
-    required int totalChunks,
-    required int totalBytes,
-    bool pinned = true,
-    TransferItem? transferItem,
-    void Function()? onComplete,
-    void Function(String error)? onError,
-  }) async {
-    try {
-      await _client.ensureFreshSession();
-      for (var i = 0; i < totalChunks; i++) {
-        final encryptedChunk = await _client.files.downloadChunk(
-          fileId: file.id,
-          chunk: i,
-        );
-        final dir = Directory(chunksPath);
-        if (!await dir.exists()) await dir.create(recursive: true);
-        final chunkPath = '$chunksPath/${i.toString().padLeft(6, '0')}.enc';
-        await File(chunkPath).writeAsBytes(encryptedChunk);
-
-        if (transferItem != null) {
-          final transferred = (totalBytes * (i + 1) / totalChunks).round();
-          _transferManager?.updateProgress(
-            transferItem.id,
-            completedChunks: i + 1,
-            transferredBytes: transferred,
-          );
-        }
-      }
-
-      await _offlineManager!.registerChunks(
-        accountId: _accountId!,
-        fileId: file.id,
-        chunksDir: chunksPath,
-        chunkCount: totalChunks,
-        pinned: pinned,
-      );
-
-      if (transferItem != null) {
-        _transferManager?.completeTransfer(transferItem.id);
-      }
-
-      onComplete?.call();
-    } catch (e) {
-      if (transferItem != null) {
-        _transferManager?.failTransfer(transferItem.id, e.toString());
       }
       onError?.call(e.toString());
     }

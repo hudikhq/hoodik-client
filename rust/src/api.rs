@@ -281,15 +281,44 @@ pub fn crc16_digest(data: Vec<u8>) -> String {
 }
 
 // ---------------------------------------------------------------------------
-// Tokenizer (for privacy-preserving search)
+// Search tagging (for privacy-preserving search)
 // ---------------------------------------------------------------------------
+//
+// Tokens are tagged with HMAC under a key the server never sees, rather than
+// hashed. A bare digest of a BERT token is reversible with a table over the
+// public vocabulary, which is what the old scheme stored. Two keys: the
+// account's, from its private key, covering everything it owns; and each
+// file's own, which already travels to every share recipient.
 
-/// Tokenize text and return SHA-256 hashed tokens.
-/// Format: "token:weight;token:weight;..."
+/// Derive the account-wide search key from a private key PEM. Hex-encoded so
+/// it can be held alongside the other client-side key material.
 #[frb(sync)]
-pub fn tokenize_and_hash(text: String) -> Result<String, String> {
-    let tokens =
-        cryptfns::tokenizer::into_hashed_tokens(&text).map_err(|e| e.to_string())?;
+pub fn search_root_key(private_key_pem: String) -> Result<String, String> {
+    cryptfns::search::root_key(&private_key_pem)
+        .map(cryptfns::hex::encode)
+        .map_err(|e| e.to_string())
+}
+
+/// Derive a file's search key from the key its contents are encrypted with.
+#[frb(sync)]
+pub fn search_file_key(file_key: Vec<u8>) -> Result<String, String> {
+    cryptfns::search::file_key(&file_key)
+        .map(cryptfns::hex::encode)
+        .map_err(|e| e.to_string())
+}
+
+/// Tag one value: a file name for `name_hash`, or a single query word.
+#[frb(sync)]
+pub fn search_tag(key_hex: String, value: String) -> Result<String, String> {
+    let key = cryptfns::hex::decode(&key_hex).map_err(|e| e.to_string())?;
+    cryptfns::search::tag(&key, &value).map_err(|e| e.to_string())
+}
+
+/// Tokenize and tag text. Format: "tag:weight;tag:weight;..."
+#[frb(sync)]
+pub fn search_tag_tokens(key_hex: String, text: String) -> Result<String, String> {
+    let key = cryptfns::hex::decode(&key_hex).map_err(|e| e.to_string())?;
+    let tokens = cryptfns::search::tag_tokens(&key, &text).map_err(|e| e.to_string())?;
     Ok(cryptfns::tokenizer::into_string(tokens))
 }
 
@@ -997,6 +1026,7 @@ pub async fn download_file(
     chunk_count: u64,
     decryption_key: Vec<u8>,
     cipher: String,
+    direct_urls: Vec<String>,
 ) -> Result<Vec<u8>, String> {
     let cancel_flag = register_cancel_flag(&file_id);
     let (transferred, total) = register_progress(&file_id);
@@ -1043,6 +1073,10 @@ pub async fn download_file(
                 downloader = downloader.with_cipher(&cipher);
             }
 
+            if !direct_urls.is_empty() {
+                downloader = downloader.with_direct_urls(direct_urls);
+            }
+
             downloader
                 .run(&http, &progress)
                 .await
@@ -1067,9 +1101,17 @@ pub async fn download_file_to_path(
     decryption_key: Vec<u8>,
     cipher: String,
     output_path: String,
+    direct_urls: Vec<String>,
 ) -> Result<(), String> {
     let bytes = download_file(
-        base_url, cookie, file_id, file_size, chunk_count, decryption_key, cipher,
+        base_url,
+        cookie,
+        file_id,
+        file_size,
+        chunk_count,
+        decryption_key,
+        cipher,
+        direct_urls,
     )
     .await?;
 
@@ -1089,6 +1131,11 @@ pub async fn download_file_to_path(
 /// original pipeline but with ~4 MB peak memory instead of the full file.
 ///
 /// `already_downloaded` lists chunk indices to skip (resume support).
+///
+/// `direct_urls`, when non-empty, holds one presigned storage URL per chunk
+/// index. Those chunks are fetched straight from the bucket and carry no
+/// session credentials; any index the list does not cover falls back to the
+/// server, so a short or absent list degrades instead of failing.
 pub async fn download_encrypted_chunks(
     base_url: String,
     cookie: String,
@@ -1097,6 +1144,7 @@ pub async fn download_encrypted_chunks(
     chunk_count: u64,
     output_dir: String,
     already_downloaded: Vec<u64>,
+    direct_urls: Vec<String>,
 ) -> Result<(), String> {
     let cancel_flag = register_cancel_flag(&file_id);
     let (transferred, total) = register_progress(&file_id);
@@ -1149,6 +1197,11 @@ pub async fn download_encrypted_chunks(
                 chunk_count,
                 &output_dir,
                 &already_downloaded,
+                if direct_urls.is_empty() {
+                    None
+                } else {
+                    Some(direct_urls.as_slice())
+                },
             )
             .await
             .map_err(|e| e.to_string())
@@ -1563,20 +1616,37 @@ fn clear_progress(file_id: &str) {
     TRANSFER_PROGRESS.lock().unwrap().remove(file_id);
 }
 
+/// How far a transfer has got.
+///
+/// A named struct rather than a tuple: the generated binding for an
+/// `Option<(u64, u64)>` decodes the pair as a `List<dynamic>` while declaring
+/// it a Dart record, so every call threw
+/// `type 'List<dynamic>' is not a subtype of type '(BigInt, BigInt)'`. Nothing
+/// caught it, because the only caller polls from a timer where a throw goes to
+/// the zone and disappears.
+pub struct TransferProgress {
+    /// Downloads count bytes; uploads count chunks.
+    pub transferred: u64,
+    /// The matching total, in the same unit.
+    pub total: u64,
+}
+
 /// Poll the current progress of a transfer.
 ///
-/// Returns (transferred, total) where:
-/// - For downloads: (bytes_downloaded, total_bytes)
-/// - For uploads: (chunks_completed, total_chunks)
+/// - For downloads: bytes downloaded out of total bytes.
+/// - For uploads: chunks completed out of total chunks.
 ///
 /// Returns `None` if no transfer with the given file_id is active.
 #[frb(sync)]
-pub fn get_transfer_progress(file_id: String) -> Option<(u64, u64)> {
+pub fn get_transfer_progress(file_id: String) -> Option<TransferProgress> {
     TRANSFER_PROGRESS
         .lock()
         .unwrap()
         .get(&file_id)
-        .map(|(t, total)| (t.load(Ordering::Relaxed), total.load(Ordering::Relaxed)))
+        .map(|(t, total)| TransferProgress {
+            transferred: t.load(Ordering::Relaxed),
+            total: total.load(Ordering::Relaxed),
+        })
 }
 
 /// Cancel an in-progress upload or download.
@@ -1835,12 +1905,12 @@ mod tests {
         total.store(10000, Ordering::Relaxed);
 
         let progress = get_transfer_progress(file_id.clone()).unwrap();
-        assert_eq!(progress, (0, 10000));
+        assert_eq!((progress.transferred, progress.total), (0, 10000));
 
         // Simulate progress updates.
         transferred.store(5000, Ordering::Relaxed);
         let progress = get_transfer_progress(file_id.clone()).unwrap();
-        assert_eq!(progress, (5000, 10000));
+        assert_eq!((progress.transferred, progress.total), (5000, 10000));
 
         // Clear and verify removal.
         clear_progress(&file_id);

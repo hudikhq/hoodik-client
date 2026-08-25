@@ -36,7 +36,7 @@ class AuthClient {
       if (resp.statusCode != 200) {
         return const LivenessInfo.offline();
       }
-      return LivenessInfo(alive: true, version: _readVersion(resp.data));
+      return _readLiveness(resp.data);
     } catch (_) {
       return const LivenessInfo.offline();
     }
@@ -53,7 +53,7 @@ class AuthClient {
       if (resp.statusCode != 200) {
         throw Exception('Server returned HTTP ${resp.statusCode}');
       }
-      return LivenessInfo(alive: true, version: _readVersion(resp.data));
+      return _readLiveness(resp.data);
     } on DioException catch (e) {
       final inner = e.error;
       if (inner is HandshakeException) {
@@ -75,13 +75,24 @@ class AuthClient {
   /// Tolerate any payload shape — servers predating v1.16.0 return the
   /// `version` key unset (or a non-string), and we don't want a malformed
   /// field to prevent an otherwise-successful probe from reporting alive.
-  static String? _readVersion(dynamic body) {
+  static String? _readVersion(dynamic body) => _readString(body, 'version');
+
+  static String? _readString(dynamic body, String key) {
     if (body is Map<String, dynamic>) {
-      final raw = body['version'];
+      final raw = body[key];
       if (raw is String && raw.isNotEmpty) return raw;
     }
     return null;
   }
+
+  /// Both compatibility fields arrived in 2.5.0, so their absence is itself
+  /// evidence the server predates it.
+  static LivenessInfo _readLiveness(dynamic body) => LivenessInfo(
+    alive: true,
+    version: _readVersion(body),
+    minimumClientVersion: _readString(body, 'minimum_client_version'),
+    recommendedClientVersion: _readString(body, 'recommended_client_version'),
+  );
 
   /// `POST /api/auth/login` — email + password + optional 2FA token.
   /// The server sets session cookies automatically via the cookie jar.

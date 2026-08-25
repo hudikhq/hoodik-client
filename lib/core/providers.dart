@@ -1,9 +1,13 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'dart:io';
 import 'dart:ui' show Locale;
 
 import 'package:flutter/material.dart' show ThemeMode;
 
 import 'package:drift/drift.dart' as drift show Value;
+import 'package:dio/dio.dart' show DioException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'storage/database.dart';
@@ -19,11 +23,13 @@ import '../features/shares/services/trusted_fingerprint_dao.dart';
 import 'mcp/mcp_audit_retention.dart';
 import 'mcp/mcp_server.dart';
 import 'storage/mcp_audit_dao.dart';
-import 'services/background_download_service.dart';
 import 'services/background_tar_transfer.dart';
 import 'services/background_upload_service.dart';
 import 'services/binary_upload_transport.dart';
 import 'services/chunk_download_transport.dart';
+import 'services/direct_chunk_download.dart';
+import 'services/direct_chunk_upload.dart';
+import 'services/file_downloader_config.dart';
 import 'services/file_downloader.dart';
 import 'services/file_mutator.dart';
 import 'services/file_operations.dart';
@@ -31,6 +37,7 @@ import 'services/file_uploader.dart';
 import 'services/shared_folder_target.dart';
 import 'services/shared_folder_upload.dart';
 import 'services/connectivity_service.dart';
+import 'services/media_picker_channel.dart';
 import 'services/offline_manager.dart';
 import 'services/preferences.dart';
 import 'services/app_update.dart';
@@ -123,6 +130,40 @@ final fileCryptoProvider = Provider<FileCrypto?>((ref) {
   );
 });
 
+/// Unwrapped file keys for every file shared with this account.
+///
+/// Search tags a shared file under that file's own key, so a query has to
+/// carry one tag set per such file. Held for the session because it costs an
+/// asymmetric unwrap per file and only changes when a share is granted or
+/// revoked; it rebuilds automatically when the private key does, so logging
+/// out drops it with the key that unwrapped it.
+final incomingSearchKeysProvider = FutureProvider<List<Uint8List>>((ref) async {
+  final client = ref.watch(apiClientProvider);
+  final fileCrypto = ref.watch(fileCryptoProvider);
+  if (client == null || fileCrypto == null) return const [];
+
+  try {
+    final rows = await client.shares.getIncomingKeys();
+
+    return rows
+        .map((row) {
+          try {
+            return fileCrypto.decryptFileKey(row['encrypted_key']!);
+          } catch (_) {
+            // A row wrapped under a superseded key is not worth failing the
+            // whole search over; it simply will not match.
+            return null;
+          }
+        })
+        .whereType<Uint8List>()
+        .toList();
+  } catch (_) {
+    // Search over owned files is the common case and must not break because
+    // the shares list is unavailable.
+    return const [];
+  }
+});
+
 /// [ShareCrypto] instance for the active session, or null if no private key
 /// is available. Auto-wipes on logout via [decryptedPrivateKeyProvider].
 final shareCryptoProvider = Provider<ShareCrypto?>((ref) {
@@ -138,6 +179,13 @@ final shareCryptoProvider = Provider<ShareCrypto?>((ref) {
 /// Singleton transfer manager for tracking upload/download progress.
 final transferManagerProvider = ChangeNotifierProvider<TransferManager>((ref) {
   return TransferManager();
+});
+
+/// Native Photos picker with per-item load progress (iOS only — see
+/// [MediaPickerChannel.isSupported]). A provider so tests can script the
+/// event stream.
+final mediaPickerChannelProvider = Provider<MediaPickerChannel>((ref) {
+  return MediaPickerChannel();
 });
 
 /// Memoizes whether each server base URL supports `?format=tar` so the
@@ -158,16 +206,29 @@ final serverLivenessProvider = FutureProvider<LivenessInfo>((ref) async {
   return client.auth.checkLiveness();
 });
 
-/// The active server's sharing capability advertisement. Re-evaluates whenever
-/// the active ApiClient changes (login, logout, server switch). A null client
-/// or any probe failure collapses to [Capabilities.disabled] — the client's
-/// own `getCapabilities()` already swallows errors to the same sentinel — so
-/// every sharing surface that gates on this stays hidden against a server that
-/// doesn't speak the protocol instead of surfacing an error.
+/// The active server's capability advertisement. Re-evaluates whenever the
+/// active ApiClient changes (login, logout, server switch). A null client or
+/// any probe failure collapses to [Capabilities.disabled], so every surface
+/// gated on this stays hidden against a server that doesn't speak the
+/// protocol instead of surfacing an error.
+///
+/// A request that never reached the server is retried, because this provider
+/// outlives the session: one probe lost to a phone changing networks at
+/// launch would otherwise hide sharing and pin every chunk to the relaying
+/// routes until the next login, with nothing to show for it.
 final shareCapabilitiesProvider = FutureProvider<Capabilities>((ref) async {
   final client = ref.watch(apiClientProvider);
   if (client == null) return const Capabilities.disabled();
-  return client.shares.getCapabilities();
+
+  try {
+    return await client.shares.getCapabilities();
+  } catch (e) {
+    if (e is DioException && e.response == null) {
+      Future.delayed(const Duration(seconds: 15), ref.invalidateSelf);
+    }
+
+    return const Capabilities.disabled();
+  }
 });
 
 /// Server base URLs for which the user dismissed the outdated-server
@@ -261,33 +322,23 @@ final workerManagerProvider = Provider<WorkerManager?>((ref) {
   return wm;
 });
 
-/// OS-native background download service. Uses URLSession (iOS) and
-/// WorkManager (Android) so downloads survive app suspension.
-///
-/// Null if not logged in (no API client).
-final backgroundDownloadServiceProvider = Provider<BackgroundDownloadService?>((
-  ref,
-) {
-  final client = ref.watch(apiClientProvider);
-  if (client == null) return null;
-
-  final bds = BackgroundDownloadService(baseUrl: client.baseUrl);
-  bds.setTransferManager(ref.read(transferManagerProvider));
-  ref.onDispose(() => bds.dispose());
-  return bds;
-});
-
 /// OS-native background upload service. Dispatches encrypted chunks as
 /// individual [UploadTask]s so uploads survive app suspension on mobile.
 ///
-/// Null if not logged in (no API client).
+/// Null until there is both an API client and an account — the account
+/// stamps every task id, which is what lets a later sign-in tell this
+/// account's transfers from another's.
 final backgroundUploadServiceProvider = Provider<BackgroundUploadService?>((
   ref,
 ) {
   final client = ref.watch(apiClientProvider);
-  if (client == null) return null;
+  final account = ref.watch(activeAccountProvider);
+  if (client == null || account == null) return null;
 
-  final bus = BackgroundUploadService(baseUrl: client.baseUrl);
+  final bus = BackgroundUploadService(
+    baseUrl: client.baseUrl,
+    accountId: account.id,
+  );
   bus.setTransferManager(ref.read(transferManagerProvider));
   ref.onDispose(() => bus.dispose());
   return bus;
@@ -310,13 +361,62 @@ final backgroundTarTransferProvider = Provider<BackgroundTarTransfer?>((ref) {
   return service;
 });
 
+/// Reconciles the OS transfer queue with the account that just signed in.
+///
+/// A provider rather than a direct call so tests can override it away — it
+/// reaches into `background_downloader`, which spins up real platform work
+/// the moment it is touched. Same reason [mcpServerProvider] is overridden
+/// to null in widget tests.
+final transferReconcilerProvider =
+    Provider<Future<void> Function(String accountId)?>((ref) {
+      final db = ref.watch(databaseProvider);
+      return (accountId) async {
+        final unfinished = await reconcileTransfersForAccount(
+          db: db,
+          accountId: accountId,
+        );
+        if (unfinished.isEmpty) return;
+
+        // Read rather than watch, and inside the closure: this runs after
+        // sign-in has returned, and evaluating the downloader during the
+        // sign-in writes would drag the whole file-operations graph into a
+        // half-published session.
+        await ref
+            .read(fileDownloaderProvider)
+            ?.resumeInterruptedDownloads(unfinished);
+      };
+    });
+
+/// Direct-transfer write leg: one OS-native task per encrypted chunk, straight
+/// at the bucket. Same reasoning as the read side — a presigned URL needs
+/// nothing from the session, so this holds nothing that could leak into one.
+final directChunkUploadProvider = Provider<DirectChunkUploadService>((ref) {
+  final service = DirectChunkUploadService();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+/// Direct-transfer leg: one OS-native task per encrypted chunk, straight at
+/// the bucket. Independent of [apiClientProvider] because a presigned URL
+/// needs nothing from the session — and a leg that never sees a cookie cannot
+/// send one to object storage.
+final directChunkDownloadProvider = Provider<DirectChunkDownloadService>((ref) {
+  final service = DirectChunkDownloadService();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
 /// Chunk-download transport used by [ChunkDownloadPipeline]. Wraps
-/// [BackgroundTarTransfer] so the tar leg is backgroundable; the per-chunk
+/// [BackgroundTarTransfer] for the tar leg and [DirectChunkDownloadService]
+/// for presigned chunks, so both survive app suspension; the per-chunk
 /// fallback still goes through the Rust HTTP pipeline.
 final chunkDownloadTransportProvider = Provider<ChunkDownloadTransport?>((ref) {
   final tarTransfer = ref.watch(backgroundTarTransferProvider);
   if (tarTransfer == null) return null;
-  return BackgroundDownloaderChunkTransport(tarTransfer: tarTransfer);
+  return BackgroundDownloaderChunkTransport(
+    tarTransfer: tarTransfer,
+    directChunks: ref.watch(directChunkDownloadProvider),
+  );
 });
 
 /// Upload-tar transport used by [BinaryUploadPipeline]. Wraps
@@ -454,6 +554,8 @@ final notesBranchTitleProvider = StateProvider<String?>((ref) => null);
 
 /// Bottom-nav branch indices, in bottom-nav order (see MainShell).
 const int filesBranchIndex = 0;
+const int notesBranchIndex = 1;
+const int searchBranchIndex = 2;
 
 /// A "switch the shell to this branch" signal for widgets deep inside a
 /// branch. MainShell listens and calls `goBranch`, which restores the
@@ -501,11 +603,10 @@ final previewCacheProvider = Provider<PreviewCache>((ref) {
   return cache;
 });
 
-/// Manages encrypted offline file storage. Files are re-encrypted on disk
-/// with their per-file key so only the account owner can read them.
-///
-/// All downloaded files are cached indefinitely. Users can clear the cache
-/// manually from Account Settings.
+/// Encrypted-chunk offline cache. Unpinned files (preview, export, upload
+/// leftovers) are evicted when the account is over its size cap (default
+/// 8 GB). Pinned files stay until the user clears the cache; nothing is
+/// deleted on app exit. The cap is set in Account Settings.
 final offlineManagerProvider = ChangeNotifierProvider<OfflineManager>((ref) {
   return OfflineManager(ref.watch(databaseProvider));
 });
@@ -540,6 +641,19 @@ final syncServiceProvider = ChangeNotifierProvider<SyncService>((ref) {
   } else {
     service.deactivate();
   }
+
+  // Cancels must outlive the transfer that observes them: the tap itself
+  // drops the queue row and the server-side partial, whatever the in-flight
+  // upload manages to notice before a kill. The upload-phase row's fileId is
+  // the server id; the encrypt phase has no server file yet.
+  ref.read(transferManagerProvider).onCancelPersist = (item) {
+    unawaited(
+      service.cancelUploadArtifacts(
+        stagingGroup: item.groupId,
+        serverFileId: item.type == TransferType.uploadHttp ? item.fileId : null,
+      ),
+    );
+  };
 
   return service;
 });
@@ -576,6 +690,21 @@ final transferOverlayRequestProvider = StateProvider<TransferOverlayRequest?>(
 /// The provider still rebuilds correctly on login/logout/account-switch via
 /// [apiClientProvider], [decryptedPrivateKeyProvider], and
 /// [activeAccountProvider].
+/// The shared tar cache, pre-answered when the server has already said it
+/// will not serve archives.
+///
+/// The runner consults this cache before it probes, so seeding it here means
+/// a download on such a server goes straight to per-chunk rather than
+/// spending a refused request to learn what the capability already said. The
+/// probe-and-fall-back path stays exactly as it was for servers that do not
+/// advertise either way, and for an operator who flips the switch while a
+/// transfer is already running.
+TarCapabilityCache _tarCacheFor(Ref ref, String baseUrl, Capabilities? caps) {
+  final cache = ref.read(tarCapabilityCacheProvider);
+  if (caps != null && !caps.tarTransfer) cache.markUnsupported(baseUrl);
+  return cache;
+}
+
 final fileOperationsProvider = Provider<FileOperations?>((ref) {
   final client = ref.watch(apiClientProvider);
   final pk = ref.watch(decryptedPrivateKeyProvider);
@@ -586,7 +715,6 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
   final tm = ref.read(transferManagerProvider);
   final wm = ref.read(workerManagerProvider);
 
-  final bds = ref.read(backgroundDownloadServiceProvider);
   final bus = ref.read(backgroundUploadServiceProvider);
   final tarTransfer = ref.read(backgroundTarTransferProvider);
   final chunkTransport = ref.read(chunkDownloadTransportProvider);
@@ -617,22 +745,38 @@ final fileOperationsProvider = Provider<FileOperations?>((ref) {
     transferManager: tm,
     workerManager: wm,
     offlineManager: ref.read(offlineManagerProvider),
-    backgroundDownloadService: bds,
     backgroundUploadService: bus,
-    tarCapabilityCache: ref.read(tarCapabilityCacheProvider),
+    // Withheld unless the server says it serves bucket URLs, the same way the
+    // web client reads the advertisement. Asking anyway and taking the 400 as
+    // the answer works — every path falls back to relaying — but it spends a
+    // dead request per upload on every local-disk deployment, which is the
+    // default one. The fallback stays regardless: an operator can switch the
+    // feature off while a transfer is already in flight.
+    directUpload: capabilities?.directTransfer == true
+        ? ref.read(directChunkUploadProvider)
+        : null,
+    directTransfer: capabilities?.directTransfer == true,
+    tarCapabilityCache: _tarCacheFor(ref, client.baseUrl, capabilities),
+    // Uploads deliberately re-probe rather than cache, so they read the
+    // advertisement directly instead of the cache the download side seeds.
+    tarSupported: capabilities?.tarTransfer ?? true,
     chunkDownloadTransport: chunkTransport,
     uploadTarTransport: uploadTarTransport,
+    database: ref.read(databaseProvider),
     accountId: account.id,
     sharedTarget: sharedTarget,
     sharedUpload: sharedUpload,
   );
 
-  // Wire cancel: UI → TransferManager → WorkerManager + BackgroundUploadService + BackgroundDownloadService + BackgroundTarTransfer + FileOperations
+  // Wire cancel: UI → TransferManager → WorkerManager + BackgroundUploadService + BackgroundTarTransfer + the two direct-chunk services + FileOperations
+  final directChunks = ref.read(directChunkDownloadProvider);
+  final directUploads = ref.read(directChunkUploadProvider);
   tm.onCancelRequested = (fileId) {
     wm?.cancelEncryption(fileId);
     bus?.cancelUpload(fileId);
-    bds?.cancelDownload(fileId);
     tarTransfer?.cancel(fileId);
+    directChunks.cancel(fileId);
+    directUploads.cancel(fileId);
     ops.requestCancel(fileId);
   };
 

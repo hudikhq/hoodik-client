@@ -94,7 +94,12 @@ Future<String?> multiKeyCreateOrNull({
   int? size,
   String? sha256,
   bool? editable,
-  List<String>? searchTokensHashed,
+  List<String>? searchTokensRoot,
+  List<String>? searchTokensFile,
+  List<String>? contentTokensRoot,
+  List<String>? contentTokensFile,
+  List<String>? digestTokensRoot,
+  List<String>? digestTokensFile,
   String? encryptedThumbnail,
 }) async {
   if (resolver == null ||
@@ -119,7 +124,12 @@ Future<String?> multiKeyCreateOrNull({
     sha256: sha256,
     cipher: cipher,
     editable: editable,
-    searchTokensHashed: searchTokensHashed,
+    searchTokensRoot: searchTokensRoot,
+    searchTokensFile: searchTokensFile,
+    contentTokensRoot: contentTokensRoot,
+    contentTokensFile: contentTokensFile,
+    digestTokensRoot: digestTokensRoot,
+    digestTokensFile: digestTokensFile,
     encryptedThumbnail: encryptedThumbnail,
   );
 }

@@ -235,6 +235,8 @@ class Capabilities {
     required this.auditLog,
     required this.fork,
     this.defaultCipher = 'aegis128l',
+    this.directTransfer = false,
+    this.tarTransfer = true,
   });
 
   /// Fail-closed sentinel: everything off. Returned whenever the capability
@@ -247,7 +249,12 @@ class Capabilities {
       shareGroups = false,
       auditLog = false,
       fork = false,
-      defaultCipher = 'aegis128l';
+      defaultCipher = 'aegis128l',
+      directTransfer = false,
+      // The disabled sentinel means the probe could not be trusted, not that
+      // the archive is off. Leaving it on keeps the existing behaviour there:
+      // try the archive, fall back if the server refuses it.
+      tarTransfer = true;
 
   final bool sharingEnabled;
   final List<ShareRole> roles;
@@ -260,6 +267,26 @@ class Capabilities {
   /// admin-configurable default omit the field and fall back to the
   /// historical `aegis128l`.
   final String defaultCipher;
+
+  /// Whether this server hands out presigned URLs so chunks move straight
+  /// between the device and the storage bucket.
+  ///
+  /// A property of how the server is deployed, not of its version — two
+  /// servers on the same release differ by configuration and by whether their
+  /// bucket answers a CORS preflight. Never infer it from a version number,
+  /// and treat its absence as `false`, which is what an older server amounts
+  /// to.
+  final bool directTransfer;
+
+  /// Whether the server will bundle a file's chunks into one archive rather
+  /// than serving them a request at a time.
+  ///
+  /// Absent means a server from before the switch existed, and every one of
+  /// those bundles — so absence reads as `true`, the opposite of
+  /// [directTransfer], where absence means the feature was not there yet.
+  /// An operator turns it off when something in front of the server will not
+  /// carry a request that large; Cloudflare Tunnel stops at 100 MB.
+  final bool tarTransfer;
 
   factory Capabilities.fromJson(Map<String, dynamic> json) {
     final sharing = json['sharing'] as Map<String, dynamic>?;
@@ -276,6 +303,8 @@ class Capabilities {
       auditLog: json['audit_log'] as bool? ?? false,
       fork: json['fork'] as bool? ?? false,
       defaultCipher: json['default_cipher'] as String? ?? 'aegis128l',
+      directTransfer: json['direct_transfer'] as bool? ?? false,
+      tarTransfer: json['tar_transfer'] as bool? ?? true,
     );
   }
 }

@@ -2,16 +2,17 @@ import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'dart:typed_data';
 
 import '../api/api_client.dart';
+import '../storage/database.dart';
 import '../crypto/crypto_service.dart';
 import '../crypto/file_crypto.dart';
 import '../workers/worker_manager.dart';
-import 'background_download_service.dart';
 import 'background_upload_service.dart';
 import 'binary_upload_transport.dart';
 import 'chunk_download_transport.dart';
 import 'file_downloader.dart';
 import 'file_mutator.dart';
 import 'file_uploader.dart';
+import 'direct_chunk_upload.dart';
 import 'offline_manager.dart';
 import 'shared_folder_target.dart';
 import 'shared_folder_upload.dart';
@@ -60,14 +61,17 @@ class FileOperations {
     TransferManager? transferManager,
     WorkerManager? workerManager,
     OfflineManager? offlineManager,
-    BackgroundDownloadService? backgroundDownloadService,
     BackgroundUploadService? backgroundUploadService,
+    DirectChunkUploadService? directUpload,
     TarCapabilityCache? tarCapabilityCache,
     ChunkDownloadTransport? chunkDownloadTransport,
     UploadTarTransport? uploadTarTransport,
+    bool tarSupported = true,
+    AppDatabase? database,
     String? accountId,
     SharedFolderTargetResolver? sharedTarget,
     SharedFolderUpload? sharedUpload,
+    bool directTransfer = true,
   }) {
     final fileCrypto = FileCrypto(
       privateKeyPem: privateKeyPem,
@@ -79,6 +83,20 @@ class FileOperations {
     // key and fall back to their RSA public key. FileCrypto keys the algorithm
     // off the private material it holds, so call sites only need the right key.
     final ownWrapPublicKey = wrappingPublicKeyPem ?? publicKeyPem;
+    // Built up front rather than inline: renaming a note re-indexes its body,
+    // which means reading it back, so the mutator needs the same downloader
+    // this instance hands out.
+    final downloader = FileDownloader(
+      client: client,
+      fileCrypto: fileCrypto,
+      transferManager: transferManager,
+      offlineManager: offlineManager,
+      tarCapabilityCache: tarCapabilityCache,
+      chunkDownloadTransport: chunkDownloadTransport,
+      database: database,
+      accountId: accountId,
+      directTransfer: directTransfer,
+    );
     return FileOperations._(
       fileCrypto: fileCrypto,
       mutator: FileMutator(
@@ -98,21 +116,15 @@ class FileOperations {
         workerManager: workerManager,
         offlineManager: offlineManager,
         backgroundUploadService: backgroundUploadService,
+        directUpload: directUpload,
+        directTransfer: directTransfer,
         uploadTarTransport: uploadTarTransport,
+        tarSupported: tarSupported,
         accountId: accountId,
         sharedTarget: sharedTarget,
         sharedUpload: sharedUpload,
       ),
-      downloader: FileDownloader(
-        client: client,
-        fileCrypto: fileCrypto,
-        transferManager: transferManager,
-        offlineManager: offlineManager,
-        backgroundDownloadService: backgroundDownloadService,
-        tarCapabilityCache: tarCapabilityCache,
-        chunkDownloadTransport: chunkDownloadTransport,
-        accountId: accountId,
-      ),
+      downloader: downloader,
     );
   }
 
@@ -153,10 +165,12 @@ class FileOperations {
     String localPath, {
     String? parentDirId,
     void Function(double progress)? onProgress,
+    String? stagingId,
   }) => _uploader.uploadFile(
     localPath,
     parentDirId: parentDirId,
     onProgress: onProgress,
+    stagingId: stagingId,
   );
 
   Future<String> createNote(
@@ -196,12 +210,14 @@ class FileOperations {
     required String outputPath,
     String? displayName,
     Future<void> Function()? onComplete,
+    void Function(String error)? onError,
   }) => _downloader.downloadFileToDisk(
     file,
     fileKey: fileKey,
     outputPath: outputPath,
     displayName: displayName,
     onComplete: onComplete,
+    onError: onError,
   );
 
   /// [silent] marks a fetch the user did not ask for — opening a note or a

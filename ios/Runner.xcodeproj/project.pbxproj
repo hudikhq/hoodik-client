@@ -21,6 +21,7 @@
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		A8526874187E719F93B172D6 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B80B56D62E46338F945642E3 /* Pods_RunnerTests.framework */; };
 		B6F00B172F7BFA67004F75DF /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B6F00B0D2F7BFA67004F75DF /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C3981FB6F77B00031A2885E7 /* MediaPickerChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A111F889A230FF4A96399BC5 /* MediaPickerChannel.swift */; };
 		F13293E9B4901CB7EA84FB43 /* Pods_ShareExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 080FE77A63F47EFEB3C2A190 /* Pods_ShareExtension.framework */; };
 /* End PBXBuildFile section */
 
@@ -105,6 +106,7 @@
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9C470BF800AA11154030F338 /* Pods-ShareExtension.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ShareExtension.profile.xcconfig"; path = "Target Support Files/Pods-ShareExtension/Pods-ShareExtension.profile.xcconfig"; sourceTree = "<group>"; };
+		A111F889A230FF4A96399BC5 /* MediaPickerChannel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MediaPickerChannel.swift; sourceTree = "<group>"; };
 		B45E4551223E7513131368F5 /* RunnerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B6F00B0D2F7BFA67004F75DF /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B6F00B262F7BFC5B004F75DF /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
@@ -276,6 +278,7 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				A111F889A230FF4A96399BC5 /* MediaPickerChannel.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -664,6 +667,7 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
+				C3981FB6F77B00031A2885E7 /* MediaPickerChannel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

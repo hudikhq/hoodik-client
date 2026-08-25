@@ -32,6 +32,15 @@ class FileItem {
   final int? createdAt;
   final int? finishedUploadAt;
   final String? sha256;
+  final String? md5;
+  final String? sha1;
+  final String? blake2b;
+
+  /// Chunk indexes the server can prove it holds, listed live from the
+  /// storage provider. Only the name-hash and metadata routes fill this;
+  /// listings leave it null. Drives upload resume: these are the chunks a
+  /// retry may skip.
+  final List<int>? uploadedChunks;
 
   /// Version readers should fetch — always set; defaults to 1.
   final int activeVersion;
@@ -101,6 +110,10 @@ class FileItem {
     this.createdAt,
     this.finishedUploadAt,
     this.sha256,
+    this.md5,
+    this.sha1,
+    this.blake2b,
+    this.uploadedChunks,
     this.activeVersion = 1,
     this.pendingVersion,
     this.pendingChunks,
@@ -132,6 +145,10 @@ class FileItem {
       createdAt: json['created_at'] as int?,
       finishedUploadAt: json['finished_upload_at'] as int?,
       sha256: json['sha256'] as String?,
+      md5: json['md5'] as String?,
+      sha1: json['sha1'] as String?,
+      blake2b: json['blake2b'] as String?,
+      uploadedChunks: (json['uploaded_chunks'] as List?)?.cast<int>(),
       activeVersion: json['active_version'] as int? ?? 1,
       pendingVersion: json['pending_version'] as int?,
       pendingChunks: json['pending_chunks'] as int?,
@@ -166,6 +183,7 @@ class FileItem {
       createdAt: createdAt,
       finishedUploadAt: finishedUploadAt,
       sha256: sha256,
+      uploadedChunks: uploadedChunks,
       activeVersion: activeVersion,
       pendingVersion: pendingVersion,
       pendingChunks: pendingChunks,

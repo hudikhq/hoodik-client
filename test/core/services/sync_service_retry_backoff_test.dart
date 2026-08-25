@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
@@ -33,6 +35,7 @@ class _ScriptedFileOperations extends Fake implements FileOperations {
     String localPath, {
     String? parentDirId,
     void Function(double progress)? onProgress,
+    String? stagingId,
   }) async {
     attemptLog.add(localPath);
     final queue = outcomes[localPath];
@@ -75,6 +78,10 @@ void main() {
   });
 
   Future<PendingUpload> queue(String path) async {
+    // The retry pass drops rows whose source file is gone before it ever
+    // calls FileOperations, so a queued path has to exist on disk.
+    File(path).writeAsBytesSync([1]);
+    addTearDown(() => File(path).deleteSync());
     final row = await db.insertPendingUpload(
       PendingUploadsCompanion.insert(accountId: 'acct', localPath: path),
     );

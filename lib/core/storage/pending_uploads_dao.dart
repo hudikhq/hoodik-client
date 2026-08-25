@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../services/pending_upload_status.dart';
 import 'database.dart';
 
 /// Data-access helpers for the `pending_uploads` table.
@@ -14,6 +15,31 @@ extension PendingUploadsDao on AppDatabase {
   ) async {
     final id = await into(pendingUploads).insert(upload);
     return (select(pendingUploads)..where((u) => u.id.equals(id))).getSingle();
+  }
+
+  /// Hand every upload still marked in-flight back to the retry queue, and
+  /// return how many were revived.
+  ///
+  /// A row in that state was left there by a process that died mid-upload —
+  /// nothing else clears it, and the retry pass skips it for as long as it
+  /// stands. [startedByThisProcess] holds the rows this process is genuinely
+  /// uploading right now, which must be left alone: reviving one would start
+  /// a second upload of the same file alongside the first, and the user would
+  /// end up with the file twice.
+  Future<int> reviveInterruptedUploads(
+    String accountId, {
+    Set<int> startedByThisProcess = const {},
+  }) {
+    return (update(pendingUploads)
+          ..where((u) => u.accountId.equals(accountId))
+          ..where((u) => u.status.equals(PendingUploadStatus.uploading))
+          ..where((u) => u.id.isNotIn(startedByThisProcess)))
+        .write(
+          PendingUploadsCompanion(
+            status: const Value(PendingUploadStatus.pending),
+            nextRetryAt: const Value(null),
+          ),
+        );
   }
 
   /// All pending uploads for an account, oldest first.

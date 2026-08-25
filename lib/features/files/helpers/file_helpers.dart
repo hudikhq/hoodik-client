@@ -1,3 +1,6 @@
+import 'dart:io' show HttpStatus;
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
@@ -73,8 +76,38 @@ Color fileIconColor(
   return context.colors.iconSlate;
 }
 
-/// Strip the 'Exception: ' prefix from an error message.
+/// Turn an error into something worth showing a user.
+///
+/// A bare `DioException.toString()` is four lines of Playwright-grade
+/// internals ending in "you have either to verify and fix your request code or
+/// you have to fix the server code", which is not a sentence anyone outside
+/// this repo should ever read. Map the statuses that mean something specific
+/// and fall back to the server's own message rather than Dio's narration.
+/// Whether the server refused this build outright (HTTP 426).
+///
+/// No request this version can construct will succeed, so the only useful
+/// response is telling the user to update. Callers surface a localized message
+/// — this helper only classifies, because [formatErrorMessage] has no
+/// `BuildContext` to translate with.
+bool isUpgradeRequired(Object e) =>
+    e is DioException && e.response?.statusCode == HttpStatus.upgradeRequired;
+
 String formatErrorMessage(Object e) {
+  if (e is DioException) {
+    final status = e.response?.statusCode;
+
+    final data = e.response?.data;
+    if (data is Map && data['message'] is String) {
+      return data['message'] as String;
+    }
+
+    if (status != null) {
+      return 'HTTP $status';
+    }
+
+    return e.message ?? e.type.name;
+  }
+
   return e.toString().replaceFirst('Exception: ', '');
 }
 

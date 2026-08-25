@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Sub-check: any .dart file added since the baseline tag must be under the
 # 500-line hard ceiling. Grandfather-listed files are exempt (they have their
-# own rule). Generated files under lib/src/rust/ and `*.g.dart` are exempt.
+# own rule). Generated files — lib/src/rust/, the drift schema snapshots,
+# `*.g.dart` — are exempt; their size is the generator's business.
 
 set -euo pipefail
 
@@ -46,6 +47,7 @@ is_exempt_path() {
   case "$path" in
     lib/src/rust/*) return 0 ;;
     lib/l10n/generated/*) return 0 ;;
+    test/generated/migrations/*) return 0 ;;
     *.g.dart) return 0 ;;
     *.freezed.dart) return 0 ;;
     rust_builder/cargokit/*) return 0 ;;

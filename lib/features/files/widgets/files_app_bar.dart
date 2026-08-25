@@ -10,6 +10,7 @@ import '../../shares/shared_constants.dart';
 import '../providers/files_notifier.dart';
 import 'failed_uploads_badge.dart';
 import 'file_sort_controls.dart';
+import 'files_selection_app_bar.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
 import '../../../core/widgets/adaptive_menu.dart';
@@ -17,7 +18,7 @@ import '../../../core/widgets/adaptive_menu.dart';
 /// App bar for the files screen with two modes:
 /// - Normal: title, refresh, offline chip, view mode, sort,
 ///   select, and create.
-/// - Selection: close, count label, and Move/Delete batch actions.
+/// - Selection: close, count, Select all/Clear, Export, Offline, Move, Delete.
 ///
 /// The widget is stateless — it takes the flags and listeners it needs
 /// and delegates to the parent for every user action.
@@ -36,6 +37,8 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final VoidCallback onExitSelection;
   final VoidCallback onMoveSelected;
   final VoidCallback onDeleteSelected;
+  final VoidCallback onExportSelected;
+  final VoidCallback onMakeOfflineSelected;
   final VoidCallback onEnterSelection;
 
   /// Opens the create/upload sheet. Lives in the bar rather than a
@@ -58,6 +61,8 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
     required this.onExitSelection,
     required this.onMoveSelected,
     required this.onDeleteSelected,
+    required this.onExportSelected,
+    required this.onMakeOfflineSelected,
     required this.onEnterSelection,
     required this.onCreate,
     required this.onSortFieldSelected,
@@ -85,46 +90,19 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    if (selectionMode) return _buildSelectionAppBar(context, l10n);
+    if (selectionMode) {
+      return FilesSelectionAppBar(
+        dirId: dirId,
+        selectionCount: selectionCount,
+        busy: busy,
+        onExitSelection: onExitSelection,
+        onExportSelected: onExportSelected,
+        onMakeOfflineSelected: onMakeOfflineSelected,
+        onMoveSelected: onMoveSelected,
+        onDeleteSelected: onDeleteSelected,
+      );
+    }
     return _buildNormalAppBar(context, ref, l10n);
-  }
-
-  Widget _buildSelectionAppBar(BuildContext context, AppLocalizations l10n) {
-    return AppBar(
-      leading: IconButton(
-        tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-        icon: Icon(
-          adaptiveIcon(
-            material: AppIcons.close,
-            cupertino: CupertinoIcons.xmark,
-          ),
-        ),
-        onPressed: onExitSelection,
-      ),
-      title: Text(l10n.filesSelectedCount(selectionCount)),
-      actions: [
-        IconButton(
-          icon: Icon(
-            adaptiveIcon(
-              material: AppIcons.move,
-              cupertino: CupertinoIcons.folder_badge_plus,
-            ),
-          ),
-          tooltip: l10n.commonMove,
-          onPressed: busy ? null : onMoveSelected,
-        ),
-        IconButton(
-          icon: Icon(
-            adaptiveIcon(
-              material: AppIcons.delete,
-              cupertino: CupertinoIcons.trash,
-            ),
-          ),
-          tooltip: l10n.commonDelete,
-          onPressed: busy ? null : onDeleteSelected,
-        ),
-      ],
-    );
   }
 
   Widget _buildNormalAppBar(

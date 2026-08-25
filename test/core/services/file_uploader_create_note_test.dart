@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
+import 'package:hoodik_app/core/api/chunk_urls_models.dart';
 import 'package:hoodik_app/core/crypto/file_crypto.dart';
 import 'package:hoodik_app/core/services/file_uploader.dart';
 import 'package:hoodik_app/core/services/shared_folder_target.dart';
@@ -40,7 +41,12 @@ class _MockSharedFolderUpload extends Fake implements SharedFolderUpload {
     String? sha256,
     String? cipher,
     bool? editable,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? encryptedThumbnail,
     int? fileModifiedAt,
   }) async {
@@ -72,8 +78,50 @@ class _NoteFilesClient extends Fake implements FilesClient {
   bool? createdEditable;
   String? createdMime;
   String? createdCipher;
+  List<String>? createdTokensRoot;
+  List<String>? createdTokensFile;
+  List<String>? createdContentTokensRoot;
+  List<String>? createdContentTokensFile;
   final List<String> chunkFileIds = [];
   String? hashedFileId;
+
+  /// URLs to hand back when asked for an upload manifest. Empty means the
+  /// server will not sign them, which is every local-disk deployment — and
+  /// the reason the relaying route below still has to work.
+  List<String> uploadUrls = const [];
+  Map<int, int>? declaredSizes;
+  final List<String> directPuts = [];
+  String? finalizedFileId;
+
+  @override
+  Future<ChunkUrlsResponse?> fetchUploadUrls({
+    required String fileId,
+    required String transferToken,
+    required Map<int, int> chunkSizes,
+  }) async {
+    declaredSizes = chunkSizes;
+    if (uploadUrls.isEmpty) return null;
+    return ChunkUrlsResponse(
+      urls: uploadUrls,
+      expiresAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
+    );
+  }
+
+  @override
+  Future<void> putChunkDirect({
+    required String url,
+    required Uint8List data,
+  }) async {
+    directPuts.add(url);
+  }
+
+  @override
+  Future<void> finalizeDirectUpload({
+    required String fileId,
+    required String transferToken,
+  }) async {
+    finalizedFileId = fileId;
+  }
 
   @override
   Future<Map<String, dynamic>> createFileEntry({
@@ -86,7 +134,12 @@ class _NoteFilesClient extends Fake implements FilesClient {
     String? parentDirId,
     String? cipher,
     String? encryptedThumbnail,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? fileModifiedAt,
     String? sha256,
     bool? editable,
@@ -95,6 +148,10 @@ class _NoteFilesClient extends Fake implements FilesClient {
     createdEditable = editable;
     createdMime = mime;
     createdCipher = cipher;
+    createdTokensRoot = searchTokensRoot;
+    createdTokensFile = searchTokensFile;
+    createdContentTokensRoot = contentTokensRoot;
+    createdContentTokensFile = contentTokensFile;
     return {'id': 'owner-note-id'};
   }
 
@@ -118,6 +175,8 @@ class _NoteFilesClient extends Fake implements FilesClient {
     String? md5,
     String? sha1,
     String? blake2b,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     hashedFileId = fileId;
   }
@@ -244,5 +303,120 @@ void main() {
     );
     expect(files.createCalls, 0);
     expect(files.chunkFileIds, isEmpty);
+  });
+
+  // Saving a note was the last write in the app still going through the
+  // server. Everything else had moved to the bucket, and this one kept
+  // relaying because it predates the manifest and nobody had looked at it.
+  group('note content reaches the bucket', () {
+    test(
+      'chunks are written straight to the bucket and then committed',
+      () async {
+        final files = _NoteFilesClient()
+          ..uploadUrls = const ['https://bucket.example.com/obj/000000.chunk'];
+        final uploader = build(
+          files: files,
+          shared: false,
+          upload: _MockSharedFolderUpload(),
+        );
+
+        await uploader.createNote(
+          'note.md',
+          '# Hi\n',
+          parentDirId: 'folder-id',
+        );
+
+        expect(files.directPuts, hasLength(1));
+        expect(
+          files.chunkFileIds,
+          isEmpty,
+          reason: 'nothing should have relayed',
+        );
+        expect(
+          files.finalizedFileId,
+          'owner-note-id',
+          reason:
+              'a bucket write tells the server nothing until the client does',
+        );
+      },
+    );
+
+    // The server signs each chunk's exact ciphertext length into its URL, so a
+    // declared plaintext length would have the bucket reject every chunk.
+    test(
+      'the declared size is the ciphertext length, not the plaintext one',
+      () async {
+        final files = _NoteFilesClient()
+          ..uploadUrls = const ['https://bucket.example.com/obj/000000.chunk'];
+        final uploader = build(
+          files: files,
+          shared: false,
+          upload: _MockSharedFolderUpload(),
+        );
+
+        const body = '# Hi\n';
+        await uploader.createNote('note.md', body, parentDirId: 'folder-id');
+
+        expect(files.declaredSizes, isNotNull);
+        expect(
+          files.declaredSizes![0],
+          greaterThan(body.length),
+          reason: 'every chunk carries its AEAD tag on top of the payload',
+        );
+      },
+    );
+
+    test('a new note is indexed by its body, not just its title', () async {
+      final files = _NoteFilesClient();
+      final uploader = build(
+        files: files,
+        shared: false,
+        upload: _MockSharedFolderUpload(),
+      );
+
+      // The word appears only in the body. Indexing the title alone left it
+      // unsearchable until something happened to re-index the note.
+      await uploader.createNote(
+        'note.md',
+        '# Renewal\nThe insurance policy renews in March.\n',
+        parentDirId: 'folder-id',
+      );
+
+      final expected = fileCrypto
+          .tokenizeForSearch('insurance')
+          .map((e) => e.split(':').first)
+          .toSet();
+
+      final nameTags = files.createdTokensRoot!
+          .map((e) => e.split(':').first)
+          .toSet();
+      final contentTags = files.createdContentTokensRoot!
+          .map((e) => e.split(':').first)
+          .toSet();
+
+      expect(expected, isNotEmpty);
+      expect(contentTags, containsAll(expected));
+      expect(nameTags.intersection(expected), isEmpty);
+      expect(files.createdContentTokensFile, isNotEmpty);
+    });
+
+    test('a server that will not sign the URLs still gets the note', () async {
+      final files = _NoteFilesClient();
+      final uploader = build(
+        files: files,
+        shared: false,
+        upload: _MockSharedFolderUpload(),
+      );
+
+      await uploader.createNote('note.md', '# Hi\n', parentDirId: 'folder-id');
+
+      expect(files.directPuts, isEmpty);
+      expect(files.chunkFileIds, isNotEmpty);
+      expect(
+        files.finalizedFileId,
+        isNull,
+        reason: 'the relaying route commits itself as its last chunk lands',
+      );
+    });
   });
 }

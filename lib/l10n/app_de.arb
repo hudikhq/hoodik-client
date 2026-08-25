@@ -126,6 +126,13 @@
   "accountNotSignedIn": "Nicht angemeldet",
   "accountOfflineCacheStats": "{count, plural, one{1 Datei} other{{count} Dateien}} · {size}",
   "accountOfflineCacheTitle": "Offline-Cache",
+  "accountOfflineCacheOfLimit": "{used} von {limit}",
+  "accountOfflineCacheUnlimited": "{used} · Unbegrenzt",
+  "accountCacheLimitTitle": "Cache-Limit",
+  "accountCacheLimit2Gb": "2 GB",
+  "accountCacheLimit8Gb": "8 GB",
+  "accountCacheLimit32Gb": "32 GB",
+  "accountCacheLimitUnlimited": "Unbegrenzt",
   "accountOfflineClearBody": "Dies entfernt alle Offline-Kopien Ihrer Dateien von diesem Gerät. Ihre Dateien auf dem Server sind nicht betroffen.",
   "accountOfflineClearTitle": "Offline-Cache leeren",
   "accountOfflineCleared": "Offline-Cache geleert",
@@ -159,9 +166,18 @@
   "accountStorageTitle": "Speicher",
   "accountStorageUnlimited": "Unbegrenzt",
   "accountStorageUsed": "{used} belegt",
-  "@accountStorageUsed": {"placeholders": {"used": {}}},
+  "@accountStorageUsed": {
+    "placeholders": {
+      "used": {}
+    }
+  },
   "accountStorageUsedOfTotal": "{used} von {total} belegt",
-  "@accountStorageUsedOfTotal": {"placeholders": {"used": {}, "total": {}}},
+  "@accountStorageUsedOfTotal": {
+    "placeholders": {
+      "used": {},
+      "total": {}
+    }
+  },
   "accountTermsOfService": "Nutzungsbedingungen",
   "accountTitle": "Konto",
   "accountWizardCallingInitialize": "initialize wird aufgerufen…",
@@ -393,10 +409,16 @@
   "errorNoConnection": "Keine Verbindung. Prüfen Sie Ihr Netzwerk und versuchen Sie es erneut.",
   "errorNotAuthorized": "Sie sind für diese Aktion nicht autorisiert. Melden Sie sich erneut an.",
   "errorRequestFailed": "Anfrage fehlgeschlagen ({status}).",
-  "@errorRequestFailed": {"placeholders": {"status": {}}},
+  "@errorRequestFailed": {
+    "placeholders": {
+      "status": {}
+    }
+  },
   "errorServerUnavailable": "Der Server hat gerade Probleme. Versuchen Sie es gleich noch einmal.",
   "filesAccountNotInitialized": "Konto ist nicht vollständig initialisiert",
   "filesAvailableOffline": "{name} ist offline verfügbar",
+  "filesAvailableOfflineCount": "{count, plural, one{1 Datei offline verfügbar} other{{count} Dateien offline verfügbar}}",
+  "filesAvailableOfflinePartial": "{ok} von {total} Dateien offline verfügbar",
   "filesCacheFailed": "Zwischenspeichern fehlgeschlagen: {error}",
   "filesCancelled": "Abgebrochen",
   "filesCannotBeUndone": "Dies kann nicht rückgängig gemacht werden.",
@@ -435,6 +457,13 @@
   "filesEncryptedFallback": "(verschlüsselt)",
   "filesEncryptedPlaceholder": "[Verschlüsselt] {id}...",
   "filesExport": "Exportieren",
+  "filesExportBulkBody": "Jede Datei wird zuerst heruntergeladen und entschlüsselt. Das kann eine Weile dauern. Danach kannst du wählen, wohin die Dateien gehen.",
+  "filesExportBulkTitle": "{count} Dateien exportieren?",
+  "filesExportedNone": "Keine Dateien konnten exportiert werden",
+  "filesExportedPartial": "{success} von {total} Dateien exportiert",
+  "filesBulkFoldersSkipped": "{count, plural, one{{count} Ordner wird übersprungen.} other{{count} Ordner werden übersprungen.}}",
+  "filesBulkLargeExport": "Dieser Export ist groß und kann mehrere Minuten dauern.",
+  "filesBulkLargeDownload": "Dieser Download ist groß und kann mehrere Minuten dauern.",
   "filesExportFailed": "Export fehlgeschlagen: {error}",
   "filesExportStarted": "Export gestartet – das Teilen-Menü öffnet sich, sobald er abgeschlossen ist",
   "filesExportingTo": "Wird nach {path} exportiert",
@@ -457,6 +486,9 @@
   "filesLoadFailed": "Dateien konnten nicht geladen werden: {error}",
   "filesLoadSharedFailed": "Geteilte Elemente konnten nicht geladen werden: {error}",
   "filesMakeAvailableOffline": "Offline verfügbar machen",
+  "filesOfflineBulkBody": "Verschlüsselte Kopien werden auf dieses Gerät heruntergeladen. Das kann eine Weile dauern. Dateien, die bereits offline sind, bleiben unverändert.",
+  "filesOfflineBulkTitle": "{count} Dateien offline verfügbar machen?",
+  "filesOfflineNone": "Nichts zum Offline-Verfügbar-Machen",
   "filesMembers": "Mitglieder",
   "filesMoreActions": "Weitere Aktionen",
   "filesMoveFailed": "Verschieben fehlgeschlagen: {error}",
@@ -490,6 +522,7 @@
   "filesSaveFileDialogTitle": "Datei speichern",
   "filesSaveToMyDrive": "In meinen Dateien speichern",
   "filesSelect": "Auswählen",
+  "filesSelectAll": "Alle auswählen",
   "filesSelectFilesTooltip": "Dateien auswählen",
   "filesSelectedCount": "{count} ausgewählt",
   "filesShareFailed": "Teilen fehlgeschlagen: {error}",
@@ -694,6 +727,8 @@
   "serviceDownloadCancelled": "Download abgebrochen",
   "serviceDownloadFailed": "Download fehlgeschlagen",
   "serviceFileAlreadyExists": "Datei existiert bereits",
+  "serviceTransferSelectionName": "Ausgewählte Elemente",
+  "serviceUploadPartialConflict": "Ein unterbrochener Upload mit diesem Namen enthält anderen Inhalt. Lösche ihn, um diese Datei hochzuladen.",
   "serviceFileNoEncryptionKey": "Datei hat keinen Verschlüsselungsschlüssel",
   "serviceLandingBranchFiles": "Dateien",
   "serviceLandingBranchNotes": "Notizen",
@@ -893,5 +928,20 @@
   "widgetUpdate": "Aktualisieren",
   "widgetUpdateAvailable": "Eine neue Version von Hoodik (v{version}) ist verfügbar.",
   "widgetUpdateDownloaded": "Eine neue Version von Hoodik wurde heruntergeladen.",
-  "widgetUpdateRestart": "Neu starten"
+  "widgetUpdateRestart": "Neu starten",
+  "searchRequiresUpdate": "Die Suche benötigt ein App-Update. Deine Dateien sind sicher — aktualisiere Hoodik, um sie wieder zu durchsuchen.",
+  "searchViewFolder": "Ordner anzeigen",
+  "reindexTitle": "Verbesserung des Suchindex",
+  "reindexExplanation": "Wir haben das Hashing deiner Dateinamen und Notizen für die Suche verstärkt, sodass es deutlich schwerer zu knacken ist. Deine Dateien müssen auf diesem Gerät neu indexiert werden, um das neue Format zu nutzen. Notizen werden dabei heruntergeladen und entschlüsselt, deshalb kann das einen Moment dauern. Noch nicht verarbeitete Dateien erscheinen nicht in der Suche.",
+  "reindexProgress": "{done} von {total} Dateien",
+  "reindexFailed": "{count} Dateien konnten nicht neu indexiert werden und werden beim nächsten Mal erneut versucht.",
+  "reindexBackground": "Im Hintergrund fortsetzen",
+  "reindexCancel": "Abbrechen",
+  "serverTooOldForSearch": "Dieser Server ist zu alt für die Suche. Bitte den Betreiber, Hoodik auf 2.5.0 oder neuer zu aktualisieren.",
+  "appBelowMinimumVersion": "Dieser Server benötigt eine neuere Version der App. Aktualisiere Hoodik, um sie weiter zu nutzen.",
+  "appBelowRecommendedVersion": "Für diesen Server ist eine neuere Version der App verfügbar.",
+  "serverBelowMinimumTitle": "Dieser Server ist zu alt",
+  "serverBelowMinimumBody": "Für die sichere Nutzung dieser App wird Hoodik {required} oder neuer benötigt. Dieser Server meldet {reported}. Aktualisiere den Server und versuche es erneut.",
+  "serverVersionUnknown": "eine Version, die zu alt ist, um sich zu melden",
+  "serverBelowRecommendedVersion": "Dieser Server ist älter als die Version, für die diese App gebaut wurde. Bis zur Aktualisierung können Funktionen fehlen."
 }

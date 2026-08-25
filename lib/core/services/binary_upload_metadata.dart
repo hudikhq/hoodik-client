@@ -55,7 +55,24 @@ class BinaryUploadMetadata {
       fileKey: fileKey,
       cipher: cipher,
     );
+
+    // The binary pipeline hashes before it creates, so the digest joins the
+    // index with the name tokens, and the column stores it keyed under the
+    // file's search key — the bare digest never crosses the wire. Pasting
+    // the digest into search then matches through ordinary tag equality.
+    // Digest tags travel apart from the word tokens: they land in the digest
+    // scopes, which a later rename leaves alone.
+    final fileSearchKey = _fileCrypto.searchFileKeyHex(fileKey);
+    final keyedSha256 = _fileCrypto.exactTag(fileSearchKey, sha256);
     final searchTokens = _fileCrypto.tokenizeForSearch(fileName);
+    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
+      fileKey,
+      fileName,
+    );
+    final digestTokensRoot = [
+      '${_fileCrypto.exactTag(_fileCrypto.searchRootKey, sha256)}:1',
+    ];
+    final digestTokensFile = ['$keyedSha256:1'];
 
     String? encryptedThumbnail;
     if (canGenerateThumbnail(mime)) {
@@ -81,8 +98,11 @@ class BinaryUploadMetadata {
       cipher: cipher,
       chunks: totalChunks,
       size: fileSize,
-      sha256: sha256,
-      searchTokensHashed: searchTokens,
+      sha256: keyedSha256,
+      searchTokensRoot: searchTokens,
+      searchTokensFile: searchTokensFile,
+      digestTokensRoot: digestTokensRoot,
+      digestTokensFile: digestTokensFile,
       encryptedThumbnail: encryptedThumbnail,
     );
     if (sharedId != null) return {'id': sharedId};
@@ -100,9 +120,12 @@ class BinaryUploadMetadata {
       chunks: totalChunks,
       parentDirId: parentDirId,
       cipher: cipher,
-      searchTokensHashed: searchTokens,
+      searchTokensRoot: searchTokens,
+      searchTokensFile: searchTokensFile,
+      digestTokensRoot: digestTokensRoot,
+      digestTokensFile: digestTokensFile,
       encryptedThumbnail: encryptedThumbnail,
-      sha256: sha256,
+      sha256: keyedSha256,
     );
   }
 }

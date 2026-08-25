@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/notes/providers/notes_sidebar_notifier.dart';
 import '../../features/shares/providers/audit_log_notifier.dart';
 import '../../features/shares/providers/folder_members_notifier.dart';
 import '../../features/shares/providers/groups_notifier.dart';
 import '../providers.dart';
+import '../services/file_downloader_config.dart';
+import '../services/plaintext_temp.dart';
 import '../storage/database.dart';
 import '../utils/account_context.dart';
 import '../utils/log_redact.dart';
@@ -21,8 +25,15 @@ extension AuthStateExtension on WidgetRef {
     String? privateKey,
     String? wrappingPrivateKey,
   }) {
+    // [activeAccountProvider] is written LAST, once everything derived from
+    // the session is already current. Riverpod delivers `ref.listen`
+    // callbacks synchronously and only marks dependent providers dirty
+    // afterwards, so a listener that fires on the account change reads
+    // whatever the rest of this method has not updated yet. Publishing the
+    // account first made FilesNotifier reload the previous account's listing
+    // over the previous account's client, then decrypt it with the new key —
+    // a drive full of "Encrypted …" rows after every switch.
     read(isLoggedInProvider.notifier).state = true;
-    read(activeAccountProvider.notifier).state = account;
     read(activeServerProvider.notifier).state = server;
     read(decryptedPrivateKeyProvider.notifier).state = privateKey;
     read(decryptedWrappingPrivateKeyProvider.notifier).state =
@@ -42,22 +53,6 @@ extension AuthStateExtension on WidgetRef {
     // fileOperationsProvider, and syncServiceProvider using the old client.
     invalidate(apiClientProvider);
 
-    // Eagerly evaluate mcpServerProvider so its auto-start listener is
-    // registered. Without this, the provider is never created (it's lazy)
-    // and the MCP server won't start until the settings screen is opened.
-    // This is a best-effort warm-up: on the unlock path the navigation that
-    // follows can dispose dependencies mid-evaluation, and the macOS-only
-    // server falls back to lazily initializing on first settings/tray read, so
-    // a failure here must never escape and crash the sign-in.
-    try {
-      read(mcpServerProvider);
-    } catch (e) {
-      _log.warn(
-        'MCP server warm-up skipped on sign-in',
-        fields: {'error': redactException(e)},
-      );
-    }
-
     // Wipe any leftover tree from the previous account. On first login
     // this is a no-op; on account switch it guarantees we don't show
     // the previous user's decrypted file names.
@@ -70,6 +65,55 @@ extension AuthStateExtension on WidgetRef {
     invalidate(groupsNotifierProvider);
     // And the audit log — events are scoped to the previous account's identity.
     invalidate(auditLogNotifierProvider);
+
+    read(activeAccountProvider.notifier).state = account;
+
+    // Settle the OS transfer queue against the account that just arrived.
+    // Deliberately not awaited: it is a reconcile against work the OS is
+    // already doing, and sign-in should not wait on it. LRU runs after
+    // that future so a lowered cap or pre-ship backlog is applied once
+    // in-flight transfers have been adopted.
+    final reconcile = read(transferReconcilerProvider);
+    final offline = read(offlineManagerProvider);
+    final accountId = account.id;
+    unawaited(() async {
+      if (reconcile != null) {
+        try {
+          await reconcile(accountId);
+        } catch (e) {
+          _log.warn(
+            'transfer adoption skipped on sign-in',
+            fields: {'error': redactException(e)},
+          );
+        }
+      }
+      try {
+        await offline.enforceLimit(accountId);
+      } catch (e) {
+        _log.warn(
+          'cache eviction skipped on sign-in',
+          fields: {'error': redactException(e)},
+        );
+      }
+    }());
+
+    // Eagerly evaluate mcpServerProvider so its auto-start listener is
+    // registered. Without this, the provider is never created (it's lazy)
+    // and the MCP server won't start until the settings screen is opened.
+    // It reads the active account on first evaluation, so it has to come
+    // after the write above. This is a best-effort warm-up: on the unlock
+    // path the navigation that follows can dispose dependencies
+    // mid-evaluation, and the macOS-only server falls back to lazily
+    // initializing on first settings/tray read, so a failure here must never
+    // escape and crash the sign-in.
+    try {
+      read(mcpServerProvider);
+    } catch (e) {
+      _log.warn(
+        'MCP server warm-up skipped on sign-in',
+        fields: {'error': redactException(e)},
+      );
+    }
   }
 
   /// Clear all session providers on logout or session expiration.
@@ -79,6 +123,19 @@ extension AuthStateExtension on WidgetRef {
     read(activeServerProvider.notifier).state = null;
     read(decryptedPrivateKeyProvider.notifier).state = null;
     read(decryptedWrappingPrivateKeyProvider.notifier).state = null;
+
+    // Nothing the OS is still carrying belongs to whoever signs in next, and
+    // logout is the one moment that is true — an account switch keeps its own
+    // transfers alive through [adoptTransfersForAccount] instead.
+    unawaited(
+      cleanUpFileDownloader().catchError((Object e) {
+        _log.warn(
+          'transfer cleanup skipped on sign-out',
+          fields: {'error': redactException(e)},
+        );
+      }),
+    );
+    unawaited(sweepPlaintextTemp());
 
     // Drop the logger's account prefix so post-logout lifecycle logs are
     // not mis-attributed to the account that just left.

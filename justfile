@@ -44,6 +44,13 @@ unit:
 integration:
     @scripts/release-check/integration.sh
 
+# Export the schema snapshot for the current version and rebuild the migration
+# helper. Run after adding a migration and bumping currentSchemaVersion — the
+# snapshot is what lets a later release test the upgrade from this one.
+schema-snapshot:
+    dart run drift_dev schema dump lib/core/storage/database.dart drift_schemas/
+    dart run drift_dev schema generate drift_schemas/ test/generated/migrations/
+
 # Run the Patrol iOS smoke flows against an ephemeral hoodik server.
 # Lifecycle: docker-hoodik-up → Playwright bootstrap (registers e2e@hoodik.local
 # via the real /auth/register form) → patrol test → docker-hoodik-down.
@@ -102,6 +109,60 @@ e2e-all:
 
 build:
     @scripts/release-check/build.sh
+
+# Build the iOS app for a physical device and install it.
+#
+# Two things this does that a bare `flutter build ios --release` does not:
+#
+# CocoaPods is reset first. `patrol` is a dev dependency that registers itself
+# in the generated plugin registrant, but its pod is only present for the
+# Runner target when CocoaPods resolves from scratch — so every device build
+# that follows a `flutter clean` or a project-file edit fails on
+# "Module 'patrol' not found". Resetting up front costs a couple of minutes and
+# removes a failed cycle that costs more.
+#
+# Signing is switched to development for the build and put back afterwards.
+# Every Release block pins the manual "Hoodik App Store" distribution profile,
+# which produces a bundle the device refuses to install
+# (ApplicationVerificationFailed). The project file is restored with git even
+# when the build fails, so the edit is never left behind and never committed.
+#
+# Pass the devicectl device id to install; omit it to build only:
+#   just device-install D7789901-DA8C-5BF3-BF9C-758A27F033B7
+device-install device="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    restore() { git checkout ios/Runner.xcodeproj/project.pbxproj; }
+    trap restore EXIT
+
+    python3 - <<'PY'
+    import re
+    p = 'ios/Runner.xcodeproj/project.pbxproj'
+    s = open(p).read()
+    before = s
+    # Rewritten in place, never inserted: an inserted CODE_SIGN_STYLE leaves
+    # the original `Manual` later in the block, and the last one wins.
+    s = s.replace('CODE_SIGN_STYLE = Manual;', 'CODE_SIGN_STYLE = Automatic;')
+    s = s.replace('"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";',
+                  '"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";')
+    s = s.replace('CODE_SIGN_IDENTITY = "Apple Distribution";',
+                  'CODE_SIGN_IDENTITY = "Apple Development";')
+    s = re.sub(r'\n\s*"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]" = "[^"]*";', '', s)
+    s = re.sub(r'\n\s*PROVISIONING_PROFILE_SPECIFIER = "[^"]*";', '', s)
+    assert s != before, 'signing already flipped — is the working tree clean?'
+    open(p, 'w').write(s)
+    PY
+
+    rm -rf ios/Pods ios/Podfile.lock
+    flutter build ios --release
+
+    if [ -n "{{device}}" ]; then
+        xcrun devicectl device install app \
+            --device "{{device}}" build/ios/iphoneos/Runner.app
+    else
+        echo "Built build/ios/iphoneos/Runner.app — pass a device id to install"
+    fi
 
 summary:
     @scripts/release-check/summary.sh
@@ -219,3 +280,98 @@ e2e-compat-matrix:
 # Safe to run anytime — does not touch the release-check E2E container.
 e2e-compat-clean:
     @./scripts/compat/teardown.sh
+
+# Prove a transfer end to end against a real bucket protocol, on whichever
+# leg the server offers: the paired hoodik server built from ../hoodik, and
+# the live round trip (register → upload → finalize → download → byte-for-byte
+# compare).
+#
+# A file's bytes move one of three ways and the server picks which, so each
+# mode boots a server configured for one of them:
+#
+#   direct  presigned URLs — the bytes never touch the server
+#   tar     one archive through the server
+#   chunk   a request per chunk
+#
+# Every transfer bug this repo has shipped lived in whichever leg nothing
+# exercised, so all three run rather than the fastest one.
+#
+# Defaults to a MinIO the hoodik compose file provides; export S3_* first
+# (e.g. `set -a; source ../secrets/r2-testing.env; set +a; S3_PREFIX=ci-live/
+# just e2e-transfer direct`) to run the same thing against a real bucket.
+# Requires docker for the MinIO default and the ../hoodik checkout either way.
+# Refuses to start while something else holds :5443.
+e2e-transfer mode="direct":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    HOODIK=../hoodik
+
+    if lsof -ti tcp:5443 >/dev/null 2>&1; then
+        echo "something is already listening on :5443 — stop it first" >&2
+        exit 69
+    fi
+
+    if [ -z "${S3_ENDPOINT:-}" ]; then
+        docker compose -f "$HOODIK/docker-compose.yml" up -d minio minio-init
+        export S3_ENDPOINT=http://127.0.0.1:9000
+        export S3_BUCKET="${S3_BUCKET:-hoodik}"
+        export S3_ACCESS_KEY="${S3_ACCESS_KEY:-minioadmin}"
+        export S3_SECRET_KEY="${S3_SECRET_KEY:-minioadmin}"
+        export S3_REGION="${S3_REGION:-us-east-1}"
+    fi
+    export S3_PATH_STYLE="${S3_PATH_STYLE:-true}"
+    export S3_PREFIX="${S3_PREFIX:-app-e2e/}"
+
+    (cd "$HOODIK" && cargo build --bin hoodik --release)
+
+    case "{{mode}}" in
+        direct) DIRECT=true;  TAR_OFF=false ;;
+        tar)    DIRECT=false; TAR_OFF=false ;;
+        chunk)  DIRECT=false; TAR_OFF=true  ;;
+        *) echo "unknown mode '{{mode}}' — use direct, tar or chunk" >&2; exit 2 ;;
+    esac
+
+    DATA=$(mktemp -d)
+    STORAGE_PROVIDER=s3 S3_DIRECT_TRANSFER=$DIRECT S3_DIRECT_ALLOW_INSECURE=true \
+    TAR_TRANSFER_DISABLED=$TAR_OFF \
+    DATA_DIR="$DATA" DATABASE_URL="sqlite:$DATA/sqlite.db?mode=rwc" \
+    SSL_DISABLED=true APP_URL=http://localhost:5443 APP_CLIENT_URL=http://localhost:5443 \
+    MAILER_TYPE=none RUST_LOG=error \
+    "$HOODIK/target/release/hoodik" &
+    SERVER_PID=$!
+    cleanup() { kill -9 $SERVER_PID 2>/dev/null; rm -rf "$DATA"; }
+    trap cleanup EXIT
+
+    for i in $(seq 1 60); do
+        curl -fsS http://127.0.0.1:5443/api/liveness >/dev/null 2>&1 && break
+        sleep 1
+    done
+    # A server that came up in the wrong shape would run the same test on the
+    # wrong leg and pass, which is the one outcome worse than failing.
+    CAPS=$(curl -fsS http://127.0.0.1:5443/api/capabilities)
+    case "{{mode}}" in
+        direct) EXPECT='"direct_transfer":true' ;;
+        tar)    EXPECT='"tar_transfer":true' ;;
+        chunk)  EXPECT='"tar_transfer":false' ;;
+    esac
+    if ! grep -q "$EXPECT" <<<"$CAPS"; then
+        echo "server is not configured for {{mode}} (want $EXPECT):" >&2
+        echo "$CAPS" >&2
+        exit 1
+    fi
+    if [ "{{mode}}" != "direct" ] && grep -q '"direct_transfer":true' <<<"$CAPS"; then
+        echo "direct transfer is on, so {{mode}} would never run:" >&2
+        echo "$CAPS" >&2
+        exit 1
+    fi
+
+    (cd rust && cargo build --release)
+    # `tee` + grep: `flutter test` exits 0 when every test SKIPS, and a
+    # skipped run here means the round trip proved nothing. Require at least
+    # one pass.
+    flutter test --dart-define=HOODIK_LIVE=1 --tags live \
+        test/live/transfer_live_test.dart | tee /tmp/e2e-transfer-{{mode}}.log
+    grep -qE "\+[1-9][0-9]*" /tmp/e2e-transfer-{{mode}}.log || {
+        echo "the live test did not actually run — check the skip reasons above" >&2
+        exit 1
+    }

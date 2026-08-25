@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/services/binary_upload_transport.dart';
 import 'package:hoodik_app/core/services/chunk_download_transport.dart';
+import 'package:hoodik_app/core/services/direct_chunk_download.dart';
+import 'package:hoodik_app/core/services/file_downloader_config.dart';
 import 'package:path/path.dart' as p;
 
 /// Regression coverage for the fix that moves tar HTTP out of Rust and
@@ -28,10 +30,175 @@ void main() {
   }
 
   group('BackgroundDownloaderChunkTransport', () {
+    /// The per-chunk leg is what runs when a server offers neither the archive
+    /// nor bucket URLs, and it was the last download path with no progress at
+    /// all. The Rust pipeline had been counting bytes into shared atomics the
+    /// whole time and saying in its own doc that Dart should poll them —
+    /// nothing did, so the bar sat at zero for the entire transfer.
+    test('polls the Rust counters and scales them to chunks', () async {
+      var reading = (0, 1000);
+      final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
+        backend: _FakeDownloadBackend(),
+        stagingTarPath: stagingPath,
+        readProgress: (_) => reading,
+      );
+
+      final seen = <(int, int)>[];
+      final poll = transport.pollProgress(
+        fileId: 'file-123',
+        chunkCount: 4,
+        onProgress: (chunks, bytes) => seen.add((chunks, bytes)),
+        every: const Duration(milliseconds: 1),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      reading = (500, 1000);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      poll.cancel();
+
+      expect(seen, isNotEmpty, reason: 'the counters must actually be read');
+      expect(seen.first, equals((0, 0)));
+      expect(
+        seen.last,
+        equals((2, 500)),
+        reason: 'bytes verbatim, chunks scaled from them',
+      );
+    });
+
+    test('a throwing reader does not kill the poll silently', () async {
+      // How this hid for a day: the binding decoded its return wrong, so every
+      // read threw, and a throw inside a Timer.periodic callback goes to the
+      // zone. No error, no log, a bar at zero — indistinguishable from a
+      // progress hook nobody had wired.
+      var calls = 0;
+      final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
+        backend: _FakeDownloadBackend(),
+        stagingTarPath: stagingPath,
+        readProgress: (_) {
+          calls++;
+          throw StateError('binding decodes wrong');
+        },
+      );
+
+      final seen = <(int, int)>[];
+      final poll = transport.pollProgress(
+        fileId: 'file-123',
+        chunkCount: 4,
+        onProgress: (chunks, bytes) => seen.add((chunks, bytes)),
+        every: const Duration(milliseconds: 1),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 15));
+      poll.cancel();
+
+      expect(calls, greaterThan(1), reason: 'the timer keeps running');
+      expect(seen, isEmpty, reason: 'nothing is invented from a failed read');
+    });
+
+    test(
+      'a transfer with no counters yet reports nothing rather than zero',
+      () async {
+        // Between registering and the first byte the Rust side has no entry.
+        // Reporting a zero there would reset a bar that a resumed transfer had
+        // already advanced.
+        final transport = BackgroundDownloaderChunkTransport.forTesting(
+          directChunks: DirectChunkDownloadService(),
+          backend: _FakeDownloadBackend(),
+          stagingTarPath: stagingPath,
+          readProgress: (_) => null,
+        );
+
+        final seen = <(int, int)>[];
+        final poll = transport.pollProgress(
+          fileId: 'file-123',
+          chunkCount: 4,
+          onProgress: (chunks, bytes) => seen.add((chunks, bytes)),
+          every: const Duration(milliseconds: 1),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        poll.cancel();
+
+        expect(seen, isEmpty);
+      },
+    );
+
+    /// The archive arrives as one transfer, so nothing counts chunks along the
+    /// way — and the caller's progress hook was simply not plumbed to it. On a
+    /// server without direct transfer that is the only download path, so the
+    /// bar sat at zero for the whole file and then jumped to done, which reads
+    /// as a stall on anything large enough to notice.
+    test('reports progress while the archive is still arriving', () async {
+      final backend = _FakeDownloadBackend();
+      final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
+        backend: backend,
+        stagingTarPath: stagingPath,
+      );
+
+      final seen = <(int, int)>[];
+
+      await transport.downloadAsTar(
+        baseUrl: 'https://drive.example.com',
+        cookie: 'session=abc',
+        fileId: 'file-123',
+        fileSize: 1000,
+        chunkCount: 4,
+        outputDir: p.join(tmp.path, 'chunks'),
+        alreadyDownloaded: const [],
+        accountId: 'acct-test',
+        onProgress: (chunks, bytes) => seen.add((chunks, bytes)),
+      );
+
+      // The fake keeps the callback the transport handed it; drive it the way
+      // the OS download would.
+      final sink = backend.progressSink;
+      expect(
+        sink,
+        isNotNull,
+        reason: 'the tar leg must be given a progress hook',
+      );
+      sink!(250, 1000);
+      sink(500, 1000);
+      sink(1000, 1000);
+
+      // Bytes exactly as reported; chunks scaled, because the chunk-shaped
+      // display needs something that moves and the archive yields none.
+      expect(seen, equals([(1, 250), (2, 500), (4, 1000)]));
+    });
+
+    test('does not divide by a zero total', () async {
+      // An empty or unknown-length body would otherwise crash the transfer on
+      // its first progress tick.
+      final backend = _FakeDownloadBackend();
+      final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
+        backend: backend,
+        stagingTarPath: stagingPath,
+      );
+
+      final seen = <(int, int)>[];
+      await transport.downloadAsTar(
+        baseUrl: 'https://drive.example.com',
+        cookie: 'session=abc',
+        fileId: 'file-123',
+        fileSize: 0,
+        chunkCount: 4,
+        outputDir: p.join(tmp.path, 'chunks'),
+        alreadyDownloaded: const [],
+        accountId: 'acct-test',
+        onProgress: (chunks, bytes) => seen.add((chunks, bytes)),
+      );
+
+      backend.progressSink!(0, 0);
+      expect(seen, equals([(0, 0)]));
+    });
+
     test('happy path: fetch lands the tar on disk, unpack is called with '
         'that path, and the tar is deleted after success', () async {
       final backend = _FakeDownloadBackend();
       final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
         backend: backend,
         stagingTarPath: stagingPath,
       );
@@ -44,11 +211,17 @@ void main() {
         chunkCount: 1,
         outputDir: p.join(tmp.path, 'chunks'),
         alreadyDownloaded: const [],
+        accountId: 'acct-test',
       );
 
       expect(backend.fetchCalls, hasLength(1));
       final fetchCall = backend.fetchCalls.single;
-      expect(fetchCall.taskId, equals('file-123'));
+      // The id carries its owning account: the OS hands tasks back after a
+      // restart with nothing else to identify them by, and a cold start has to
+      // tell this account's work from the previous session's.
+      expect(fetchCall.taskId, equals('tar-downloads|acct-test|file-123'));
+      expect(accountIdFromTaskId(fetchCall.taskId), equals('acct-test'));
+      expect(fileIdFromTaskId(fetchCall.taskId), equals('file-123'));
       expect(
         fetchCall.url,
         equals('https://drive.example.com/api/storage/file-123?format=tar'),
@@ -82,6 +255,7 @@ void main() {
       final backend = _FakeDownloadBackend()
         ..fetchError = Exception('Connection reset');
       final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
         backend: backend,
         stagingTarPath: stagingPath,
       );
@@ -95,6 +269,7 @@ void main() {
           chunkCount: 1,
           outputDir: p.join(tmp.path, 'chunks'),
           alreadyDownloaded: const [],
+          accountId: 'acct-test',
         ),
         throwsA(isA<Exception>()),
       );
@@ -112,6 +287,7 @@ void main() {
         'auth semantics where an empty value means "no header")', () async {
       final backend = _FakeDownloadBackend();
       final transport = BackgroundDownloaderChunkTransport.forTesting(
+        directChunks: DirectChunkDownloadService(),
         backend: backend,
         stagingTarPath: stagingPath,
       );
@@ -124,6 +300,7 @@ void main() {
         chunkCount: 1,
         outputDir: p.join(tmp.path, 'chunks'),
         alreadyDownloaded: const [],
+        accountId: 'acct-test',
       );
 
       expect(backend.fetchCalls.single.headers, isEmpty);
@@ -279,6 +456,9 @@ class _UnpackCall {
 }
 
 class _FakeDownloadBackend implements TarDownloadBackend {
+  /// The callback the transport handed down, so a test can drive it.
+  void Function(int transferred, int total)? progressSink;
+
   final List<_FetchCall> fetchCalls = [];
   final List<_UnpackCall> unpackCalls = [];
   Object? fetchError;
@@ -291,7 +471,9 @@ class _FakeDownloadBackend implements TarDownloadBackend {
     required Map<String, String> headers,
     required String outputPath,
     required int totalBytes,
+    void Function(int transferred, int total)? onProgress,
   }) async {
+    progressSink = onProgress;
     fetchCalls.add(
       _FetchCall(
         taskId: taskId,

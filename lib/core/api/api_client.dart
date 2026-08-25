@@ -8,6 +8,7 @@ import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
+import '../services/client_identity.dart';
 import '../utils/log_redact.dart';
 import '../utils/logger.dart';
 import 'admin_client.dart';
@@ -118,7 +119,10 @@ class ApiClient implements FilesClientAuth {
            baseUrl: baseUrl,
            connectTimeout: const Duration(seconds: 15),
            receiveTimeout: const Duration(seconds: 60),
-           headers: {'Content-Type': 'application/json'},
+           headers: {
+             'Content-Type': 'application/json',
+             clientIdentityHeader: clientIdentity,
+           },
          ),
        ) {
     // Header-auth interceptor: inject Authorization + x-auth-refresh on

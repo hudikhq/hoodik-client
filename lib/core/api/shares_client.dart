@@ -157,6 +157,29 @@ class SharesClient {
         .toList();
   }
 
+  /// `GET /api/shares/keys` — every file shared with the caller, as
+  /// `(file_id, encrypted_key)` pairs.
+  ///
+  /// Distinct from [getSharesMine], which reports share *roots* for browsing:
+  /// it trims any row whose parent is also shared. Search needs the untrimmed
+  /// set, because files inside a shared folder are tagged under their own keys
+  /// and a query has to carry a tag per key.
+  Future<List<Map<String, String>>> getIncomingKeys() async {
+    final resp = await _dio.get('/api/shares/keys');
+    final rows = resp.data is List ? resp.data as List : const [];
+
+    return rows
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (row) => {
+            'file_id': row['file_id'] as String? ?? '',
+            'encrypted_key': row['encrypted_key'] as String? ?? '',
+          },
+        )
+        .where((row) => row['encrypted_key']!.isNotEmpty)
+        .toList();
+  }
+
   /// `GET /api/shares/mine` — one page of the caller's incoming shares.
   Future<IncomingSharePage> getSharesMine({int? limit, int? offset}) async {
     final resp = await _dio.get(
@@ -182,18 +205,13 @@ class SharesClient {
 
   /// `GET /api/capabilities` — the server's sharing capability advertisement.
   ///
-  /// Fails closed: every error — a [DioException] (offline, 404 on a pre-1.16
-  /// server) or an unparseable body — collapses to [Capabilities.disabled] so
-  /// the sharing UI hides rather than surfacing an error against a server that
-  /// doesn't speak the protocol. This is the one deliberate error-swallow in
-  /// the client; every other method propagates.
+  /// Throws rather than answering for the server. The caller fails closed on
+  /// every outcome, but only it can tell a server that *said* something — a
+  /// 404 from a pre-1.16 build, an unparseable body — from a request that
+  /// never landed, and only the second is worth asking again.
   Future<Capabilities> getCapabilities() async {
-    try {
-      final resp = await _dio.get('/api/capabilities');
-      return Capabilities.fromJson(resp.data as Map<String, dynamic>);
-    } catch (_) {
-      return const Capabilities.disabled();
-    }
+    final resp = await _dio.get('/api/capabilities');
+    return Capabilities.fromJson(resp.data as Map<String, dynamic>);
   }
 
   /// `PATCH /api/users/me` — partial update of the caller's own user row:

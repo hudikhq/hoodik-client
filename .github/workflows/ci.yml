@@ -5,6 +5,9 @@ on:
         branches: [main]
     pull_request:
         branches: [main]
+    # For e2e-transfer-r2: an on-demand run of the round trip against the real
+    # R2 testing bucket instead of MinIO.
+    workflow_dispatch:
 
 jobs:
     analyze-and-test:
@@ -53,7 +56,9 @@ jobs:
             # libhoodik_mobile.so. Build it from the shared crates in the hoodik
             # repo — the fast path can no longer stub hoodik.
             - name: Clone hoodik (shared Rust crates)
-              run: git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+              uses: ./.github/actions/clone-hoodik
+              with:
+                  pinned: ${{ vars.HOODIK_BRANCH }}
 
             - uses: dtolnay/rust-toolchain@stable
 
@@ -81,7 +86,9 @@ jobs:
             - uses: actions/checkout@v4
 
             - name: Clone hoodik (for shared Rust crates)
-              run: git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
+              uses: ./.github/actions/clone-hoodik
+              with:
+                  pinned: ${{ vars.HOODIK_BRANCH }}
 
             - uses: dtolnay/rust-toolchain@stable
               with:
@@ -117,3 +124,136 @@ jobs:
                     pod cache clean --all || true
                     sleep 20
                   done
+
+    # A file's bytes reach the device one of three ways and the server picks
+    # which, so all three are booted and exercised. Every transfer bug this
+    # repo has shipped — a progress bar that never moved, an archive refusal
+    # that reached the user instead of falling back, an FFI binding that threw
+    # on every call — lived in whichever leg nothing here was running.
+    e2e-transfer:
+        name: Transfer round trip (${{ matrix.mode }}, MinIO)
+        runs-on: ubuntu-latest
+        strategy:
+            # One failing leg must not cancel the others: which legs pass tells
+            # you where the fault is.
+            fail-fast: false
+            matrix:
+                mode: [direct, tar, chunk]
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Free disk space
+              run: |
+                  sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                    /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+                  df -h /
+
+            - name: Clone hoodik (server + shared Rust crates)
+              uses: ./.github/actions/clone-hoodik
+              with:
+                  pinned: ${{ vars.HOODIK_BRANCH }}
+
+            - uses: dtolnay/rust-toolchain@stable
+
+            - uses: Swatinem/rust-cache@v2
+              with:
+                  # Two workspaces: the FFI library the test loads, and the
+                  # server binary the recipe boots.
+                  workspaces: |
+                      rust -> target
+                      ../hoodik -> target
+                  # Shared across the matrix: the three legs differ only in how
+                  # the same binary is configured, so they must not each build
+                  # and cache their own copy of it.
+                  key: e2e-transfer
+
+            - uses: awalsh128/cache-apt-pkgs-action@latest
+              with:
+                  packages: clang llvm pkg-config nettle-dev libpq-dev libc6-dev
+                  version: 1.0
+
+            - uses: subosito/flutter-action@v2
+              with:
+                  flutter-version: "3.41.x"
+                  channel: stable
+
+            - uses: taiki-e/install-action@just
+
+            - run: flutter pub get
+
+            # Boots MinIO and the paired server configured for this leg, then
+            # runs the round trip: register, upload, finalize, download,
+            # byte-for-byte compare. The recipe refuses to proceed if the
+            # server came up in a shape that would run some other leg.
+            - name: Live round trip
+              run: just e2e-transfer ${{ matrix.mode }}
+
+    e2e-transfer-r2:
+        name: Transfer round trip (direct, R2 — manual)
+        # On demand only: it spends real R2 operations and needs the repo's
+        # secrets, which forked PRs never see. The MinIO job above is the
+        # hermetic per-PR gate; this one proves the same round trip against
+        # the bucket implementation production actually runs on.
+        if: github.event_name == 'workflow_dispatch'
+        runs-on: ubuntu-latest
+        env:
+            S3_ENDPOINT: ${{ secrets.R2_TEST_ENDPOINT }}
+            S3_BUCKET: ${{ secrets.R2_TEST_BUCKET }}
+            S3_ACCESS_KEY: ${{ secrets.R2_TEST_ACCESS_KEY }}
+            S3_SECRET_KEY: ${{ secrets.R2_TEST_SECRET_KEY }}
+            S3_REGION: auto
+            # Its own prefix, so CI runs never collide with the phone rig's
+            # r2clean/ data in the same bucket.
+            S3_PREFIX: ci-live/
+        steps:
+            - uses: actions/checkout@v4
+
+            # The recipe falls back to MinIO defaults for any S3 variable
+            # that is empty, which is right for local runs and wrong here: a
+            # dispatch on a repo without the secrets would go green against
+            # MinIO while claiming R2 coverage.
+            - name: Require the R2 secrets
+              run: |
+                  for var in S3_ENDPOINT S3_BUCKET S3_ACCESS_KEY S3_SECRET_KEY; do
+                    if [ -z "${!var}" ]; then
+                      echo "$var is empty — configure the R2_TEST_* secrets; this job proves R2, not MinIO" >&2
+                      exit 1
+                    fi
+                  done
+
+            - name: Free disk space
+              run: |
+                  sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                    /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+                  df -h /
+
+            - name: Clone hoodik (server + shared Rust crates)
+              uses: ./.github/actions/clone-hoodik
+              with:
+                  pinned: ${{ vars.HOODIK_BRANCH }}
+
+            - uses: dtolnay/rust-toolchain@stable
+
+            - uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: |
+                      rust -> target
+                      ../hoodik -> target
+                  key: e2e-transfer
+
+            - uses: awalsh128/cache-apt-pkgs-action@latest
+              with:
+                  packages: clang llvm pkg-config nettle-dev libpq-dev libc6-dev
+                  version: 1.0
+
+            - uses: subosito/flutter-action@v2
+              with:
+                  flutter-version: "3.41.x"
+                  channel: stable
+
+            - uses: taiki-e/install-action@just
+
+            - run: flutter pub get
+
+            - name: Live direct-transfer round trip against R2
+              run: just e2e-transfer direct

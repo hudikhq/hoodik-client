@@ -37,7 +37,12 @@ class _MockSharedFolderUpload extends Fake implements SharedFolderUpload {
     String? sha256,
     String? cipher,
     bool? editable,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? encryptedThumbnail,
     int? fileModifiedAt,
   }) async {
@@ -60,7 +65,12 @@ class _DirFilesClient extends Fake implements FilesClient {
     required String encryptedName,
     String? parentDirId,
     String? cipher,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
   }) async {
     createCalls += 1;
     this.parentDirId = parentDirId;

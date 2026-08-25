@@ -4,6 +4,7 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 
 import 'api_models.dart';
+import 'chunk_urls_models.dart';
 
 /// Minimum surface the [FilesClient] needs from the owning [ApiClient] to
 /// authenticate raw-bytes requests. Binary chunk uploads bypass the shared
@@ -60,6 +61,131 @@ class FilesClient {
     return StorageResponse.fromJson(resp.data);
   }
 
+  /// `GET /api/storage/{fileId}/chunk-urls` — presigned URLs letting this
+  /// device read the file's chunks straight from the storage bucket.
+  ///
+  /// Returns null whenever the server cannot serve them: local-disk
+  /// deployments have no URLs to give, and an S3 deployment whose bucket
+  /// failed its startup checks withholds them deliberately (400). Callers
+  /// fall back to downloading through the server.
+  Future<ChunkUrlsResponse?> fetchChunkUrls(String fileId) async {
+    try {
+      final resp = await _dio.get('/api/storage/$fileId/chunk-urls');
+      final data = resp.data;
+      if (data is! Map<String, dynamic>) return null;
+      return ChunkUrlsResponse.fromJson(data);
+    } on DioException {
+      return null;
+    }
+  }
+
+  /// `POST /api/storage/{fileId}/upload-urls` — presigned URLs letting this
+  /// device write the file's chunks straight into the storage bucket.
+  ///
+  /// [chunkSizes] maps chunk index to the exact ciphertext length that will be
+  /// written. The server charges those against the quota and signs them into
+  /// the URLs, so a chunk that does not match its declared length is refused
+  /// by the bucket rather than by us.
+  ///
+  /// Returns null whenever the server cannot serve them, which is the same
+  /// fallback the read side has: local-disk deployments have no URLs to give,
+  /// and an S3 deployment whose bucket failed its startup checks withholds
+  /// them deliberately.
+  Future<ChunkUrlsResponse?> fetchUploadUrls({
+    required String fileId,
+    required String transferToken,
+    required Map<int, int> chunkSizes,
+  }) async {
+    if (chunkSizes.isEmpty) return null;
+
+    final tokenDio = _tokenDio(transferToken);
+    try {
+      final resp = await tokenDio.post(
+        '/api/storage/$fileId/upload-urls',
+        data: {
+          'chunks': [
+            for (final entry in chunkSizes.entries)
+              {'chunk': entry.key, 'size': entry.value},
+          ],
+        },
+      );
+      final data = resp.data;
+      if (data is! Map<String, dynamic>) return null;
+      return ChunkUrlsResponse.fromJson(data);
+    } on DioException {
+      return null;
+    } finally {
+      tokenDio.close();
+    }
+  }
+
+  /// Write one already-encrypted chunk straight into the bucket.
+  ///
+  /// A bare client on purpose. The presigned URL is signed over the method,
+  /// the object key and the exact content length, so the session must not come
+  /// along: several S3 implementations refuse a request that arrives both
+  /// presigned and authenticated, and the cookie would be handed to a third
+  /// party for nothing.
+  ///
+  /// For content the app already holds in memory — a note being saved. Files
+  /// picked from disk go through [DirectChunkUploadService] instead, which
+  /// hands each chunk to the OS so the transfer survives the app being
+  /// suspended; a note is one small chunk and does not need that.
+  Future<void> putChunkDirect({
+    required String url,
+    required Uint8List data,
+  }) async {
+    final bare = Dio();
+    try {
+      await bare.put<void>(
+        url,
+        data: Stream.fromIterable([data]),
+        options: Options(
+          headers: {
+            Headers.contentLengthHeader: data.length,
+            Headers.contentTypeHeader: 'application/octet-stream',
+          },
+        ),
+      );
+    } finally {
+      bare.close();
+    }
+  }
+
+  /// `POST /api/storage/{fileId}/finalize` — commit a file whose chunks went
+  /// straight to the bucket.
+  ///
+  /// The relaying routes finalize themselves once their own writes complete
+  /// the count. Nothing tells the server when a direct write lands, so the
+  /// client says so and the bucket is asked to confirm it: every chunk has to
+  /// show in a listing before the version pointer moves. A failure here means
+  /// the upload is not committed, so it is not swallowed.
+  Future<void> finalizeDirectUpload({
+    required String fileId,
+    required String transferToken,
+  }) async {
+    final tokenDio = _tokenDio(transferToken);
+    try {
+      await tokenDio.post('/api/storage/$fileId/finalize');
+    } finally {
+      tokenDio.close();
+    }
+  }
+
+  /// A short-lived client authenticated by a file's transfer token rather than
+  /// the session, for the routes that take one.
+  Dio _tokenDio(String transferToken) => Dio(
+    BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 60),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $transferToken',
+      },
+    ),
+  );
+
   /// `GET /api/storage/{fileId}/thumbnail` — the encrypted thumbnail of a
   /// single file. Listings ask for `compact` rows without the blob; this
   /// route serves it on demand. Returns null when the file has no
@@ -85,7 +211,8 @@ class FilesClient {
     required String encryptedName,
     String? parentDirId,
     String? cipher,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     final data = <String, dynamic>{
       'encrypted_key': encryptedKey,
@@ -95,8 +222,11 @@ class FilesClient {
     };
     if (parentDirId != null) data['file_id'] = parentDirId;
     if (cipher != null) data['cipher'] = cipher;
-    if (searchTokensHashed != null) {
-      data['search_tokens_hashed'] = searchTokensHashed;
+    if (searchTokensRoot != null) {
+      data['search_tokens_root'] = searchTokensRoot;
+    }
+    if (searchTokensFile != null) {
+      data['search_tokens_file'] = searchTokensFile;
     }
 
     final resp = await _dio.post('/api/storage', data: data);
@@ -115,7 +245,12 @@ class FilesClient {
     String? parentDirId,
     String? cipher,
     String? encryptedThumbnail,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? fileModifiedAt,
     String? sha256,
     bool? editable,
@@ -134,8 +269,23 @@ class FilesClient {
     if (encryptedThumbnail != null) {
       data['encrypted_thumbnail'] = encryptedThumbnail;
     }
-    if (searchTokensHashed != null) {
-      data['search_tokens_hashed'] = searchTokensHashed;
+    if (searchTokensRoot != null) {
+      data['search_tokens_root'] = searchTokensRoot;
+    }
+    if (searchTokensFile != null) {
+      data['search_tokens_file'] = searchTokensFile;
+    }
+    if (contentTokensRoot != null) {
+      data['content_tokens_root'] = contentTokensRoot;
+    }
+    if (contentTokensFile != null) {
+      data['content_tokens_file'] = contentTokensFile;
+    }
+    if (digestTokensRoot != null) {
+      data['digest_tokens_root'] = digestTokensRoot;
+    }
+    if (digestTokensFile != null) {
+      data['digest_tokens_file'] = digestTokensFile;
     }
     if (fileModifiedAt != null) data['file_modified_at'] = fileModifiedAt;
     if (sha256 != null) data['sha256'] = sha256;
@@ -149,14 +299,18 @@ class FilesClient {
     required String fileId,
     required String nameHash,
     required String encryptedName,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     final data = <String, dynamic>{
       'name_hash': nameHash,
       'encrypted_name': encryptedName,
     };
-    if (searchTokensHashed != null) {
-      data['search_tokens_hashed'] = searchTokensHashed;
+    if (searchTokensRoot != null) {
+      data['search_tokens_root'] = searchTokensRoot;
+    }
+    if (searchTokensFile != null) {
+      data['search_tokens_file'] = searchTokensFile;
     }
 
     final resp = await _dio.put('/api/storage/$fileId', data: data);
@@ -278,22 +432,6 @@ class FilesClient {
     }
   }
 
-  /// `PUT /api/storage/{fileId}/hashes` — session-auth variant used after
-  /// an interactive upload finishes.
-  Future<void> updateFileHashes({
-    required String fileId,
-    required String sha256,
-    String? md5,
-    String? sha1,
-    String? blake2b,
-  }) async {
-    final data = <String, dynamic>{'sha256': sha256};
-    if (md5 != null) data['md5'] = md5;
-    if (sha1 != null) data['sha1'] = sha1;
-    if (blake2b != null) data['blake2b'] = blake2b;
-    await _dio.put('/api/storage/$fileId/hashes', data: data);
-  }
-
   /// `PUT /api/storage/{fileId}/hashes` with a transfer-token bearer
   /// instead of session cookies. Used by the upload worker pipeline
   /// because transfer tokens survive session refreshes.
@@ -304,11 +442,15 @@ class FilesClient {
     String? md5,
     String? sha1,
     String? blake2b,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
   }) async {
     final data = <String, dynamic>{'sha256': sha256};
     if (md5 != null) data['md5'] = md5;
     if (sha1 != null) data['sha1'] = sha1;
     if (blake2b != null) data['blake2b'] = blake2b;
+    if (searchTokensRoot != null) data['search_tokens_root'] = searchTokensRoot;
+    if (searchTokensFile != null) data['search_tokens_file'] = searchTokensFile;
 
     final tokenDio = Dio(
       BaseOptions(

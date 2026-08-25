@@ -25,9 +25,10 @@ import '../helpers/draft_capture.dart';
 import '../models/editor_tab.dart';
 import '../providers/open_note_request.dart';
 import '../services/note_pdf_exporter.dart';
-import 'ios_editor_layout.dart' show injectIosCaretInset;
+import 'ios_editor_layout.dart' show applyIosEditorInset;
 import 'notes_landing_app_bar.dart';
 import 'notes_main_area.dart';
+import 'note_conflict_dialog.dart';
 import 'notes_sidebar.dart';
 import 'recent_notes_panel.dart';
 import 'unsaved_changes_dialog.dart';
@@ -75,10 +76,16 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   bool _editorReady = false;
   Brightness? _editorBrightness;
 
-  /// Set when the workspace was seeded from the Files branch; closing the
-  /// last tab then switches the shell back there instead of falling
-  /// through to the recent-notes landing state.
-  bool _returnToFilesOnLastClose = false;
+  /// iOS: height of the editor frame currently hidden behind the keyboard
+  /// and floating toolbar. Held here because the layout can report it
+  /// before the page is ready to receive it.
+  double _iosBottomInset = 0;
+
+  /// The branch the note was opened from, if it came from outside Notes.
+  /// Closing the last tab switches the shell back there rather than falling
+  /// through to the recent-notes landing state — a note opened from search
+  /// belongs back in search.
+  int? _returnToBranchOnLastClose;
 
   Timer? _autoSaveTimer;
   Completer<String>? _getMarkdownCompleter;
@@ -98,10 +105,10 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       // The request that seeded this workspace was set before the listener
       // below existed, so its origin flag has to be read directly.
       final req = ref.read(openNoteRequestProvider);
-      _returnToFilesOnLastClose =
-          req != null &&
-          req.fileId == widget.initialFileId &&
-          req.returnToFiles;
+      _returnToBranchOnLastClose =
+          req != null && req.fileId == widget.initialFileId
+          ? req.returnToBranchIndex
+          : null;
     }
 
     // Re-apply zoom to the webview whenever the host preference changes.
@@ -125,7 +132,9 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   }
 
   void _openFromRequest(OpenNoteRequest req) {
-    if (req.returnToFiles) _returnToFilesOnLastClose = true;
+    if (req.returnToBranchIndex != null) {
+      _returnToBranchOnLastClose = req.returnToBranchIndex;
+    }
     final existing = _tabs.indexWhere((t) => t.fileId == req.fileId);
     if (existing >= 0) {
       if (existing != _activeTabIndex) {
@@ -450,9 +459,10 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   /// one opened from the Notes tab falls through to the recent-notes
   /// empty state instead.
   void _maybeReturnToFiles() {
-    if (!_returnToFilesOnLastClose) return;
-    _returnToFilesOnLastClose = false;
-    ref.read(shellBranchRequestProvider.notifier).state = filesBranchIndex;
+    final branch = _returnToBranchOnLastClose;
+    if (branch == null) return;
+    _returnToBranchOnLastClose = null;
+    ref.read(shellBranchRequestProvider.notifier).state = branch;
   }
 
   Future<void> _closeTab(int index) async {
@@ -510,7 +520,9 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     _pushEditorTheme(_editorBrightness ?? Theme.of(context).brightness);
     final zoom = ref.read(editorZoomProvider);
     if (zoom != 1.0) _sendToEditor('setZoom', {'scale': zoom});
-    if (Platform.isIOS) injectIosCaretInset(_webViewController);
+    if (Platform.isIOS) {
+      applyIosEditorInset(_webViewController, _iosBottomInset);
+    }
     if (_hasTabs && _activeTab.loaded) {
       _pushActiveTabToEditor();
     }
@@ -612,37 +624,21 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
   Future<void> _promptResolveConflict() async {
     final tab = _activeTab;
-    final l10n = AppLocalizations.of(context);
-    final action = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.notesConflictTitle),
-        content: Text(l10n.notesConflictBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'discard'),
-            child: Text(l10n.notesConflictDiscardMine),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: context.colors.textCrimson,
-            ),
-            onPressed: () => Navigator.pop(ctx, 'overwrite'),
-            child: Text(l10n.notesConflictOverwrite),
-          ),
-        ],
-      ),
-    );
+    final choice = await showNoteConflictDialog(context);
     if (!mounted) return;
-    if (action == 'overwrite') {
-      await _saveActiveContent(force: true);
-    } else if (action == 'discard') {
-      // Drop the dirty flag — next render of the tab will reload the
-      // committed content from the server (whichever save wins).
-      setState(() {
-        tab.isDirty = false;
-        tab.draftContent = null;
-      });
+
+    switch (choice) {
+      case NoteConflictChoice.overwrite:
+        await _saveActiveContent(force: true);
+      case NoteConflictChoice.discardMine:
+        // Drop the dirty flag — next render of the tab will reload the
+        // committed content from the server (whichever save wins).
+        setState(() {
+          tab.isDirty = false;
+          tab.draftContent = null;
+        });
+      case null:
+        break;
     }
   }
 
@@ -915,7 +911,13 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       onHistory: _openHistory,
       onExportPdf: _exportActiveAsPdf,
       onHideKeyboard: _hideKeyboard,
+      onBottomInsetChanged: _applyBottomInset,
     );
+  }
+
+  void _applyBottomInset(double inset) {
+    _iosBottomInset = inset;
+    if (_editorReady) applyIosEditorInset(_webViewController, inset);
   }
 
   /// The WebView holds native focus while typing, so the keyboard drops by

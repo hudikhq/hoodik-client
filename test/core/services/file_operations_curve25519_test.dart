@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
+import 'package:hoodik_app/core/api/chunk_urls_models.dart';
 import 'package:hoodik_app/core/crypto/crypto_service.dart';
 import 'package:hoodik_app/core/services/file_operations.dart';
 import 'package:hoodik_app/src/rust/api.dart' as rust;
@@ -13,6 +14,16 @@ class _CapturingFilesClient extends Fake implements FilesClient {
   String? dirEncryptedKey;
   String? fileEncryptedKey;
 
+  /// This suite is about key wrapping, not transport. Answering "no URLs"
+  /// keeps the note on the relaying route, which is what a local-disk
+  /// deployment does and what these assertions were written against.
+  @override
+  Future<ChunkUrlsResponse?> fetchUploadUrls({
+    required String fileId,
+    required String transferToken,
+    required Map<int, int> chunkSizes,
+  }) async => null;
+
   @override
   Future<Map<String, dynamic>> createDirectory({
     required String encryptedKey,
@@ -20,7 +31,12 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     required String encryptedName,
     String? parentDirId,
     String? cipher,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
   }) async {
     dirEncryptedKey = encryptedKey;
     return {'id': 'dir-id'};
@@ -37,7 +53,12 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     String? parentDirId,
     String? cipher,
     String? encryptedThumbnail,
-    List<String>? searchTokensHashed,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
+    List<String>? digestTokensRoot,
+    List<String>? digestTokensFile,
     String? fileModifiedAt,
     String? sha256,
     bool? editable,
@@ -63,6 +84,10 @@ class _CapturingFilesClient extends Fake implements FilesClient {
     String? md5,
     String? sha1,
     String? blake2b,
+    List<String>? searchTokensRoot,
+    List<String>? searchTokensFile,
+    List<String>? contentTokensRoot,
+    List<String>? contentTokensFile,
   }) async {}
 }
 

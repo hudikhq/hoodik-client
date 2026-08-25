@@ -5,6 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 import 'at_rest_cipher.dart';
+import 'migrations/registry.dart';
+import 'migrations/runner.dart';
 
 part 'database.g.dart';
 
@@ -104,9 +106,12 @@ class CachedFiles extends Table {
   IntColumn get fileModifiedAt => integer().nullable()();
   IntColumn get createdAt => integer().nullable()();
   IntColumn get finishedUploadAt => integer().nullable()();
-  TextColumn get cachePolicy => textEnum<CachePolicyType>().withDefault(
-    Constant(CachePolicyType.auto.name),
-  )();
+  // The literal rather than `CachePolicyType.auto.name`: a schema snapshot has
+  // to be expressible without importing app types, and the column stores the
+  // enum's name anyway, so the DDL default is the same string either way.
+  // Keep it in step with [CachePolicyType.auto].
+  TextColumn get cachePolicy =>
+      textEnum<CachePolicyType>().withDefault(const Constant('auto'))();
   DateTimeColumn get syncedAt => dateTime().nullable()();
 
   @override
@@ -160,6 +165,56 @@ class PendingUploads extends Table {
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
   DateTimeColumn get nextRetryAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// Downloads handed to the OS transfer queue and not yet finished.
+///
+/// The OS keeps running these while the app is suspended, and keeps the ones
+/// it already started even if the app is killed — but anything still waiting
+/// its turn is lost with the process. This table is what lets the next launch
+/// tell a transfer the user still wants from one that died with an old
+/// session, and re-queue only the chunks that never landed.
+///
+/// Deliberately no URLs. A direct transfer runs on presigned links that stay
+/// valid for days, and parking a pile of those on disk would leave working
+/// credentials for the file's ciphertext lying around long after the transfer
+/// they belonged to. The manifest is cheap to ask for again at resume, when
+/// the app is awake and logged in anyway.
+class PendingDownloads extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get accountId => text()();
+  TextColumn get fileId => text()();
+
+  /// How many chunks the finished file has, so resume can tell "all present"
+  /// from "stopped partway" without asking the server.
+  IntColumn get chunkCount => integer()();
+
+  /// Size of the finished file, so a resumed transfer can show a real
+  /// percentage, speed and ETA rather than a bar stuck at zero. Kept here
+  /// rather than read back off `cached_files`, which only holds what the user
+  /// has browsed to recently.
+  IntColumn get fileSize => integer().withDefault(const Constant(0))();
+
+  /// Where the chunks are being collected, so a resumed transfer writes into
+  /// the same place rather than starting a second one alongside it.
+  TextColumn get outputDir => text()();
+
+  /// Where the finished, decrypted file was headed, so a resume can land it
+  /// where the user asked rather than only filling the cache.
+  ///
+  /// Sealed at rest for the same reason [CachedFiles.decryptedName] is: a save
+  /// path names the file, and often says something about the person too.
+  /// Null for a download with no destination, which is what pinning a file for
+  /// offline use is.
+  TextColumn get outputPath =>
+      text().map(const AtRestTextConverter()).nullable()();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {accountId, fileId},
+  ];
 }
 
 /// MCP server settings, one row per account (macOS only).
@@ -263,6 +318,7 @@ class TrustedFingerprints extends Table {
     CachedFiles,
     OfflineFiles,
     PendingUploads,
+    PendingDownloads,
     McpSettings,
     McpAuditLog,
     TrustedFingerprints,
@@ -275,77 +331,31 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => currentSchemaVersion;
 
+  /// The schema this build expects, which is the last migration's version.
+  ///
+  /// Written out rather than read off the registry because `drift_dev schema
+  /// dump` resolves it from the source to name the snapshot it writes, and
+  /// cannot evaluate a computed one. A registry test holds the two together.
+  static const int currentSchemaVersion = 22;
+
+  static const _runner = MigrationRunner(migrations);
+
+  /// Which migrations have run is recorded in `schema_migrations`, one row per
+  /// migration, and that ledger — not sqlite's `user_version` — decides what
+  /// applies. A version is a single integer written only once the whole
+  /// upgrade finishes, so an upgrade that dies halfway leaves it describing a
+  /// schema that no longer exists, and the next launch replays steps onto
+  /// their own committed work. Rows survive that: a resumed upgrade runs
+  /// exactly what is missing, whatever version the database claims to be.
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (m) => m.createAll(),
-    onUpgrade: (m, from, to) async {
-      if (from < 2 && to >= 2) {
-        await m.addColumn(accounts, accounts.pinEncryptedPrivateKey);
-      }
-      if (from < 3 && to >= 3) {
-        await m.addColumn(accounts, accounts.biometricPin);
-      }
-      if (from < 4 && to >= 4) {
-        await m.addColumn(offlineFiles, offlineFiles.sizeOnDisk);
-        await m.addColumn(offlineFiles, offlineFiles.pinned);
-        await m.addColumn(offlineFiles, offlineFiles.lastAccessedAt);
-      }
-      // v5 created the subscriptions table and v11 extended it; both steps
-      // were dropped along with the table when the app went free in v18 —
-      // upgraders from < 5 simply never get the table, and the v18 step
-      // below cleans it up on every database that still has it.
-      if (from < 6 && to >= 6) {
-        await m.addColumn(accounts, accounts.cacheLimitBytes);
-      }
-      if (from < 7 && to >= 7) {
-        await m.addColumn(servers, servers.trustSelfSignedCerts);
-      }
-      if (from < 8 && to >= 8) {
-        await m.addColumn(servers, servers.useHeaderAuth);
-        await m.addColumn(accounts, accounts.headerJwt);
-        await m.addColumn(accounts, accounts.headerRefreshToken);
-      }
-      if (from < 9 && to >= 9) {
-        // v9 created the old singleton McpSettings table — v10 replaces it.
-        await m.createTable(mcpSettings);
-      }
-      if (from < 10 && to >= 10) {
-        // Recreate McpSettings with accountId as primary key (per-account).
-        await m.deleteTable('mcp_settings');
-        await m.createTable(mcpSettings);
-      }
-      if (from < 12 && to >= 12) {
-        await m.addColumn(pendingUploads, pendingUploads.retryCount);
-        await m.addColumn(pendingUploads, pendingUploads.nextRetryAt);
-      }
-      if (from < 13 && to >= 13) {
-        await m.createTable(mcpAuditLog);
-      }
-      if (from < 14 && to >= 14) {
-        await m.addColumn(mcpSettings, mcpSettings.allowReadOnlyWhileLocked);
-        await m.addColumn(mcpSettings, mcpSettings.rateLimitRps);
-        await m.addColumn(mcpSettings, mcpSettings.rateLimitBurst);
-      }
-      if (from < 15 && to >= 15) {
-        await m.addColumn(mcpSettings, mcpSettings.auditRetentionDays);
-        await m.addColumn(mcpSettings, mcpSettings.lastAuditCleanupAt);
-      }
-      if (from < 16 && to >= 16) {
-        await m.createTable(trustedFingerprints);
-      }
-      if (from < 17 && to >= 17) {
-        await m.addColumn(accounts, accounts.wrappingPublicKey);
-      }
-      if (from < 18 && to >= 18) {
-        // The app went free — the IAP/trial cache is gone for good.
-        await m.deleteTable('subscriptions');
-      }
-      if (from < 19 && to >= 19) {
-        await m.addColumn(trustedFingerprints, trustedFingerprints.email);
-      }
+    onCreate: (m) async {
+      await m.createAll();
+      await _runner.adoptFresh(m.database);
     },
+    onUpgrade: (m, from, to) => _runner.upgrade(m.database, from),
   );
 
   // ── Server operations ──────────────────────────────────────────────
@@ -461,6 +471,7 @@ class AppDatabase extends _$AppDatabase {
     await (delete(cachedFiles)..where((f) => f.accountId.equals(id))).go();
     await (delete(offlineFiles)..where((f) => f.accountId.equals(id))).go();
     await (delete(pendingUploads)..where((u) => u.accountId.equals(id))).go();
+    await (delete(pendingDownloads)..where((d) => d.accountId.equals(id))).go();
     // The TOFU store is keyed by the server user UUID, not the local account
     // id, so purge it by the account's userId. A blank userId (account never
     // finished login) owns no trust rows, so skip the delete entirely.

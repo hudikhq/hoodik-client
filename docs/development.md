@@ -89,9 +89,30 @@ flutter build ios --release --no-codesign
 # Release (signed, for App Store)
 flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 # Output: build/ios/ipa/hoodik_app.ipa
+
+# Onto a physical device, for hands-on testing
+just device-install <devicectl-device-id>   # id from `xcrun devicectl list devices`
 ```
 
 Deployment target: iOS 13.0+
+
+Use the recipe rather than `flutter build ios --release` for a device build.
+It resets CocoaPods first and switches signing to development, which are the
+two things a bare build gets wrong:
+
+- **`Module 'patrol' not found`.** `patrol` is a dev dependency that registers
+  itself in the generated plugin registrant, but its pod reaches the Runner
+  target only when CocoaPods resolves from scratch. Every device build after a
+  `flutter clean` or a project-file edit hits this, so the recipe clears
+  `ios/Pods` and `ios/Podfile.lock` up front instead of failing first.
+- **`ApplicationVerificationFailed` on install.** Every Release block pins the
+  manual "Hoodik App Store" distribution profile, which the device refuses.
+  The recipe rewrites those blocks to automatic development signing for the
+  build and restores the project file afterwards — including when the build
+  fails, so the edit is never left behind and never committed.
+
+A device that is locked refuses the install with
+`kAMDMobileImageMounterDeviceLocked`; unlock it and run the recipe again.
 
 ### Android
 

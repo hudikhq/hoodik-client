@@ -169,4 +169,28 @@ void main() {
     expect(find.text('cloud.example.com'), findsWidgets);
     expect(find.byType(CloudNudge), findsOneWidget);
   });
+
+  testWidgets('deletes a saved server from the list after confirming', (
+    WidgetTester tester,
+  ) async {
+    await db.insertServer(
+      const ServersCompanion(
+        id: Value('srv-1'),
+        url: Value('https://cloud.example.com'),
+        name: Value('cloud.example.com'),
+      ),
+    );
+
+    await pumpScreen(tester);
+
+    await tester.tap(find.byTooltip('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete Server'), findsOneWidget);
+
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('cloud.example.com'), findsNothing);
+    expect(await db.getAllServers(), isEmpty);
+  });
 }

@@ -485,11 +485,42 @@ class CryptoService {
   /// The server's `from_vec` parser requires this format — tokens without
   /// weights are silently dropped. Input is lowercased to match the web
   /// frontend's behaviour (`file.name.toLowerCase()`).
-  List<String> tokenizeAndHashForSearch(String text) {
-    final raw = rust.tokenizeAndHash(text: text.toLowerCase());
+  /// The account-wide search key, derived from the private key that is
+  /// already unlocked in memory.
+  ///
+  /// Curve accounts derive from the wrapping key and legacy RSA accounts from
+  /// their RSA key, whichever the account actually has. Never leaves the
+  /// device and is never persisted.
+  String searchRootKey(String privateKeyPem) =>
+      rust.searchRootKey(privateKeyPem: privateKeyPem);
+
+  /// A file's search key, derived from the key its contents are encrypted
+  /// with. That key reaches every recipient of a share, which is what lets a
+  /// share grant skip touching the index.
+  String searchFileKey(Uint8List fileKey) =>
+      rust.searchFileKey(fileKey: fileKey);
+
+  /// Tag one value: a file name for `name_hash`, or a single query word.
+  String searchTag(String key, String value) =>
+      rust.searchTag(keyHex: key, value: value);
+
+  /// Tokenize and tag text, in the `"{tag}:{weight}"` form the index accepts.
+  ///
+  /// Folds case here so a capitalized note is findable by a lowercased query.
+  /// cryptfns lowercases too, but the loaded tokenizer does not reliably fold
+  /// on its own, so this fold is load-bearing rather than redundant — every
+  /// client (Dart here, JS on web) folds the same way before tagging. See the
+  /// cross-client vector in `search_tagging_test.dart`.
+  List<String> searchTags(String key, String text) {
+    final raw = rust.searchTagTokens(keyHex: key, text: text.toLowerCase());
     if (raw.isEmpty) return [];
     return raw.split(';').where((s) => s.isNotEmpty).toList();
   }
+
+  /// Bare tags, as the search route receives them: the weight that ranks a
+  /// hit is the stored one, not the query's.
+  List<String> searchQueryTags(String key, String text) =>
+      searchTags(key, text).map((entry) => entry.split(':').first).toList();
 
   /// Decode a hex-encoded string to bytes (public API).
   Uint8List hexDecode(String hex) => hex_utils.hexDecode(hex);

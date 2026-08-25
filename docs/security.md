@@ -87,10 +87,10 @@ The cipher used to encrypt each file is stored in the server database (`files.ci
 - Files cached offline are stored as **encrypted chunks** -- the same ciphertext that was downloaded from the server. No re-encryption or re-keying is performed.
 - Each chunk is the raw AEAD ciphertext, decryptable only with the per-file symmetric key (which itself requires the account's private key, which is PIN/biometric-protected in memory).
 - Storage layout: `{applicationSupportDirectory}/offline_cache/{accountId}/{fileId}/000000.enc`, `000001.enc`, etc.
-- The `OfflineManager` (`lib/core/services/offline_manager.dart`) manages cache policies:
-  - **manual** -- only pinned files persist; chunks deleted after use.
-  - **autoCache** (default) -- accessed files cached with LRU eviction at a configurable size limit (default 8 GB). Pinned files are never auto-evicted.
-  - **fullSync** -- mirror everything from cloud (not yet implemented).
+- The `OfflineManager` (`lib/core/services/offline_manager.dart`) manages the cache:
+  - Default cap is **8 GB per account**. `null` in `accounts.cacheLimitBytes` uses that default; `0` means unlimited. The cap is set in Account Settings (2 GB / 8 GB / 32 GB / Unlimited).
+  - Unpinned files (preview, export, upload leftovers) are evicted by LRU when the cache is over the cap, oldest `lastAccessedAt` first. Pinned files ("Make available offline") are never auto-evicted.
+  - Nothing is deleted on app exit. Eviction runs after a download lands, on sign-in, and when the user lowers the cap.
 
 This provides:
 - **Per-user isolation** on shared devices (family tablet scenario) -- each account's cache is in a separate directory and encrypted with that account's keys.

@@ -209,6 +209,7 @@ class TransferRow extends StatelessWidget {
 
 IconData transferTypeIcon(TransferType type) {
   return switch (type) {
+    TransferType.uploadPrepare => AppIcons.schedule,
     TransferType.uploadEncrypt => AppIcons.locked,
     TransferType.uploadHttp => AppIcons.sortAscending,
     TransferType.downloadHttp => AppIcons.sortDescending,

@@ -34,6 +34,13 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
   /// Arguments supplied to each per-chunk call.
   final List<ChunkDownloadInvocation> perChunkCalls = [];
 
+  /// Arguments supplied to each direct (presigned-URL) call.
+  final List<ChunkDownloadInvocation> directCalls = [];
+
+  /// Throw this on the next [downloadDirectChunks]. Clears itself after one
+  /// throw so the manifest-refresh retry runs its normal flow.
+  Object? directError;
+
   /// Throw this when [downloadAsTar] is called. Clears itself after one
   /// throw so a fallback attempt through the per-chunk path still runs
   /// its normal flow.
@@ -42,6 +49,15 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
   /// Throw this when [downloadPerChunk] is called. Persists across calls
   /// unless the test explicitly clears it.
   Object? perChunkError;
+
+  /// Awaited at the start of every path, so a test can inspect what the
+  /// pipeline set up — the transfer-overlay entry above all — before the
+  /// download is allowed to finish and overwrite it.
+  Future<void>? hold;
+
+  /// Every leg this transport can take. Named here so a test can fail when
+  /// the interface grows one and nobody wires its progress hook.
+  List<String> get legNames => const ['tar', 'perChunk', 'direct'];
 
   @override
   Future<void> downloadAsTar({
@@ -52,7 +68,10 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
     required int chunkCount,
     required String outputDir,
     required List<int> alreadyDownloaded,
+    required String accountId,
+    void Function(int completedChunks, int transferredBytes)? onProgress,
   }) async {
+    await hold;
     tarCalls.add(
       ChunkDownloadInvocation(
         baseUrl: baseUrl,
@@ -62,6 +81,7 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
         chunkCount: chunkCount,
         outputDir: outputDir,
         alreadyDownloaded: List.unmodifiable(alreadyDownloaded),
+        onProgress: onProgress,
       ),
     );
     final err = tarError;
@@ -80,7 +100,10 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
     required int chunkCount,
     required String outputDir,
     required List<int> alreadyDownloaded,
+    required String accountId,
+    void Function(int completedChunks, int transferredBytes)? onProgress,
   }) async {
+    await hold;
     perChunkCalls.add(
       ChunkDownloadInvocation(
         baseUrl: baseUrl,
@@ -90,10 +113,43 @@ class FakeChunkDownloadTransport implements ChunkDownloadTransport {
         chunkCount: chunkCount,
         outputDir: outputDir,
         alreadyDownloaded: List.unmodifiable(alreadyDownloaded),
+        onProgress: onProgress,
       ),
     );
     final err = perChunkError;
     if (err != null) throw err;
+  }
+
+  @override
+  Future<void> downloadDirectChunks({
+    required String fileId,
+    required List<String> urls,
+    required int fileSize,
+    required String outputDir,
+    required List<int> alreadyDownloaded,
+    required String accountId,
+    void Function(int completedChunks, int transferredBytes)? onProgress,
+  }) async {
+    await hold;
+    directCalls.add(
+      ChunkDownloadInvocation(
+        baseUrl: '',
+        cookie: '',
+        fileId: fileId,
+        fileSize: fileSize,
+        chunkCount: urls.length,
+        outputDir: outputDir,
+        alreadyDownloaded: List.unmodifiable(alreadyDownloaded),
+        directUrls: List.unmodifiable(urls),
+        onProgress: onProgress,
+      ),
+    );
+    final err = directError;
+    if (err != null) {
+      directError = null;
+      throw err;
+    }
+    onProgress?.call(urls.length, fileSize);
   }
 }
 
@@ -107,6 +163,15 @@ class ChunkDownloadInvocation {
   final String outputDir;
   final List<int> alreadyDownloaded;
 
+  /// Presigned bucket URLs handed to this call, empty when the transfer went
+  /// through the server. Lets a test assert which path was taken.
+  final List<String> directUrls;
+
+  /// The progress hook this leg was handed, or null if it was dropped on the
+  /// way. Every leg has to carry it: the bar is drawn from whichever one runs,
+  /// and a leg that loses it renders a transfer frozen at zero.
+  final void Function(int completedChunks, int transferredBytes)? onProgress;
+
   ChunkDownloadInvocation({
     required this.baseUrl,
     required this.cookie,
@@ -115,6 +180,8 @@ class ChunkDownloadInvocation {
     required this.chunkCount,
     required this.outputDir,
     required this.alreadyDownloaded,
+    this.directUrls = const [],
+    this.onProgress,
   });
 }
 

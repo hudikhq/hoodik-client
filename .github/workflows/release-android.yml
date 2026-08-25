@@ -62,9 +62,9 @@ jobs:
             - uses: actions/checkout@v4
 
             - name: Clone hoodik (for shared Rust crates)
-              run: |
-                  git clone --depth 1 https://github.com/hudikhq/hoodik.git ../hoodik
-                  echo "HOODIK_SHA=$(git -C ../hoodik rev-parse HEAD)" >> "$GITHUB_ENV"
+              uses: ./.github/actions/clone-hoodik
+              with:
+                  pinned: ${{ vars.HOODIK_BRANCH }}
 
             - uses: dtolnay/rust-toolchain@stable
               with:

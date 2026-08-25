@@ -28,13 +28,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
   @protected
-  (BigInt, BigInt) dco_decode_box_autoadd_record_u_64_u_64(dynamic raw);
+  TransferProgress dco_decode_box_autoadd_transfer_progress(dynamic raw);
 
   @protected
   Ed25519KeyPair dco_decode_ed_25519_key_pair(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw);
 
   @protected
   List<int> dco_decode_list_prim_u_32_loose(dynamic raw);
@@ -64,16 +67,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
 
   @protected
-  (BigInt, BigInt)? dco_decode_opt_box_autoadd_record_u_64_u_64(dynamic raw);
-
-  @protected
-  (BigInt, BigInt) dco_decode_record_u_64_u_64(dynamic raw);
+  TransferProgress? dco_decode_opt_box_autoadd_transfer_progress(dynamic raw);
 
   @protected
   RsaKeyPair dco_decode_rsa_key_pair(dynamic raw);
 
   @protected
   RsaPublicInfo dco_decode_rsa_public_info(dynamic raw);
+
+  @protected
+  TransferProgress dco_decode_transfer_progress(dynamic raw);
 
   @protected
   TransitionSignatures dco_decode_transition_signatures(dynamic raw);
@@ -106,7 +109,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
-  (BigInt, BigInt) sse_decode_box_autoadd_record_u_64_u_64(
+  TransferProgress sse_decode_box_autoadd_transfer_progress(
     SseDeserializer deserializer,
   );
 
@@ -115,6 +118,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
   List<int> sse_decode_list_prim_u_32_loose(SseDeserializer deserializer);
@@ -150,18 +156,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
-  (BigInt, BigInt)? sse_decode_opt_box_autoadd_record_u_64_u_64(
+  TransferProgress? sse_decode_opt_box_autoadd_transfer_progress(
     SseDeserializer deserializer,
   );
-
-  @protected
-  (BigInt, BigInt) sse_decode_record_u_64_u_64(SseDeserializer deserializer);
 
   @protected
   RsaKeyPair sse_decode_rsa_key_pair(SseDeserializer deserializer);
 
   @protected
   RsaPublicInfo sse_decode_rsa_public_info(SseDeserializer deserializer);
+
+  @protected
+  TransferProgress sse_decode_transfer_progress(SseDeserializer deserializer);
 
   @protected
   TransitionSignatures sse_decode_transition_signatures(
@@ -204,11 +210,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_record_u_64_u_64>
-  cst_encode_box_autoadd_record_u_64_u_64((BigInt, BigInt) raw) {
+  ffi.Pointer<wire_cst_transfer_progress>
+  cst_encode_box_autoadd_transfer_progress(TransferProgress raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    final ptr = wire.cst_new_box_autoadd_record_u_64_u_64();
-    cst_api_fill_to_wire_record_u_64_u_64(raw, ptr.ref);
+    final ptr = wire.cst_new_box_autoadd_transfer_progress();
+    cst_api_fill_to_wire_transfer_progress(raw, ptr.ref);
     return ptr;
   }
 
@@ -216,6 +222,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int cst_encode_i_64(PlatformInt64 raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.toInt();
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_String> cst_encode_list_String(List<String> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_String(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      ans.ref.ptr[i] = cst_encode_String(raw[i]);
+    }
+    return ans;
   }
 
   @protected
@@ -275,12 +291,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_record_u_64_u_64>
-  cst_encode_opt_box_autoadd_record_u_64_u_64((BigInt, BigInt)? raw) {
+  ffi.Pointer<wire_cst_transfer_progress>
+  cst_encode_opt_box_autoadd_transfer_progress(TransferProgress? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null
         ? ffi.nullptr
-        : cst_encode_box_autoadd_record_u_64_u_64(raw);
+        : cst_encode_box_autoadd_transfer_progress(raw);
   }
 
   @protected
@@ -290,11 +306,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_box_autoadd_record_u_64_u_64(
-    (BigInt, BigInt) apiObj,
-    ffi.Pointer<wire_cst_record_u_64_u_64> wireObj,
+  void cst_api_fill_to_wire_box_autoadd_transfer_progress(
+    TransferProgress apiObj,
+    ffi.Pointer<wire_cst_transfer_progress> wireObj,
   ) {
-    cst_api_fill_to_wire_record_u_64_u_64(apiObj, wireObj.ref);
+    cst_api_fill_to_wire_transfer_progress(apiObj, wireObj.ref);
   }
 
   @protected
@@ -335,15 +351,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_record_u_64_u_64(
-    (BigInt, BigInt) apiObj,
-    wire_cst_record_u_64_u_64 wireObj,
-  ) {
-    wireObj.field0 = cst_encode_u_64(apiObj.$1);
-    wireObj.field1 = cst_encode_u_64(apiObj.$2);
-  }
-
-  @protected
   void cst_api_fill_to_wire_rsa_key_pair(
     RsaKeyPair apiObj,
     wire_cst_rsa_key_pair wireObj,
@@ -360,6 +367,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ) {
     wireObj.public_key_pem = cst_encode_String(apiObj.publicKeyPem);
     wireObj.fingerprint = cst_encode_String(apiObj.fingerprint);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_transfer_progress(
+    TransferProgress apiObj,
+    wire_cst_transfer_progress wireObj,
+  ) {
+    wireObj.transferred = cst_encode_u_64(apiObj.transferred);
+    wireObj.total = cst_encode_u_64(apiObj.total);
   }
 
   @protected
@@ -416,8 +432,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_box_autoadd_record_u_64_u_64(
-    (BigInt, BigInt) self,
+  void sse_encode_box_autoadd_transfer_progress(
+    TransferProgress self,
     SseSerializer serializer,
   );
 
@@ -429,6 +445,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_32_loose(
@@ -482,14 +501,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_record_u_64_u_64(
-    (BigInt, BigInt)? self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_record_u_64_u_64(
-    (BigInt, BigInt) self,
+  void sse_encode_opt_box_autoadd_transfer_progress(
+    TransferProgress? self,
     SseSerializer serializer,
   );
 
@@ -498,6 +511,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_rsa_public_info(RsaPublicInfo self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_transfer_progress(
+    TransferProgress self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_transition_signatures(
@@ -1041,6 +1060,7 @@ class RustLibWire implements BaseWire {
     int chunk_count,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> output_dir,
     ffi.Pointer<wire_cst_list_prim_u_64_strict> already_downloaded,
+    ffi.Pointer<wire_cst_list_String> direct_urls,
   ) {
     return _wire__crate__api__download_encrypted_chunks(
       port_,
@@ -1051,6 +1071,7 @@ class RustLibWire implements BaseWire {
       chunk_count,
       output_dir,
       already_downloaded,
+      direct_urls,
     );
   }
 
@@ -1066,6 +1087,7 @@ class RustLibWire implements BaseWire {
             ffi.Uint64,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_64_strict>,
+            ffi.Pointer<wire_cst_list_String>,
           )
         >
       >('frbgen_hoodik_app_wire__crate__api__download_encrypted_chunks');
@@ -1081,6 +1103,7 @@ class RustLibWire implements BaseWire {
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_64_strict>,
+              ffi.Pointer<wire_cst_list_String>,
             )
           >();
 
@@ -1093,6 +1116,7 @@ class RustLibWire implements BaseWire {
     int chunk_count,
     ffi.Pointer<wire_cst_list_prim_u_8_loose> decryption_key,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> cipher,
+    ffi.Pointer<wire_cst_list_String> direct_urls,
   ) {
     return _wire__crate__api__download_file(
       port_,
@@ -1103,6 +1127,7 @@ class RustLibWire implements BaseWire {
       chunk_count,
       decryption_key,
       cipher,
+      direct_urls,
     );
   }
 
@@ -1118,6 +1143,7 @@ class RustLibWire implements BaseWire {
             ffi.Uint64,
             ffi.Pointer<wire_cst_list_prim_u_8_loose>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_String>,
           )
         >
       >('frbgen_hoodik_app_wire__crate__api__download_file');
@@ -1133,6 +1159,7 @@ class RustLibWire implements BaseWire {
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_loose>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_String>,
             )
           >();
 
@@ -1198,6 +1225,7 @@ class RustLibWire implements BaseWire {
     ffi.Pointer<wire_cst_list_prim_u_8_loose> decryption_key,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> cipher,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> output_path,
+    ffi.Pointer<wire_cst_list_String> direct_urls,
   ) {
     return _wire__crate__api__download_file_to_path(
       port_,
@@ -1209,6 +1237,7 @@ class RustLibWire implements BaseWire {
       decryption_key,
       cipher,
       output_path,
+      direct_urls,
     );
   }
 
@@ -1225,6 +1254,7 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_loose>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_String>,
           )
         >
       >('frbgen_hoodik_app_wire__crate__api__download_file_to_path');
@@ -1241,6 +1271,7 @@ class RustLibWire implements BaseWire {
               ffi.Pointer<wire_cst_list_prim_u_8_loose>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_String>,
             )
           >();
 
@@ -2037,6 +2068,99 @@ class RustLibWire implements BaseWire {
             )
           >();
 
+  WireSyncRust2DartDco wire__crate__api__search_file_key(
+    ffi.Pointer<wire_cst_list_prim_u_8_loose> file_key,
+  ) {
+    return _wire__crate__api__search_file_key(file_key);
+  }
+
+  late final _wire__crate__api__search_file_keyPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+          )
+        >
+      >('frbgen_hoodik_app_wire__crate__api__search_file_key');
+  late final _wire__crate__api__search_file_key =
+      _wire__crate__api__search_file_keyPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__search_root_key(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> private_key_pem,
+  ) {
+    return _wire__crate__api__search_root_key(private_key_pem);
+  }
+
+  late final _wire__crate__api__search_root_keyPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_hoodik_app_wire__crate__api__search_root_key');
+  late final _wire__crate__api__search_root_key =
+      _wire__crate__api__search_root_keyPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
+  WireSyncRust2DartDco wire__crate__api__search_tag(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> key_hex,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> value,
+  ) {
+    return _wire__crate__api__search_tag(key_hex, value);
+  }
+
+  late final _wire__crate__api__search_tagPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_hoodik_app_wire__crate__api__search_tag');
+  late final _wire__crate__api__search_tag = _wire__crate__api__search_tagPtr
+      .asFunction<
+        WireSyncRust2DartDco Function(
+          ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+        )
+      >();
+
+  WireSyncRust2DartDco wire__crate__api__search_tag_tokens(
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> key_hex,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> text,
+  ) {
+    return _wire__crate__api__search_tag_tokens(key_hex, text);
+  }
+
+  late final _wire__crate__api__search_tag_tokensPtr =
+      _lookup<
+        ffi.NativeFunction<
+          WireSyncRust2DartDco Function(
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_hoodik_app_wire__crate__api__search_tag_tokens');
+  late final _wire__crate__api__search_tag_tokens =
+      _wire__crate__api__search_tag_tokensPtr
+          .asFunction<
+            WireSyncRust2DartDco Function(
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            )
+          >();
+
   WireSyncRust2DartDco wire__crate__api__sha256_digest(
     ffi.Pointer<wire_cst_list_prim_u_8_loose> data,
   ) {
@@ -2167,28 +2291,6 @@ class RustLibWire implements BaseWire {
       >('frbgen_hoodik_app_wire__crate__api__spki_fingerprint');
   late final _wire__crate__api__spki_fingerprint =
       _wire__crate__api__spki_fingerprintPtr
-          .asFunction<
-            WireSyncRust2DartDco Function(
-              ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-            )
-          >();
-
-  WireSyncRust2DartDco wire__crate__api__tokenize_and_hash(
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> text,
-  ) {
-    return _wire__crate__api__tokenize_and_hash(text);
-  }
-
-  late final _wire__crate__api__tokenize_and_hashPtr =
-      _lookup<
-        ffi.NativeFunction<
-          WireSyncRust2DartDco Function(
-            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
-          )
-        >
-      >('frbgen_hoodik_app_wire__crate__api__tokenize_and_hash');
-  late final _wire__crate__api__tokenize_and_hash =
-      _wire__crate__api__tokenize_and_hashPtr
           .asFunction<
             WireSyncRust2DartDco Function(
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
@@ -2496,18 +2598,31 @@ class RustLibWire implements BaseWire {
   late final _cst_new_box_autoadd_i_64 = _cst_new_box_autoadd_i_64Ptr
       .asFunction<ffi.Pointer<ffi.Int64> Function(int)>();
 
-  ffi.Pointer<wire_cst_record_u_64_u_64>
-  cst_new_box_autoadd_record_u_64_u_64() {
-    return _cst_new_box_autoadd_record_u_64_u_64();
+  ffi.Pointer<wire_cst_transfer_progress>
+  cst_new_box_autoadd_transfer_progress() {
+    return _cst_new_box_autoadd_transfer_progress();
   }
 
-  late final _cst_new_box_autoadd_record_u_64_u_64Ptr =
+  late final _cst_new_box_autoadd_transfer_progressPtr =
       _lookup<
-        ffi.NativeFunction<ffi.Pointer<wire_cst_record_u_64_u_64> Function()>
-      >('frbgen_hoodik_app_cst_new_box_autoadd_record_u_64_u_64');
-  late final _cst_new_box_autoadd_record_u_64_u_64 =
-      _cst_new_box_autoadd_record_u_64_u_64Ptr
-          .asFunction<ffi.Pointer<wire_cst_record_u_64_u_64> Function()>();
+        ffi.NativeFunction<ffi.Pointer<wire_cst_transfer_progress> Function()>
+      >('frbgen_hoodik_app_cst_new_box_autoadd_transfer_progress');
+  late final _cst_new_box_autoadd_transfer_progress =
+      _cst_new_box_autoadd_transfer_progressPtr
+          .asFunction<ffi.Pointer<wire_cst_transfer_progress> Function()>();
+
+  ffi.Pointer<wire_cst_list_String> cst_new_list_String(int len) {
+    return _cst_new_list_String(len);
+  }
+
+  late final _cst_new_list_StringPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<wire_cst_list_String> Function(ffi.Int32)
+        >
+      >('frbgen_hoodik_app_cst_new_list_String');
+  late final _cst_new_list_String = _cst_new_list_StringPtr
+      .asFunction<ffi.Pointer<wire_cst_list_String> Function(int)>();
 
   ffi.Pointer<wire_cst_list_prim_u_32_loose> cst_new_list_prim_u_32_loose(
     int len,
@@ -2626,6 +2741,13 @@ final class wire_cst_list_prim_u_64_strict extends ffi.Struct {
   external int len;
 }
 
+final class wire_cst_list_String extends ffi.Struct {
+  external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
 final class wire_cst_list_prim_u_32_loose extends ffi.Struct {
   external ffi.Pointer<ffi.Uint32> ptr;
 
@@ -2633,12 +2755,12 @@ final class wire_cst_list_prim_u_32_loose extends ffi.Struct {
   external int len;
 }
 
-final class wire_cst_record_u_64_u_64 extends ffi.Struct {
+final class wire_cst_transfer_progress extends ffi.Struct {
   @ffi.Uint64()
-  external int field0;
+  external int transferred;
 
   @ffi.Uint64()
-  external int field1;
+  external int total;
 }
 
 final class wire_cst_list_prim_u_32_strict extends ffi.Struct {
