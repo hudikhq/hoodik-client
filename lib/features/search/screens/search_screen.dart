@@ -346,7 +346,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   /// Open the folder the file lives in. A file at the account root has no
   /// parent id, which is the root listing itself.
-  void _openContainingFolder(FileItem file) {
+  ///
+  /// `/files/:dirId` takes the decrypted folder name as `extra`. The files
+  /// listing already has it (the row you tapped). Search does not, so fetch
+  /// the parent once. Missing extra is the generic "Files" title.
+  Future<void> _openContainingFolder(FileItem file) async {
     final parent = file.fileId;
     if (parent == null || parent.isEmpty) {
       // The account root is the Files branch's own route; there is no
@@ -355,7 +359,34 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return;
     }
 
-    context.push('/files/$parent');
+    final name = await _folderName(parent);
+    if (!mounted) return;
+    await context.push('/files/$parent', extra: name);
+  }
+
+  Future<String?> _folderName(String dirId) async {
+    final client = ref.read(apiClientProvider);
+    final fileCrypto = ref.read(fileCryptoProvider);
+    if (client == null || fileCrypto == null) return null;
+    try {
+      final folder = FileItem.fromJson(
+        await client.files.getFileMetadata(dirId),
+      );
+      if (folder.encryptedKey == null || folder.encryptedName.isEmpty) {
+        return null;
+      }
+      return fileCrypto.decryptFileName(
+        encryptedNameHex: folder.encryptedName,
+        fileKey: fileCrypto.decryptFileKey(folder.encryptedKey!),
+        cipher: folder.cipher,
+      );
+    } catch (e) {
+      _log.warn(
+        'failed to decrypt containing folder name',
+        fields: {'dir_id': dirId, 'error': redactException(e)},
+      );
+      return null;
+    }
   }
 
   Future<void> _export(FileItem file) async {
