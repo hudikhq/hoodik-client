@@ -272,7 +272,8 @@ class FileUploader {
       await run;
     } finally {
       if (identical(_noteSaves[fileId], run)) {
-        _noteSaves.remove(fileId);
+        // Map.remove returns the stored Future; we already awaited `run`.
+        _noteSaves.remove(fileId)?.ignore();
       }
     }
   }
