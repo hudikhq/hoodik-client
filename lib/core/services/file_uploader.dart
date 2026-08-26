@@ -64,6 +64,10 @@ class FileUploader {
   /// reaches whichever loop is currently running.
   final Set<String> _cancelledFileIds = {};
 
+  /// One in-flight note save per file. Autosave + editor save used to
+  /// PUT /content twice; the second 409'd and iOS AOT SIGSEGV'd in encrypt.
+  final Map<String, Future<void>> _noteSaves = {};
+
   FileUploader({
     required ApiClient client,
     required FileCrypto fileCrypto,
@@ -252,6 +256,29 @@ class FileUploader {
   /// already in flight — the prior pending dir gets reaped on the
   /// server side.
   Future<void> updateNoteContent(
+    String fileId,
+    String content, {
+    String? name,
+    bool force = false,
+  }) async {
+    final existing = _noteSaves[fileId];
+    if (existing != null) {
+      await existing;
+      return;
+    }
+    final run = _updateNoteContent(fileId, content, name: name, force: force);
+    _noteSaves[fileId] = run;
+    try {
+      await run;
+    } finally {
+      if (identical(_noteSaves[fileId], run)) {
+        // Map.remove returns the stored Future; we already awaited `run`.
+        _noteSaves.remove(fileId)?.ignore();
+      }
+    }
+  }
+
+  Future<void> _updateNoteContent(
     String fileId,
     String content, {
     String? name,

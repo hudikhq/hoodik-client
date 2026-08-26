@@ -576,12 +576,12 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   Future<void> _saveActiveContent({bool force = false}) async {
     if (!_hasTabs) return;
     final tab = _activeTab;
-    if (tab.isSaving || !_editorReady) return;
+    if (!_editorReady || (tab.isSaving && !force)) return;
 
     final ops = ref.read(fileOperationsProvider);
     if (ops == null) return;
 
-    setState(() => tab.isSaving = true);
+    if (!force) setState(() => tab.isSaving = true);
 
     try {
       // When called from the conflict prompt with `force = true`, the
@@ -609,16 +609,16 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       });
     } on SaveConflictException {
       if (!mounted) return;
-      setState(() => tab.isSaving = false);
       await _promptResolveConflict();
     } catch (e) {
       if (!mounted) return;
-      setState(() => tab.isSaving = false);
       AppNotification.show(
         context,
         message: AppLocalizations.of(context).notesSaveFailed('$e'),
         type: NotificationType.error,
       );
+    } finally {
+      if (mounted && !force) setState(() => tab.isSaving = false);
     }
   }
 
