@@ -10,6 +10,7 @@ import 'frb_generated.dart';
 import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import '../../core/crypto/frb_safe_decode.dart';
 
 /// Main entrypoint of the Rust API
 class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
@@ -2821,7 +2822,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as Uint8List;
+    // Null-safe: a missing Vec<u8> used to become a Dart AOT field
+    // deref at 0xf (SIGSEGV) on iOS instead of a catchable error.
+    return safeDecodeUint8List(raw, what: 'Uint8List');
   }
 
   @protected
@@ -2870,7 +2873,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   TransferProgress? dco_decode_opt_box_autoadd_transfer_progress(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_transfer_progress(raw);
+    if (raw == null) return null;
+    final pair = safeDecodeU64Pair(raw);
+    if (pair == null) return null;
+    return TransferProgress(transferred: pair.transferred, total: pair.total);
   }
 
   @protected
@@ -2901,13 +2907,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   TransferProgress dco_decode_transfer_progress(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
-    return TransferProgress(
-      transferred: dco_decode_u_64(arr[0]),
-      total: dco_decode_u_64(arr[1]),
-    );
+    final pair = safeDecodeU64Pair(raw);
+    if (pair == null) {
+      throw StateError('null or malformed TransferProgress from rust FFI');
+    }
+    return TransferProgress(transferred: pair.transferred, total: pair.total);
   }
 
   @protected

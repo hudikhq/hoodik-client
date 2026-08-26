@@ -576,12 +576,19 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   Future<void> _saveActiveContent({bool force = false}) async {
     if (!_hasTabs) return;
     final tab = _activeTab;
-    if (tab.isSaving || !_editorReady) return;
+    if (!_editorReady) return;
+    // Overwrite must run while the conflict dialog still holds
+    // [isSaving] — otherwise autosave / saveRequested PUT again and
+    // the first encrypt FFI races the second replaceContent.
+    if (tab.isSaving && !force) return;
 
     final ops = ref.read(fileOperationsProvider);
     if (ops == null) return;
 
-    setState(() => tab.isSaving = true);
+    _autoSaveTimer?.cancel();
+    if (!force) {
+      setState(() => tab.isSaving = true);
+    }
 
     try {
       // When called from the conflict prompt with `force = true`, the
@@ -590,6 +597,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       final markdown = force && tab.draftContent != null
           ? tab.draftContent!
           : await _getMarkdown();
+      tab.draftContent = markdown;
       await ops.updateNoteContent(tab.fileId, markdown, force: force);
 
       ref.read(previewCacheProvider).remove(tab.fileId);
@@ -609,16 +617,20 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       });
     } on SaveConflictException {
       if (!mounted) return;
-      setState(() => tab.isSaving = false);
       await _promptResolveConflict();
     } catch (e) {
       if (!mounted) return;
-      setState(() => tab.isSaving = false);
       AppNotification.show(
         context,
         message: AppLocalizations.of(context).notesSaveFailed('$e'),
         type: NotificationType.error,
       );
+    } finally {
+      // Nested overwrite (force: true) must not clear the flag before
+      // the outer call finishes; the outer finally owns the lock.
+      if (mounted && !force) {
+        setState(() => tab.isSaving = false);
+      }
     }
   }
 
