@@ -29,17 +29,6 @@ class SaveConflictException implements Exception {
   String toString() => 'SaveConflictException(fileId: $fileId)';
 }
 
-class _PendingNoteSave {
-  const _PendingNoteSave({
-    required this.content,
-    this.name,
-    required this.force,
-  });
-  final String content;
-  final String? name;
-  final bool force;
-}
-
 /// Upload pipeline: binary files and editable markdown notes.
 ///
 /// Binary uploads run through [BinaryUploadPipeline] (worker-offloaded
@@ -75,12 +64,9 @@ class FileUploader {
   /// reaches whichever loop is currently running.
   final Set<String> _cancelledFileIds = {};
 
-  /// In-flight note saves, keyed by file id. Autosave, the editor bridge
-  /// and the AppBar save all land here; without this, a second PUT lands
-  /// while the first is still encrypting, the server 409s, and iOS AOT
-  /// then SIGSEGVs in the encrypt FFI.
+  /// One in-flight note save per file. Autosave + editor save used to
+  /// PUT /content twice; the second 409'd and iOS AOT SIGSEGV'd in encrypt.
   final Map<String, Future<void>> _noteSaves = {};
-  final Map<String, _PendingNoteSave> _pendingNoteSaves = {};
 
   FileUploader({
     required ApiClient client,
@@ -275,59 +261,31 @@ class FileUploader {
     String? name,
     bool force = false,
   }) async {
-    _pendingNoteSaves[fileId] = _PendingNoteSave(
-      content: content,
-      name: name,
-      force: force,
-    );
-    // A waiter that arrives after drain's while-loop exits but before
-    // `_noteSaves` is cleared would otherwise return and leave the
-    // latest body unwritten. Loop until this fileId has no pending.
-    while (true) {
-      final existing = _noteSaves[fileId];
-      if (existing != null) {
-        await existing;
-        if (!_pendingNoteSaves.containsKey(fileId)) return;
-        continue;
-      }
-      final run = _drainNoteSaves(fileId);
-      _noteSaves[fileId] = run;
-      try {
-        await run;
-      } finally {
-        if (identical(_noteSaves[fileId], run)) {
-          _noteSaves.remove(fileId);
-        }
-      }
-      if (!_pendingNoteSaves.containsKey(fileId)) return;
+    final existing = _noteSaves[fileId];
+    if (existing != null) {
+      await existing;
+      return;
     }
-  }
-
-  Future<void> _drainNoteSaves(String fileId) async {
+    final run = _updateNoteContent(fileId, content, name: name, force: force);
+    _noteSaves[fileId] = run;
     try {
-      while (_pendingNoteSaves.containsKey(fileId)) {
-        final req = _pendingNoteSaves.remove(fileId)!;
-        await _performNoteSave(fileId, req);
+      await run;
+    } finally {
+      if (identical(_noteSaves[fileId], run)) {
+        _noteSaves.remove(fileId);
       }
-    } catch (_) {
-      _pendingNoteSaves.remove(fileId);
-      rethrow;
     }
   }
 
-  Future<void> _performNoteSave(
+  Future<void> _updateNoteContent(
     String fileId,
-    _PendingNoteSave startedWith,
-  ) async {
+    String content, {
+    String? name,
+    bool force = false,
+  }) async {
     await _client.ensureFreshSession();
 
     final metadata = await _client.files.getFileMetadata(fileId);
-    // Duplicate triggers that arrived during the metadata round-trip
-    // overwrite [startedWith] so a single PUT carries the latest body.
-    final req = _pendingNoteSaves.remove(fileId) ?? startedWith;
-    final content = req.content;
-    final name = req.name;
-    final force = req.force;
     final file = FileItem.fromJson(metadata);
 
     if (file.encryptedKey == null) {
