@@ -41,9 +41,10 @@ class FakeMcpGateway implements McpGateway {
     final children = files.values.where((f) {
       // editable:true is a server-side flat list of notes and ignores dir_id.
       if (editable == true) return f.editable;
-      if (editable == false)
+      if (editable == false) {
         return !f.editable &&
             (dirId == null ? f.fileId == null : f.fileId == dirId);
+      }
       final parentMatches = dirId == null
           ? f.fileId == null
           : f.fileId == dirId;
