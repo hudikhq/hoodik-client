@@ -338,53 +338,59 @@ class _DetailSheet extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              Text(
-                entry.toolName,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _DetailRow(
-                label: l10n.accountAuditTimestamp,
-                value: formatAbsoluteDate(entry.timestamp, includeTime: true),
-              ),
-              _DetailRow(
-                label: l10n.accountAuditStatus,
-                value: entry.resultStatus,
-              ),
-              _DetailRow(
-                label: l10n.accountAuditDuration,
-                value: l10n.accountAuditMilliseconds(entry.durationMs),
-              ),
-              _DetailRow(
-                label: l10n.accountAuditSession,
-                value: entry.sessionId.isEmpty ? '—' : entry.sessionId,
-              ),
-              _DetailRow(
-                label: l10n.accountAuditParamsHash,
-                value: entry.paramsHash.isEmpty
-                    ? l10n.accountAuditNoParams
-                    : entry.paramsHash,
-              ),
-              _DetailRow(
-                label: l10n.accountTitle,
-                value: entry.accountId ?? '—',
-              ),
-              if (entry.errorMessage != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  l10n.accountAuditError,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                SelectableText(
-                  entry.errorMessage!,
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-                ),
-              ],
+                  Text(
+                    entry.toolName,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _DetailRow(
+                    label: l10n.accountAuditTimestamp,
+                    value: formatAbsoluteDate(
+                      entry.timestamp,
+                      includeTime: true,
+                    ),
+                  ),
+                  _DetailRow(
+                    label: l10n.accountAuditStatus,
+                    value: entry.resultStatus,
+                  ),
+                  _DetailRow(
+                    label: l10n.accountAuditDuration,
+                    value: l10n.accountAuditMilliseconds(entry.durationMs),
+                  ),
+                  _DetailRow(
+                    label: l10n.accountAuditSession,
+                    value: entry.sessionId.isEmpty ? '—' : entry.sessionId,
+                  ),
+                  _DetailRow(
+                    label: l10n.accountAuditParamsHash,
+                    value: entry.paramsHash.isEmpty
+                        ? l10n.accountAuditNoParams
+                        : entry.paramsHash,
+                  ),
+                  _DetailRow(
+                    label: l10n.accountTitle,
+                    value: entry.accountId ?? '—',
+                  ),
+                  if (entry.errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.accountAuditError,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    SelectableText(
+                      entry.errorMessage!,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

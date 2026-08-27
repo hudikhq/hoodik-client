@@ -201,9 +201,7 @@ Future<List<String>> _decryptNames(_NameJob job) async {
     privateKeyPem: job.privateKeyPem,
     wrappingPrivateKeyPem: job.wrappingPrivateKeyPem,
   );
-  return [
-    for (final row in job.rows) _decryptOne(crypto, row),
-  ];
+  return [for (final row in job.rows) _decryptOne(crypto, row)];
 }
 
 String _decryptOne(FileCrypto crypto, _NameRow row) {

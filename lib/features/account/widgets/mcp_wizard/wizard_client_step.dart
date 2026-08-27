@@ -70,10 +70,7 @@ class WizardClientStep extends StatelessWidget {
       accountEmail: accountEmail,
       serverUrl: serverUrl,
     );
-    final serverKey = mcpServerKey(
-      email: accountEmail,
-      serverUrl: serverUrl,
-    );
+    final serverKey = mcpServerKey(email: accountEmail, serverUrl: serverUrl);
     final resolvedPath = resolveConfigPath(
       kind: selected,
       homeDir: platform.homeDir,

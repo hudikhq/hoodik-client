@@ -922,7 +922,6 @@ final mcpAuditToolNamesProvider = FutureProvider<List<String>>((ref) {
   return db.getDistinctMcpAuditToolNames();
 });
 
-
 Future<void> _startMcpIfEnabled(
   Ref ref,
   McpServer server,

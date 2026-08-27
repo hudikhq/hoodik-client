@@ -160,7 +160,9 @@ void main() {
       expect(find.textContaining('Bearer TEST-BEARER'), findsOneWidget);
     });
 
-    testWidgets('snippet key is email+host when account is set', (tester) async {
+    testWidgets('snippet key is email+host when account is set', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _wrap(
           WizardClientStep(
