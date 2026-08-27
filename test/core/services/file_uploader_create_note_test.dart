@@ -7,8 +7,11 @@ import 'package:hoodik_app/core/crypto/file_crypto.dart';
 import 'package:hoodik_app/core/services/file_uploader.dart';
 import 'package:hoodik_app/core/services/shared_folder_target.dart';
 import 'package:hoodik_app/core/services/shared_folder_upload.dart';
+import 'package:hoodik_app/core/workers/worker_manager.dart';
 import 'package:hoodik_app/src/rust/api.dart' as rust;
 import 'package:hoodik_app/src/rust/frb_generated.dart';
+
+import '../../helpers/test_workers.dart';
 
 class _FakeResolver extends Fake implements SharedFolderTargetResolver {
   _FakeResolver(this.shared);
@@ -196,7 +199,13 @@ class _FakeApiClient extends Fake implements ApiClient {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(() async => await RustLib.init());
+
+  late WorkerManager workers;
+  setUpAll(() async {
+    await RustLib.init();
+    workers = await startTestWorkers();
+  });
+  tearDownAll(() => workers.dispose());
 
   late FileCrypto fileCrypto;
   late String publicKeyPem;
@@ -217,6 +226,7 @@ void main() {
     fileCrypto: fileCrypto,
     publicKeyPem: publicKeyPem,
     defaultCipher: defaultCipher,
+    workerManager: workers,
     sharedTarget: _FakeResolver(shared),
     sharedUpload: upload,
   );
@@ -261,6 +271,15 @@ void main() {
     expect(files.createdCipher, 'aegis128l');
     expect(id, 'owner-note-id');
     expect(files.chunkFileIds.every((f) => f == 'owner-note-id'), isTrue);
+    // A note is searchable from birth: name tokens and body tokens land in
+    // both scopes on the create call itself.
+    expect(files.createdTokensRoot, fileCrypto.tokenizeForSearch('note.md'));
+    expect(files.createdTokensFile, isNotEmpty);
+    expect(
+      files.createdContentTokensRoot,
+      fileCrypto.tokenizeForSearch('# Hi\n'),
+    );
+    expect(files.createdContentTokensFile, isNotEmpty);
   });
 
   test('a note is encrypted with the injected default cipher', () async {

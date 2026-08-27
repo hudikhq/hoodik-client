@@ -1,13 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
 import '../api/api_client.dart';
 import '../crypto/file_crypto.dart';
-import '../crypto/off_ui_crypto.dart';
 import '../utils/l10n_lookup.dart';
 import '../workers/worker_manager.dart';
+import '../workers/worker_messages.dart';
 import 'background_upload_service.dart';
 import 'binary_upload_pipeline.dart';
 import 'direct_chunk_upload.dart';
@@ -19,9 +21,10 @@ import 'transfer_manager.dart';
 
 export 'binary_upload_pipeline.dart' show kUploadChunkSize;
 
-/// Thrown by [FileUploader.updateNoteContent] when the server returns
-/// 409 — another save is in flight. The caller (UI) decides whether to
-/// re-issue with `force = true` to abandon the previous edit and take over.
+/// Thrown by [FileUploader.updateNoteContent] when the server keeps
+/// returning 409 even after the automatic `force = true` retry — another
+/// client is actively writing right now. The caller (UI) decides whether
+/// to re-issue with `force = true` and take over anyway.
 class SaveConflictException implements Exception {
   final String fileId;
   final String content;
@@ -33,10 +36,11 @@ class SaveConflictException implements Exception {
 /// Upload pipeline: binary files and editable markdown notes.
 ///
 /// Binary uploads run through [BinaryUploadPipeline] (worker-offloaded
-/// encrypt + background uploader). Note create/update stays on the main
-/// thread — the payload is small enough that the crypto cost is trivial,
-/// and the update flow needs to stay single-pass to keep the server's
-/// pending-version book-keeping tidy.
+/// encrypt + background uploader). Note create/update shares the same
+/// encrypt worker — chunk encryption must never run FRB on the UI
+/// isolate or in a throwaway isolate with its own `RustLib.init`, both
+/// of which SIGSEGV iOS AOT — but keeps its own single-pass upload so
+/// the server's pending-version book-keeping stays tidy.
 class FileUploader {
   final ApiClient _client;
   final FileCrypto _fileCrypto;
@@ -67,7 +71,9 @@ class FileUploader {
 
   /// One in-flight note save per file. Autosave + editor save used to
   /// PUT /content twice; the second 409'd and iOS AOT SIGSEGV'd in encrypt.
+  /// A save arriving while one is on the wire is queued, newest body wins.
   final Map<String, Future<void>> _noteSaves = {};
+  final Map<String, _QueuedNoteSave> _queuedNoteSaves = {};
 
   FileUploader({
     required ApiClient client,
@@ -106,6 +112,17 @@ class FileUploader {
   /// uploader tasks are cancelled directly through their own service.
   void requestCancel(String fileId) {
     _cancelledFileIds.add(fileId);
+  }
+
+  /// Note crypto runs only on the encrypt worker — the UI isolate and
+  /// throwaway isolates both SIGSEGV iOS AOT — so a note flow refuses to
+  /// start without it rather than leave half-created server state behind.
+  WorkerManager _requireEncryptWorker() {
+    final wm = _workerManager;
+    if (wm == null || !wm.encryptWorkerActive) {
+      throw Exception(ambientL10n.serviceUploadWorkerUnavailable);
+    }
+    return wm;
   }
 
   /// Upload a file from [localPath] to [parentDirId] (null = root).
@@ -168,6 +185,7 @@ class FileUploader {
     String? parentDirId,
     FileItem? parentItem,
   }) async {
+    _requireEncryptWorker();
     await _client.ensureFreshSession();
     final cipher = _defaultCipher;
 
@@ -253,28 +271,60 @@ class FileUploader {
   /// stages metadata (no on-disk side effects), then chunks land via
   /// [uploadChunk]. The active version remains readable throughout.
   ///
-  /// Pass `force: true` to bypass the 409 raised when another save is
-  /// already in flight — the prior pending dir gets reaped on the
-  /// server side.
+  /// One save per file runs at a time. A call arriving while one is on
+  /// the wire is queued and coalesced — the newest body replaces any
+  /// queued one, so no caller's text is ever silently dropped and the
+  /// server never sees two writers from this client.
+  ///
+  /// A 409 on the first attempt is retried once with `force = true`
+  /// automatically: a pending version that blocks the save is nearly
+  /// always our own, left behind by a save that died between allocating
+  /// the version and finishing the chunks. [SaveConflictException]
+  /// surfaces only when the forced retry conflicts too.
   Future<void> updateNoteContent(
     String fileId,
     String content, {
     String? name,
     bool force = false,
-  }) async {
-    final existing = _noteSaves[fileId];
-    if (existing != null) {
-      await existing;
-      return;
+  }) {
+    if (_noteSaves.containsKey(fileId)) {
+      final queued = _queuedNoteSaves[fileId];
+      if (queued != null) {
+        queued.content = content;
+        queued.name = name ?? queued.name;
+        queued.force = queued.force || force;
+        return queued.completer.future;
+      }
+      final pending = _QueuedNoteSave(content, name, force);
+      _queuedNoteSaves[fileId] = pending;
+      return pending.completer.future;
     }
-    final run = _updateNoteContent(fileId, content, name: name, force: force);
+    final run = _runNoteSave(fileId, content, name: name, force: force);
     _noteSaves[fileId] = run;
+    return run;
+  }
+
+  Future<void> _runNoteSave(
+    String fileId,
+    String content, {
+    String? name,
+    bool force = false,
+  }) async {
     try {
-      await run;
+      await _updateNoteContent(fileId, content, name: name, force: force);
     } finally {
-      if (identical(_noteSaves[fileId], run)) {
-        // Map.remove returns the stored Future; we already awaited `run`.
-        _noteSaves.remove(fileId)?.ignore();
+      // Map.remove returns the stored Future; the caller holds it already.
+      _noteSaves.remove(fileId)?.ignore();
+      final queued = _queuedNoteSaves.remove(fileId);
+      if (queued != null) {
+        final next = _runNoteSave(
+          fileId,
+          queued.content,
+          name: queued.name,
+          force: queued.force,
+        );
+        _noteSaves[fileId] = next;
+        queued.completer.complete(next);
       }
     }
   }
@@ -285,6 +335,9 @@ class FileUploader {
     String? name,
     bool force = false,
   }) async {
+    // Checked before the PUT: allocating a pending version and then
+    // failing to encrypt would orphan it on the server.
+    _requireEncryptWorker();
     await _client.ensureFreshSession();
 
     final metadata = await _client.files.getFileMetadata(fileId);
@@ -320,21 +373,35 @@ class FileUploader {
         ? _fileCrypto.tokenizeForSearch(content)
         : null;
 
+    Future<Map<String, dynamic>> put({required bool force}) =>
+        _client.storage.replaceContent(
+          fileId: fileId,
+          size: fileSize,
+          chunks: totalChunks,
+          encryptedName: encryptedName,
+          searchTokensRoot: searchTokens,
+          searchTokensFile: searchTokensFile,
+          force: force,
+        );
+
     try {
-      await _client.storage.replaceContent(
-        fileId: fileId,
-        size: fileSize,
-        chunks: totalChunks,
-        encryptedName: encryptedName,
-        searchTokensRoot: searchTokens,
-        searchTokensFile: searchTokensFile,
-        force: force,
-      );
+      await put(force: force);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 409) {
-        throw SaveConflictException(fileId, content);
+      if (e.response?.statusCode != 409) rethrow;
+      if (force) throw SaveConflictException(fileId, content);
+      // The blocking pending version is nearly always our own, orphaned
+      // by a save that died after allocating it — nothing ever reaps it,
+      // so without this retry every future save of the file 409s. Take
+      // it over; the server parks the new version above the abandoned
+      // one so straggler chunks from a dying client can't land in it.
+      try {
+        await put(force: true);
+      } on DioException catch (retry) {
+        if (retry.response?.statusCode == 409) {
+          throw SaveConflictException(fileId, content);
+        }
+        rethrow;
       }
-      rethrow;
     }
 
     await _encryptAndUploadContent(
@@ -352,10 +419,10 @@ class FileUploader {
     }
   }
 
-  /// Encrypt [plaintext] and upload it as chunks on the main thread, then
-  /// finalize the server entry with its SHA-256. Used by both note-create
-  /// and note-update flows — the server-side pending-version dance
-  /// happens upstream in [updateNoteContent].
+  /// Encrypt [plaintext] on the encrypt worker and upload it as chunks,
+  /// then finalize the server entry with its SHA-256. Used by both
+  /// note-create and note-update flows — the server-side pending-version
+  /// dance happens upstream in [updateNoteContent].
   ///
   /// [isOwner] gates the digest's root-scope tag the same way the word
   /// tokens are gated upstream: an editor does not hold the owner's root
@@ -368,20 +435,46 @@ class FileUploader {
     int totalChunks, {
     required bool isOwner,
   }) async {
+    final wm = _requireEncryptWorker();
+
     final token = await _client.auth.requestTransferToken(
       fileId: fileId,
       action: 'upload',
     );
 
-    // Encrypted off the UI isolate. sublist views into the plaintext used
-    // to SIGSEGV Dart AOT at 0xf when FRB encoded them on the main isolate
-    // (MCP create_note after a failed mkdir, iOS note save after a 409).
-    final encrypted = await encryptChunksOffUi(
-      cipher: cipher,
-      fileKey: fileKey,
-      plaintext: plaintext,
-      chunkSize: kUploadChunkSize,
-    );
+    // Encrypted on the long-lived encrypt worker, same as binary uploads.
+    // Running the chunk FFI on the UI isolate SIGSEGV'd Dart AOT at 0xf,
+    // and so did a throwaway Isolate.run with a third RustLib.init (iOS
+    // note save after a 409, MCP create_note after a failed mkdir).
+    final staging = await Directory.systemTemp.createTemp('hoodik-note-');
+    final Map<int, Uint8List> encrypted;
+    final String plaintextSha256;
+    try {
+      final plainFile = File('${staging.path}/plain.md');
+      await plainFile.writeAsBytes(plaintext, flush: true);
+      final result = await wm.encryptFile(
+        EncryptFileCommand(
+          localPath: plainFile.path,
+          outputDir: staging.path,
+          fileKey: fileKey,
+          cipher: cipher,
+          totalChunks: totalChunks,
+          fileSize: plaintext.length,
+          tempFileId: fileId,
+        ),
+      );
+      plaintextSha256 = result.sha256;
+      encrypted = {
+        for (var i = 0; i < totalChunks; i++)
+          i: await File(
+            '${staging.path}/${i.toString().padLeft(6, '0')}.enc',
+          ).readAsBytes(),
+      };
+    } finally {
+      try {
+        await staging.delete(recursive: true);
+      } catch (_) {}
+    }
 
     // Not asked for at all on a server that does not serve bucket URLs: the
     // request is refused every time, and a note save is frequent enough that
@@ -433,17 +526,30 @@ class FileUploader {
     // the file's search key so any key-holder can run the resume equality
     // check, and the digest tags are what make the note findable by pasting
     // its digest into search. The bare digest never leaves this function.
-    final sha256 = _fileCrypto.sha256(plaintext);
     final fileSearchKey = _fileCrypto.searchFileKeyHex(fileKey);
-    final keyed = _fileCrypto.exactTag(fileSearchKey, sha256);
+    final keyed = _fileCrypto.exactTag(fileSearchKey, plaintextSha256);
     await _client.files.updateFileHashesWithToken(
       fileId: fileId,
       transferToken: token.token,
       sha256: keyed,
       searchTokensRoot: isOwner
-          ? ['${_fileCrypto.exactTag(_fileCrypto.searchRootKey, sha256)}:1']
+          ? [
+              '${_fileCrypto.exactTag(_fileCrypto.searchRootKey, plaintextSha256)}:1',
+            ]
           : null,
       searchTokensFile: ['$keyed:1'],
     );
   }
+}
+
+/// A note save waiting for the in-flight one to finish. Holds the newest
+/// body handed to [FileUploader.updateNoteContent] while a save runs; every
+/// coalesced caller awaits [completer], which resolves with the follow-up
+/// save's outcome.
+class _QueuedNoteSave {
+  String content;
+  String? name;
+  bool force;
+  final Completer<void> completer = Completer<void>();
+  _QueuedNoteSave(this.content, this.name, this.force);
 }

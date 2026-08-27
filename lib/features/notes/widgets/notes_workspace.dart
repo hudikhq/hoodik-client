@@ -546,6 +546,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
   void _onContentChanged(bool isDirty) {
     if (!mounted || !_hasTabs) return;
+    _activeTab.changeSeq++;
     if (isDirty && !_activeTab.isDirty) {
       setState(() => _activeTab.isDirty = true);
     }
@@ -599,6 +600,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
     if (!force) setState(() => tab.isSaving = true);
 
+    final seqAtCapture = tab.changeSeq;
     try {
       // When called from the conflict prompt with `force = true`, the
       // markdown is already in the draft buffer — re-fetching from the
@@ -618,11 +620,14 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
       if (!mounted) return;
       setState(() {
-        tab.isDirty = false;
+        // Keystrokes that landed while the save was on the wire keep the
+        // tab dirty, or the close-tab save would skip them.
+        tab.isDirty = tab.changeSeq != seqAtCapture;
         tab.isSaving = false;
         tab.loadedContent = markdown;
         tab.draftContent = null;
       });
+      if (tab.isDirty) _resetAutoSaveTimer();
     } on SaveConflictException {
       if (!mounted) return;
       await _promptResolveConflict();
