@@ -480,14 +480,31 @@ class BinaryUploadPipeline {
     Set<int> skipChunks = const <int>{},
   }) async {
     final direct = _directUpload;
-    if (direct == null) return false;
+    if (direct == null) {
+      _log.info(
+        'direct upload unavailable',
+        fields: {'file_id': fileId, 'reason': 'not_advertised'},
+      );
+      return false;
+    }
 
     // Declared per chunk because the server signs each length into its URL, so
     // these must be the on-disk ciphertext sizes rather than the plaintext
     // chunk size. A gap means the encrypt phase did not finish, and the
     // relaying path is the one that knows how to pick that up.
     final sizes = await stagedChunkSizes(stagingDir, totalChunks);
-    if (sizes.length != totalChunks) return false;
+    if (sizes.length != totalChunks) {
+      _log.info(
+        'direct upload unavailable',
+        fields: {
+          'file_id': fileId,
+          'reason': 'staging_incomplete',
+          'staged': sizes.length,
+          'chunks': totalChunks,
+        },
+      );
+      return false;
+    }
 
     // A resume declares (and is charged for) only what it still has to
     // write; the bucket already holds the rest.
@@ -507,8 +524,27 @@ class BinaryUploadPipeline {
         totalChunks: totalChunks,
         skipChunks: skipChunks,
       );
-      if (urls == null) return false;
+      if (urls == null) {
+        _log.info(
+          'direct upload unavailable',
+          fields: {
+            'file_id': fileId,
+            'reason': 'unusable_manifest',
+            'manifest_urls': manifest?.urls.length ?? 0,
+            'chunks': totalChunks,
+          },
+        );
+        return false;
+      }
 
+      _log.info(
+        'upload transport',
+        fields: {
+          'file_id': fileId,
+          'transport': 'direct',
+          'chunks': requestSizes.length,
+        },
+      );
       await direct.upload(
         accountId: _accountId,
         fileId: fileId,
@@ -552,6 +588,15 @@ class BinaryUploadPipeline {
     Set<int> skipChunks = const <int>{},
   }) async {
     final useBg = _backgroundUploadService != null;
+    _log.info(
+      'upload transport',
+      fields: {
+        'file_id': fileId,
+        'transport': 'relay-chunks',
+        'background': useBg,
+        'chunks': totalChunks - skipChunks.length,
+      },
+    );
     if (useBg) {
       await _backgroundUploadService.uploadChunks(
         cmd: UploadChunksCommand(

@@ -60,6 +60,14 @@ class BinaryUploadRunner {
     }
 
     try {
+      _log.info(
+        'upload transport',
+        fields: {
+          'file_id': fileId,
+          'transport': 'relay-tar',
+          'chunks': chunkCount,
+        },
+      );
       final result = await _tarTransport.uploadAsTar(
         baseUrl: baseUrl,
         transferToken: transferToken,

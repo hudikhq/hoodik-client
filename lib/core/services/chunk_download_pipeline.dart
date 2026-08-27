@@ -421,6 +421,16 @@ class ChunkDownloadPipeline {
     final manifest = _directTransfer
         ? await _client.files.fetchChunkUrls(fileId)
         : null;
+    _log.info(
+      'download starting',
+      fields: {
+        'file_id': fileId,
+        'chunks': chunkCount,
+        'already_downloaded': alreadyDownloaded.length,
+        'direct_capability': _directTransfer,
+        'manifest_urls': manifest?.urls.length ?? 0,
+      },
+    );
 
     // Recorded before the transfer starts, so a launch that follows a kill can
     // tell a download the user still wants from one abandoned with an old
