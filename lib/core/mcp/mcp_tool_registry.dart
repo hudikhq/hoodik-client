@@ -8,9 +8,10 @@ const List<Map<String, dynamic>> mcpTools = [
   {
     'name': 'list_files',
     'description':
-        'List files and directories in a folder. '
-        'Returns decrypted file names, sizes, types, and IDs. '
-        'Omit dir_id to list the root directory.',
+        'List files, notes, and directories in a folder. '
+        'Includes markdown notes. Returns decrypted names, sizes, types, and IDs. '
+        'Omit dir_id to list the root. Walk from a known folder id rather than guessing paths. '
+        'Prefer resolve_path when you have a plaintext path.',
     'inputSchema': {
       'type': 'object',
       'properties': {
@@ -19,6 +20,32 @@ const List<Map<String, dynamic>> mcpTools = [
           'description': 'Directory ID to list (omit for root)',
         },
       },
+    },
+  },
+  {
+    'name': 'resolve_path',
+    'description':
+        'Walk a decrypted folder tree by plaintext path and return each '
+        'segment in order with its id and metadata. Use this instead of '
+        'guessing UUIDs: start from a known folder (dir_id) or omit dir_id '
+        'for the vault root, then pass returned ids to list_files, read_note, '
+        'update_note, and other tools. Leading slash is optional; backslashes '
+        'are treated as slashes. resolved is true only when every segment exists.',
+    'inputSchema': {
+      'type': 'object',
+      'properties': {
+        'path': {
+          'type': 'string',
+          'description':
+              'Path to resolve, e.g. "/Work/thelab/CLAUDE.md" or "Work/thelab/CLAUDE.md"',
+        },
+        'dir_id': {
+          'type': 'string',
+          'description':
+              'Folder UUID to start from (omit or empty for vault root)',
+        },
+      },
+      'required': ['path'],
     },
   },
   {
@@ -41,6 +68,10 @@ const List<Map<String, dynamic>> mcpTools = [
     'description':
         'Upload a binary or non-editable file (images, PDFs, archives, etc.). '
         'The file is encrypted client-side before upload. '
+        'A new upload returns {success, id, name, size, existed: false}. '
+        'If a file with this name already exists in the parent, returns that '
+        'id with existed: true without overwriting — there is no update_file '
+        'for binaries; use create_note/update_note for text. '
         'For text documents, markdown, or any content you may want to read or '
         'update later, use create_note instead — it creates an editable file.',
     'inputSchema': {
@@ -69,7 +100,11 @@ const List<Map<String, dynamic>> mcpTools = [
   },
   {
     'name': 'create_directory',
-    'description': 'Create a new encrypted directory.',
+    'description':
+        'Create a new encrypted directory. Returns {id, name}. '
+        'Name-idempotent: if a directory with this name already exists in the '
+        'parent, returns that existing id instead of failing. '
+        'Use the returned id for later list_files, create_note, and write_file calls.',
     'inputSchema': {
       'type': 'object',
       'properties': {
@@ -136,8 +171,10 @@ const List<Map<String, dynamic>> mcpTools = [
   {
     'name': 'search_files',
     'description':
-        'Search files by name. Uses privacy-preserving search '
-        '(names are tokenized and hashed before sending to the server).',
+        'Search files and notes by name (privacy-preserving tags). '
+        'Use this to find which note matched, then find_in_note to locate the '
+        'query inside it (or read_note for the full body). '
+        'Optional dir_id scopes the search to one folder.',
     'inputSchema': {
       'type': 'object',
       'properties': {
@@ -164,9 +201,9 @@ const List<Map<String, dynamic>> mcpTools = [
   {
     'name': 'list_notes',
     'description':
-        'List all editable documents (notes) across the entire storage. '
-        'Unlike list_files which shows one directory, this returns all notes '
-        'regardless of which folder they are in.',
+        'List editable notes (markdown). Omit dir_id for every note in the account. '
+        'Pass dir_id to list notes in that folder only. '
+        'Each result includes id, name, and dir_id (the parent folder).',
     'inputSchema': {
       'type': 'object',
       'properties': {
@@ -191,12 +228,51 @@ const List<Map<String, dynamic>> mcpTools = [
     },
   },
   {
+    'name': 'find_in_note',
+    'description':
+        'Find a query inside a note and return match excerpts with positions. '
+        'search_files finds which note matched; find_in_note finds where '
+        'inside it. Does not return the full note body — use read_note for that. '
+        'Requires file_id and query. Optional max_matches (default 20, cap 50), '
+        'context (excerpt padding chars, default 80, cap 200), and '
+        'case_sensitive (default false).',
+    'inputSchema': {
+      'type': 'object',
+      'properties': {
+        'file_id': {
+          'type': 'string',
+          'description': 'ID of the note to search',
+        },
+        'query': {
+          'type': 'string',
+          'description': 'Text to find inside the note',
+        },
+        'max_matches': {
+          'type': 'integer',
+          'description': 'Maximum matches to return (default: 20, max: 50)',
+        },
+        'context': {
+          'type': 'integer',
+          'description':
+              'Characters of excerpt padding around each match '
+              '(default: 80, max: 200)',
+        },
+        'case_sensitive': {
+          'type': 'boolean',
+          'description': 'Match case-sensitively (default: false)',
+        },
+      },
+      'required': ['file_id', 'query'],
+    },
+  },
+  {
     'name': 'create_note',
     'description':
-        'Create a new editable document. Preferred for all text content '
-        '(markdown, plain text, documentation, notes, configs, code, etc.). '
-        'Unlike write_file, notes can be updated in-place with update_note. '
-        'Use this instead of write_file for any human-readable content.',
+        'Create an editable markdown note in a folder. Preferred for docs, configs, '
+        'and agent context. If a note with this name already exists in the parent, '
+        'updates its content (upsert) and returns that note id. '
+        'Returns {success, id, file_id, name, existed}: existed true means the '
+        'note was updated rather than newly created.',
     'inputSchema': {
       'type': 'object',
       'properties': {
@@ -237,5 +313,15 @@ const List<Map<String, dynamic>> mcpTools = [
       },
       'required': ['file_id', 'content'],
     },
+  },
+  {
+    'name': 'health',
+    'description':
+        'Report whether the MCP server is running, whether the app is '
+        'PIN-locked, and whether the agent can mutate. No arguments. '
+        'Allowed while locked. Does not return tokens, account email, or paths. '
+        'Returns {running, locked, ready}: ready is true only when the server '
+        'is running and the user is unlocked.',
+    'inputSchema': {'type': 'object', 'properties': {}},
   },
 ];

@@ -30,6 +30,7 @@ import 'features/account/screens/log_redactor_screen.dart';
 import 'features/account/screens/mcp_audit_log_screen.dart';
 import 'features/account/screens/mcp_connect_wizard_screen.dart';
 import 'features/account/screens/mcp_settings_screen.dart';
+import 'features/account/screens/mcp_tools_docs_screen.dart';
 import 'core/providers.dart';
 import 'core/services/window_title.dart';
 import 'core/theme/hoodik_scheme.dart';
@@ -136,6 +137,11 @@ GoRouter buildRouter(bool Function() isLoggedIn) {
         parentNavigatorKey: rootNavigatorKey,
         path: '/account/ai-access/audit-log',
         builder: (context, state) => const McpAuditLogScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/account/ai-access/tools',
+        builder: (context, state) => const McpToolsDocsScreen(),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,

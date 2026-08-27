@@ -65,13 +65,14 @@ It should return your decrypted file names, sizes, and types.
 
 ## Available Tools
 
-The MCP server exposes 13 tools organized into three groups.
+The MCP server exposes 16 tools organized into four groups.
 
 ### File management
 
 | Tool | What it does |
 |------|-------------|
-| `list_files` | Browse a directory. Returns decrypted names, sizes, types, and IDs. Omit `dir_id` for root. |
+| `list_files` | Browse a directory. Returns decrypted names, sizes, types, IDs, and whether each item is editable. Omit `dir_id` for root. |
+| `resolve_path` | Walk a plaintext path from a known folder (or vault root) and return each segment's id. Use this instead of guessing UUIDs. |
 | `read_file` | Download and decrypt a file. Text files returned as UTF-8, binary as base64. Max 50 MB. |
 | `write_file` | Encrypt and upload a binary or non-editable file (images, PDFs, archives). For text content, prefer `create_note`. |
 | `create_directory` | Create a new encrypted directory. |
@@ -89,8 +90,15 @@ Notes are editable text documents that can be updated in-place -- the preferred 
 |------|-------------|
 | `list_notes` | List all editable documents across your entire storage (or scoped to a directory). |
 | `read_note` | Read a note's decrypted markdown content. |
+| `find_in_note` | Find a query inside a note and return match excerpts with positions. `search_files` finds which note; `find_in_note` finds where inside it. Does not return the full body. |
 | `create_note` | Create a new editable document. Use this for markdown, plain text, documentation, configs, code -- any human-readable content. |
 | `update_note` | Replace a note's content. Supports renaming in the same call. |
+
+### Status
+
+| Tool | What it does |
+|------|-------------|
+| `health` | Whether MCP is running, the vault is locked, and tools are ready. Allowed while PIN-locked. |
 
 ### When to use `write_file` vs `create_note`
 

@@ -35,6 +35,8 @@ class WizardClientStep extends StatelessWidget {
     super.key,
     required this.port,
     required this.bearerToken,
+    this.accountEmail,
+    this.serverUrl,
     required this.selected,
     required this.platform,
     required this.onSelected,
@@ -45,6 +47,8 @@ class WizardClientStep extends StatelessWidget {
 
   final int port;
   final String bearerToken;
+  final String? accountEmail;
+  final String? serverUrl;
   final McpClientKind selected;
   final WizardClientPlatform platform;
   final ValueChanged<McpClientKind> onSelected;
@@ -63,6 +67,12 @@ class WizardClientStep extends StatelessWidget {
       kind: selected,
       port: port,
       bearerToken: bearerToken,
+      accountEmail: accountEmail,
+      serverUrl: serverUrl,
+    );
+    final serverKey = mcpServerKey(
+      email: accountEmail,
+      serverUrl: serverUrl,
     );
     final resolvedPath = resolveConfigPath(
       kind: selected,
@@ -82,6 +92,15 @@ class WizardClientStep extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _ClientSelector(selected: selected, onSelected: onSelected),
+          const SizedBox(height: 8),
+          Text(
+            serverKey,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 13,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),

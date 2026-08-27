@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/mcp/mcp_client_configs.dart';
 import '../../../core/mcp/mcp_server.dart';
 import '../../../core/providers.dart';
 import '../../../core/storage/database.dart';
@@ -68,27 +69,28 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
 
     if (!mounted) return;
 
-    var token = '';
-    final encrypted = settings?.bearerToken ?? '';
-    if (encrypted.isNotEmpty) {
-      token = decryptMcpToken(ref, encrypted) ?? '';
-    }
-    if (token.isEmpty) {
-      token = const Uuid().v4();
-    }
+    final loaded = loadMcpBearerToken(
+      storedCiphertext: settings?.bearerToken,
+      decrypt: (ciphertext) => decryptMcpToken(ref, ciphertext),
+    );
 
     setState(() {
       _enabled = settings?.enabled ?? false;
       _port = settings?.port ?? kDefaultMcpPort;
       _portController.text = _port.toString();
-      _bearerToken = token;
+      _bearerToken = loaded.plaintext ?? '';
       _allowReadOnlyWhileLocked = settings?.allowReadOnlyWhileLocked ?? false;
       _rateLimitRps = settings?.rateLimitRps ?? 5;
       _rateLimitBurst = settings?.rateLimitBurst ?? 20;
       _loading = false;
     });
 
-    if (_enabled) {
+    // First-time mint: persist immediately so the token stays until rotate.
+    if (loaded.minted && (loaded.plaintext ?? '').isNotEmpty) {
+      await _saveSettings();
+    }
+
+    if (_enabled && _bearerToken.isNotEmpty) {
       unawaited(_startServer());
     }
   }
@@ -97,8 +99,12 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
     final accountId = _accountId;
     if (accountId == null) return;
 
-    final encryptedToken = encryptMcpToken(ref, _bearerToken);
-    if (encryptedToken == null) return;
+    Value<String> bearerTokenValue = const Value.absent();
+    if (_bearerToken.isNotEmpty) {
+      final encryptedToken = encryptMcpToken(ref, _bearerToken);
+      if (encryptedToken == null) return;
+      bearerTokenValue = Value(encryptedToken);
+    }
 
     final db = ref.read(databaseProvider);
     await db.upsertMcpSettings(
@@ -106,7 +112,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
       McpSettingsCompanion(
         enabled: Value(_enabled),
         port: Value(_port),
-        bearerToken: Value(encryptedToken),
+        bearerToken: bearerTokenValue,
         allowReadOnlyWhileLocked: Value(_allowReadOnlyWhileLocked),
         rateLimitRps: Value(_rateLimitRps),
         rateLimitBurst: Value(_rateLimitBurst),
@@ -145,6 +151,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
   Future<void> _startServer() async {
     final server = ref.read(mcpServerProvider);
     if (server == null || server.isRunning) return;
+    if (_bearerToken.isEmpty) return;
 
     try {
       await server.start(port: _port, bearerToken: _bearerToken);
@@ -214,17 +221,19 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
     );
   }
 
-  String get _configSnippet =>
-      '''{
-  "mcpServers": {
-    "hoodik": {
-      "url": "http://localhost:$_port/mcp",
-      "headers": {
-        "Authorization": "Bearer $_bearerToken"
-      }
-    }
+  String get _serverKey {
+    final account = ref.read(activeAccountProvider);
+    final server = ref.read(activeServerProvider);
+    return mcpServerKey(email: account?.email, serverUrl: server?.url);
   }
-}''';
+
+  String get _configSnippet => buildClientConfigSnippet(
+    kind: McpClientKind.claudeDesktop,
+    port: _port,
+    bearerToken: _bearerToken,
+    accountEmail: ref.read(activeAccountProvider)?.email,
+    serverUrl: ref.read(activeServerProvider)?.url,
+  );
 
   void _copyConfig() {
     Clipboard.setData(ClipboardData(text: _configSnippet));
@@ -240,6 +249,12 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
       context,
       message: AppLocalizations.of(context).accountMcpTokenCopied,
     );
+  }
+
+  String get _tokenPreview {
+    if (_bearerToken.isEmpty) return '—';
+    final take = _bearerToken.length < 8 ? _bearerToken.length : 8;
+    return '${_bearerToken.substring(0, take)}...';
   }
 
   @override
@@ -349,6 +364,12 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                       subtitle: Text(l10n.accountMcpViewAuditLogSubtitle),
                       onTap: () => context.push('/account/ai-access/audit-log'),
                     ),
+                    AdaptiveListTile(
+                      leading: const Icon(CupertinoIcons.hammer, size: 22),
+                      title: Text(l10n.accountMcpToolsTitle),
+                      subtitle: Text(l10n.accountMcpToolsSubtitle),
+                      onTap: () => context.push('/account/ai-access/tools'),
+                    ),
                   ],
                 ),
 
@@ -383,7 +404,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                         leading: const Icon(CupertinoIcons.link, size: 22),
                         title: Text(l10n.accountMcpEndpoint),
                         subtitle: SelectableText(
-                          'http://localhost:$_port/mcp',
+                          'http://127.0.0.1:$_port/mcp',
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 13,
@@ -395,7 +416,7 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                         leading: const Icon(CupertinoIcons.lock, size: 22),
                         title: Text(l10n.accountMcpBearerToken),
                         subtitle: Text(
-                          '${_bearerToken.substring(0, 8)}...',
+                          _tokenPreview,
                           style: const TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 13,
@@ -405,7 +426,9 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             AdaptiveTextButton(
-                              onPressed: _copyToken,
+                              onPressed: _bearerToken.isEmpty
+                                  ? null
+                                  : _copyToken,
                               child: Text(l10n.commonCopy),
                             ),
                             const SizedBox(width: 4),
@@ -423,6 +446,11 @@ class _McpSettingsScreenState extends ConsumerState<McpSettingsScreen> {
                   AdaptiveListSection(
                     header: l10n.accountMcpConfigurationHeader,
                     children: [
+                      AdaptiveListTile(
+                        leading: const Icon(CupertinoIcons.tag, size: 22),
+                        title: Text(_serverKey),
+                        subtitle: const Text('MCP server name'),
+                      ),
                       McpConfigSnippet(
                         snippet: _configSnippet,
                         onCopy: _copyConfig,

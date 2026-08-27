@@ -14,9 +14,11 @@ const int mcpErrorUserLocked = -32001;
 /// defaults to "requires decryption", which is the safer failure mode.
 const Set<String> _readOnlyMcpTools = {
   'list_files',
+  'resolve_path',
   'list_notes',
   'search_files',
   'storage_stats',
+  'health',
 };
 
 /// Which tools the gate classifies as safe to serve while the app is locked.
@@ -64,7 +66,10 @@ class LockGatingMcpToolDispatcher implements McpToolDispatcher {
     final params = request.params ?? {};
     final toolName = params['name'] as String? ?? '';
     final allowReadOnly = _allowReadOnlyWhileLockedResolver();
-    if (allowReadOnly && isReadOnlyMcpTool(toolName)) {
+    // health is always allowed while locked so an agent can discover that
+    // writes are paused. Other read-only tools still need the user opt-in.
+    if (toolName == 'health' ||
+        (allowReadOnly && isReadOnlyMcpTool(toolName))) {
       return _inner.handleToolCall(request);
     }
 

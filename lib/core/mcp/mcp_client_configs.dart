@@ -108,13 +108,54 @@ String resolveConfigPath({
 /// The generic HTTP variant drops the wrapper and shows the raw transport
 /// block, which is easier to adapt to agents that expect different wire
 /// formats.
+/// Filesystem-safe MCP `mcpServers` key for [email] on [serverUrl].
+///
+/// Format: `hoodik_<email>_<host>` with `@` → `_at_` and `:` → `_`.
+/// Example: tibor@hudik.eu on https://drive.hoodik.io
+/// → `hoodik_tibor_at_hudik.eu_drive.hoodik.io`.
+/// Falls back to `hoodik` when both are missing so tests and first-run
+/// snippets still produce valid JSON.
+String mcpServerKey({String? email, String? serverUrl}) {
+  final host = mcpServerHost(serverUrl);
+  final e = _sanitizeMcpKeyPart(email ?? '');
+  final h = _sanitizeMcpKeyPart(host);
+  if (e.isEmpty && h.isEmpty) return 'hoodik';
+  if (h.isEmpty) return 'hoodik_$e';
+  if (e.isEmpty) return 'hoodik_$h';
+  return 'hoodik_${e}_$h';
+}
+
+/// Hostname (and non-default port) from an account server URL.
+String mcpServerHost(String? serverUrl) {
+  if (serverUrl == null || serverUrl.isEmpty) return '';
+  final uri = Uri.tryParse(serverUrl);
+  if (uri == null || uri.host.isEmpty) return serverUrl;
+  if (uri.hasPort && uri.port != 80 && uri.port != 443) {
+    return '${uri.host}:${uri.port}';
+  }
+  return uri.host;
+}
+
+String _sanitizeMcpKeyPart(String raw) {
+  var s = raw.trim().toLowerCase();
+  s = s.replaceAll('@', '_at_');
+  s = s.replaceAll(':', '_');
+  s = s.replaceAll(RegExp(r'[^a-z0-9._-]+'), '_');
+  s = s.replaceAll(RegExp(r'_+'), '_');
+  s = s.replaceAll(RegExp(r'^_+|_+$'), '');
+  return s;
+}
+
 String buildClientConfigSnippet({
   required McpClientKind kind,
   required int port,
   required String bearerToken,
+  String? accountEmail,
+  String? serverUrl,
 }) {
+  final serverName = mcpServerKey(email: accountEmail, serverUrl: serverUrl);
   final transport = {
-    'url': 'http://localhost:$port/mcp',
+    'url': 'http://127.0.0.1:$port/mcp',
     'headers': {'Authorization': 'Bearer $bearerToken'},
   };
 
@@ -123,10 +164,14 @@ String buildClientConfigSnippet({
     case McpClientKind.claudeDesktop:
     case McpClientKind.cursor:
       payload = {
-        'mcpServers': {'hoodik': transport},
+        'mcpServers': {serverName: transport},
       };
     case McpClientKind.genericHttp:
-      payload = {'transport': 'streamable-http', ...transport};
+      payload = {
+        'name': serverName,
+        'transport': 'streamable-http',
+        ...transport,
+      };
   }
 
   const encoder = JsonEncoder.withIndent('  ');

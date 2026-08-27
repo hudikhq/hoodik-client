@@ -281,6 +281,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         names: _decryptedNames,
         keys: _decryptedKeys,
         returnToBranchIndex: searchBranchIndex,
+        highlightQuery: _controller.text.trim(),
       );
       return;
     }

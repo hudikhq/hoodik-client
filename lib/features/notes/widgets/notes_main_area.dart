@@ -20,6 +20,7 @@ class NotesMainArea extends StatelessWidget {
   final bool showTabs;
   final bool editorReady;
   final Widget editor;
+  final Widget? findBar;
   final ValueChanged<int> onSelectTab;
   final ValueChanged<int> onCloseTab;
   final VoidCallback? onExpandSidebar;
@@ -40,6 +41,7 @@ class NotesMainArea extends StatelessWidget {
     required this.showTabs,
     required this.editorReady,
     required this.editor,
+    this.findBar,
     required this.onSelectTab,
     required this.onCloseTab,
     required this.onExpandSidebar,
@@ -72,6 +74,7 @@ class NotesMainArea extends StatelessWidget {
     if (Platform.isIOS) {
       return IosEditorLayout(
         tabBar: tabBar,
+        findBar: findBar,
         toolbar: toolbar,
         editor: editor,
         onBottomInsetChanged: onBottomInsetChanged,
@@ -80,6 +83,7 @@ class NotesMainArea extends StatelessWidget {
     return Column(
       children: [
         ?tabBar,
+        ?findBar,
         Expanded(child: editor),
         ?toolbar,
       ],

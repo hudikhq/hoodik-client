@@ -16,6 +16,13 @@ import 'mcp_tool_registry.dart';
 /// Default port for the MCP server.
 const int kDefaultMcpPort = 19548;
 
+/// JSON-RPC -32000 message for a missing or invalid bearer token. Written so
+/// an agent can act: check the AI Access snippet; the token is not rotated
+/// automatically.
+const String kMcpUnauthorizedMessage =
+    'Invalid or missing bearer token. Check the AI Access snippet in Hoodik; '
+    'the token is not rotated automatically.';
+
 const Logger _log = Logger('mcp.server');
 
 /// Compares two strings without leaking their common prefix length through
@@ -121,7 +128,13 @@ class McpServer {
       );
 
       _server!.listen(
-        _handleRequest,
+        (request) {
+          unawaited(
+            _handleRequest(request).catchError((Object e) {
+              _log.error('mcp request failed', fields: {'error': e.toString()});
+            }),
+          );
+        },
         onError: (e) {
           _log.error(
             'mcp server socket error',
@@ -158,6 +171,21 @@ class McpServer {
   }
 
   Future<void> _handleRequest(HttpRequest request) async {
+    try {
+      await _handleAuthorizedRequest(request);
+    } catch (e) {
+      _log.error('mcp request failed', fields: {'error': e.toString()});
+      try {
+        await _respondJson(
+          request,
+          200,
+          mcpErrorResponse(null, jsonRpcInternalError, 'Internal error'),
+        );
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _handleAuthorizedRequest(HttpRequest request) async {
     final origin = request.headers.value('origin');
     if (!isAllowedMcpOrigin(origin)) {
       _log.warn('mcp request denied: disallowed origin');
@@ -184,10 +212,11 @@ class McpServer {
     if (request.method == 'DELETE' || request.method == 'POST') {
       if (!_isAuthorized(request)) {
         _log.warn('mcp request denied: unauthorized');
+        final rpcId = await _tryParseJsonRpcId(request);
         await _respondJson(
           request,
           401,
-          mcpErrorResponse(null, -32000, 'Unauthorized'),
+          mcpErrorResponse(rpcId, -32000, kMcpUnauthorizedMessage),
         );
         return;
       }
@@ -242,7 +271,17 @@ class McpServer {
     String? sessionId = request.headers.value('mcp-session-id');
 
     for (final req in requests) {
-      final resp = await _processRequest(req, sessionId);
+      Map<String, dynamic>? resp;
+      try {
+        resp = await _processRequest(req, sessionId);
+      } catch (e) {
+        _log.error(
+          'mcp rpc failed',
+          fields: {'method': req.method, 'error': e.toString()},
+        );
+        if (req.isNotification) continue;
+        resp = mcpErrorResponse(req.id, jsonRpcInternalError, 'Internal error');
+      }
       if (resp != null) {
         responses.add(resp);
 
@@ -310,14 +349,30 @@ class McpServer {
     final sw = Stopwatch()..start();
     _log.debug('mcp tool invoke', fields: {'tool': toolName});
 
-    final response = await _toolHandler.handleToolCall(request);
-    sw.stop();
-
-    _log.info(
-      'mcp tool done',
-      fields: {'tool': toolName, 'duration_ms': sw.elapsedMilliseconds},
-    );
-    return response;
+    try {
+      final response = await _toolHandler.handleToolCall(request);
+      sw.stop();
+      _log.info(
+        'mcp tool done',
+        fields: {'tool': toolName, 'duration_ms': sw.elapsedMilliseconds},
+      );
+      return response;
+    } catch (e) {
+      sw.stop();
+      _log.error(
+        'mcp tool failed',
+        fields: {
+          'tool': toolName,
+          'duration_ms': sw.elapsedMilliseconds,
+          'error': e.toString(),
+        },
+      );
+      return mcpErrorResponse(
+        request.id,
+        jsonRpcInternalError,
+        'Internal error',
+      );
+    }
   }
 
   void _cleanupSessions() {
@@ -350,6 +405,23 @@ class McpServer {
       'Access-Control-Allow-Methods',
       'POST, OPTIONS, DELETE',
     );
+  }
+
+  /// Best-effort JSON-RPC id from a request body we are about to reject.
+  /// Auth runs before [_handleJsonRpc], so we consume the body here only on
+  /// the 401 path. Missing, empty, or unparseable bodies yield a null id.
+  Future<Object?> _tryParseJsonRpcId(HttpRequest request) async {
+    try {
+      final body = await utf8.decoder.bind(request).join();
+      if (body.isEmpty) return null;
+      final decoded = jsonDecode(body);
+      if (decoded is Map) return decoded['id'];
+      if (decoded is List && decoded.isNotEmpty) {
+        final first = decoded.first;
+        if (first is Map) return first['id'];
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<void> _respond(HttpRequest request, int status, String body) async {

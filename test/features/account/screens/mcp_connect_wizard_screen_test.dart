@@ -156,8 +156,33 @@ void main() {
       );
 
       expect(find.textContaining('"mcpServers"'), findsOneWidget);
-      expect(find.textContaining('http://localhost:19548/mcp'), findsOneWidget);
+      expect(find.textContaining('http://127.0.0.1:19548/mcp'), findsOneWidget);
       expect(find.textContaining('Bearer TEST-BEARER'), findsOneWidget);
+    });
+
+    testWidgets('snippet key is email+host when account is set', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          WizardClientStep(
+            port: 19548,
+            bearerToken: 'TEST-BEARER',
+            accountEmail: 'tibor@hudik.eu',
+            serverUrl: 'https://drive.hoodik.io',
+            selected: McpClientKind.claudeDesktop,
+            platform: _clientPlatform,
+            onSelected: (_) {},
+            onCopy: (_) {},
+            onOpenFolder: null,
+            onNext: () {},
+          ),
+        ),
+      );
+
+      expect(
+        find.textContaining('hoodik_tibor_at_hudik.eu_drive.hoodik.io'),
+        findsWidgets,
+      );
+      expect(find.textContaining('http://127.0.0.1:19548/mcp'), findsOneWidget);
     });
 
     testWidgets('Cursor snippet points at ~/.cursor/mcp.json', (tester) async {

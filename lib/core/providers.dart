@@ -922,23 +922,13 @@ final mcpAuditToolNamesProvider = FutureProvider<List<String>>((ref) {
   return db.getDistinctMcpAuditToolNames();
 });
 
-/// The MCP server instance. Created when:
-/// - Platform is macOS
-/// - User is logged in
-///
-/// Auto-stops on logout or account switch (provider rebuilds → ref.onDispose
-/// fires). Auto-starts if the account has MCP enabled in saved settings.
-final mcpServerProvider = Provider<McpServer?>((ref) {
-  if (!Platform.isMacOS) return null;
-  final loggedIn = ref.watch(isLoggedInProvider);
-  if (!loggedIn) return null;
 
-  final server = McpServer(ref);
-  ref.onDispose(() => server.stop());
-
-  // Auto-start if settings say enabled. fireImmediately ensures the
-  // callback runs for the current value, not just future changes.
-  ref.listen<AsyncValue<McpSetting?>>(mcpSettingsProvider, (prev, next) {
+Future<void> _startMcpIfEnabled(
+  Ref ref,
+  McpServer server,
+  AsyncValue<McpSetting?> next,
+) async {
+  try {
     final settings = next.valueOrNull;
     if (settings == null || !settings.enabled) return;
     if (server.isRunning) return;
@@ -957,7 +947,33 @@ final mcpServerProvider = Provider<McpServer?>((ref) {
           );
     if (token == null || token.isEmpty) return;
 
-    server.start(port: settings.port, bearerToken: token);
+    await server.start(port: settings.port, bearerToken: token);
+  } catch (_) {
+    // Unlock, tray, and settings must still succeed if bind/decrypt fails.
+  }
+}
+
+/// The MCP server instance. Created when:
+/// - Platform is macOS
+/// - User is logged in
+///
+/// Auto-stops on logout or account switch (provider rebuilds → ref.onDispose
+/// fires). Auto-starts if the account has MCP enabled in saved settings.
+final mcpServerProvider = Provider<McpServer?>((ref) {
+  if (!Platform.isMacOS) return null;
+  final loggedIn = ref.watch(isLoggedInProvider);
+  if (!loggedIn) return null;
+
+  final server = McpServer(ref);
+  ref.onDispose(() => server.stop());
+
+  // Auto-start if settings say enabled. fireImmediately ensures the
+  // callback runs for the current value, not just future changes.
+  ref.listen<AsyncValue<McpSetting?>>(mcpSettingsProvider, (prev, next) {
+    // Never throw out of this listener: tray refresh used to read this
+    // provider while it was still initializing and the StateError aborted
+    // auto-start, so MCP stayed down until AI Access was toggled.
+    unawaited(_startMcpIfEnabled(ref, server, next));
   }, fireImmediately: true);
 
   return server;

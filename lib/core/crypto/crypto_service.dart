@@ -173,11 +173,17 @@ class CryptoService {
     required int chunkIndex,
     required Uint8List plaintext,
   }) {
+    // Owned copies. The iOS/macOS AOT binding for Vec<u8> has SIGSEGV'd
+    // at 0xf when the Dart buffer was a view into a larger list — note
+    // save encrypts sublist chunks. A fresh list is what the CST encoder
+    // can hand rust without aliasing the caller's memory.
+    final keyCopy = Uint8List.fromList(key);
+    final plainCopy = Uint8List.fromList(plaintext);
     return rust.cipherEncryptChunk(
       cipher: cipher,
-      key: key,
+      key: keyCopy,
       chunkIndex: BigInt.from(chunkIndex),
-      plaintext: plaintext,
+      plaintext: plainCopy,
     );
   }
 

@@ -423,6 +423,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get accountMcpTokenRegenerated => 'Jeton régénéré';
 
   @override
+  String get accountMcpToolsNoParams => 'Aucun paramètre';
+
+  @override
+  String get accountMcpToolsRawSchema => 'Schéma brut';
+
+  @override
+  String get accountMcpToolsRequired => 'obligatoire';
+
+  @override
+  String get accountMcpToolsSubtitle =>
+      'Ce que les agents connectés peuvent appeler';
+
+  @override
+  String get accountMcpToolsTitle => 'Outils de l’agent';
+
+  @override
   String get accountMcpUnavailable =>
       'Le serveur MCP est indisponible. Connectez-vous sur macOS pour continuer.';
 
@@ -2272,6 +2288,26 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get notesFileNotFound => 'Fichier introuvable';
+
+  @override
+  String get notesFind => 'Rechercher';
+
+  @override
+  String get notesFindClose => 'Fermer la recherche';
+
+  @override
+  String get notesFindCaseSensitive => 'Respecter la casse';
+
+  @override
+  String notesFindMatches(int index, int count) {
+    return '$index sur $count';
+  }
+
+  @override
+  String get notesFindNext => 'Occurrence suivante';
+
+  @override
+  String get notesFindPrev => 'Occurrence précédente';
 
   @override
   String get notesFolderName => 'dossier';

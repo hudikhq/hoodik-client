@@ -5,8 +5,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
+import '../../features/account/services/mcp_token_crypto.dart';
 import '../auth/auth_service.dart';
 import '../auth/auth_state.dart';
 import '../mcp/mcp_server.dart';
@@ -34,7 +34,15 @@ TrayService? attachMcpTray({required WidgetRef ref, required GoRouter router}) {
   if (!isDesktop) return null;
 
   TrayServerState readState() {
-    final server = ref.read(mcpServerProvider);
+    // mcpServerProvider is created from setLoggedIn. A listenManual on
+    // mcpSettingsProvider can fire *while* that provider is still building;
+    // reading it then throws StateError and used to abort MCP auto-start.
+    McpServer? server;
+    try {
+      server = ref.read(mcpServerProvider);
+    } on StateError {
+      server = null;
+    }
     final account = ref.read(activeAccountProvider);
     final settings = ref.read(mcpSettingsProvider).valueOrNull;
     return TrayServerState(
@@ -65,6 +73,16 @@ TrayService? attachMcpTray({required WidgetRef ref, required GoRouter router}) {
     onDispose: () async => watcher.stop(),
   );
 
+  void refreshTray() {
+    scheduleMicrotask(() {
+      try {
+        service.refresh();
+      } catch (e) {
+        _log.warn('tray refresh skipped', fields: {'error': e.toString()});
+      }
+    });
+  }
+
   watcher = TrayStateWatcher(
     readState: () {
       final state = readState();
@@ -74,8 +92,8 @@ TrayService? attachMcpTray({required WidgetRef ref, required GoRouter router}) {
   );
   watcher.start();
 
-  ref.listenManual(mcpServerProvider, (_, _) => service.refresh());
-  ref.listenManual(mcpSettingsProvider, (_, _) => service.refresh());
+  ref.listenManual(mcpServerProvider, (_, _) => refreshTray());
+  ref.listenManual(mcpSettingsProvider, (_, _) => refreshTray());
 
   SchedulerBinding.instance.addPostFrameCallback((_) => service.initialize());
   return service;
@@ -86,8 +104,11 @@ Future<void> _setMcpEnabled(WidgetRef ref, bool enabled) async {
   if (account == null) return;
 
   final db = ref.read(databaseProvider);
-  final current = ref.read(mcpSettingsProvider).valueOrNull;
-  final encryptedToken = current?.bearerToken ?? await _encryptTrayToken(ref);
+  final current = await db.getMcpSettings(account.id);
+  final encryptedToken = resolveStoredMcpCiphertext(
+    storedCiphertext: current?.bearerToken,
+    encrypt: (plaintext) => encryptMcpToken(ref, plaintext),
+  );
   if (encryptedToken == null || encryptedToken.isEmpty) return;
 
   await db.upsertMcpSettings(
@@ -114,34 +135,18 @@ Future<void> _setMcpEnabled(WidgetRef ref, bool enabled) async {
   }
 
   if (server == null || server.isRunning) return;
-  final settings = await ref.read(mcpSettingsProvider.future);
-  if (settings == null || !settings.enabled) return;
 
-  final privateKey = ref.read(decryptedPrivateKeyProvider);
-  if (privateKey == null) return;
+  final token = decryptMcpToken(ref, encryptedToken);
+  if (token == null || token.isEmpty) return;
 
-  final crypto = ref.read(cryptoServiceProvider);
   try {
-    final token = crypto.rsaDecrypt(
-      ciphertextBase64: settings.bearerToken,
-      privateKeyPem: privateKey,
+    await server.start(
+      port: current?.port ?? kDefaultMcpPort,
+      bearerToken: token,
     );
-    await server.start(port: settings.port, bearerToken: token);
   } catch (e) {
     _log.warn('tray enable failed', fields: {'error': redactException(e)});
   }
-}
-
-Future<String?> _encryptTrayToken(WidgetRef ref) async {
-  final account = ref.read(activeAccountProvider);
-  final publicKey = account?.publicKey;
-  if (publicKey == null) return null;
-
-  final crypto = ref.read(cryptoServiceProvider);
-  return crypto.rsaEncrypt(
-    plaintext: const Uuid().v4(),
-    publicKeyPem: publicKey,
-  );
 }
 
 Future<void> _bringAppToFront() async {

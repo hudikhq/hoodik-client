@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,27 +11,26 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
 import '../../../core/services/file_operations.dart' show SaveConflictException;
-import '../../../core/services/transfer_manager.dart';
 import '../../../core/utils/l10n_lookup.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/widgets/adaptive.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../preview/providers/preview_loader.dart';
-import '../../preview/widgets/preview_loading.dart';
 import '../helpers/create_note_flow.dart';
 import '../helpers/draft_capture.dart';
 import '../models/editor_tab.dart';
 import '../providers/open_note_request.dart';
 import '../services/note_pdf_exporter.dart';
 import 'ios_editor_layout.dart' show applyIosEditorInset;
-import 'notes_landing_app_bar.dart';
+import 'note_find_bar.dart';
+import 'notes_editor_pane.dart';
+import 'notes_mobile_app_bar.dart';
 import 'notes_main_area.dart';
 import 'note_conflict_dialog.dart';
 import 'notes_sidebar.dart';
 import 'recent_notes_panel.dart';
 import 'unsaved_changes_dialog.dart';
-import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
 
 const _log = Logger('NotesWorkspace');
@@ -90,6 +88,8 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   Timer? _autoSaveTimer;
   Completer<String>? _getMarkdownCompleter;
 
+  late final _find = NoteFindHost(_sendToEditor, _onFindChanged);
+
   bool get _hasTabs => _tabs.isNotEmpty;
   EditorTab get _activeTab => _tabs[_activeTabIndex];
   bool get _hasDirtyTab => _tabs.any((t) => t.isDirty);
@@ -109,6 +109,9 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
           req != null && req.fileId == widget.initialFileId
           ? req.returnToBranchIndex
           : null;
+      if (req != null && req.fileId == widget.initialFileId) {
+        _find.prime(req.highlightQuery, notify: false);
+      }
     }
 
     // Re-apply zoom to the webview whenever the host preference changes.
@@ -135,11 +138,16 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     if (req.returnToBranchIndex != null) {
       _returnToBranchOnLastClose = req.returnToBranchIndex;
     }
+    _find.prime(req.highlightQuery);
     final existing = _tabs.indexWhere((t) => t.fileId == req.fileId);
     if (existing >= 0) {
       if (existing != _activeTabIndex) {
-        setState(() => _activeTabIndex = existing);
-        _publishBranchTitle();
+        _switchTab(existing);
+      } else {
+        _find.sync(
+          editorReady: _editorReady,
+          tabLoaded: _tabs[existing].loaded,
+        );
       }
       return;
     }
@@ -155,6 +163,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
+    _find.dispose();
     if (_hasTabs &&
         _activeTabIndex < _tabs.length &&
         _activeTab.isDirty &&
@@ -329,6 +338,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     final tab = _activeTab;
     _sendToEditor('setContent', {'markdown': tab.currentContent});
     _sendToEditor('setEditable', {'editable': tab.editable});
+    _find.sync(editorReady: _editorReady, tabLoaded: tab.loaded);
   }
 
   /// At medium width and up the sidebar and tab strip show inline; below it
@@ -512,6 +522,12 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
           'editor bridge error',
           fields: {'error_message': msg['message']?.toString()},
         );
+      case 'findResult':
+        _find.onResult(msg);
+      case 'findRequested':
+        _find.show();
+      case 'closeTabRequested':
+        _closeActiveTabViaShortcut();
     }
   }
 
@@ -794,7 +810,17 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
             // Mobile uses the app bar + swipe-in drawer; desktop reclaims
             // the app-bar height by putting navigation inside the sidebar
             // and per-tab state in the tab bar.
-            appBar: isDesktop ? null : _buildMobileAppBar(),
+            appBar: isDesktop
+                ? null
+                : NotesMobileAppBar(
+                    hasTabs: _hasTabs,
+                    tab: _hasTabs ? _activeTab : null,
+                    onCreateNote: () =>
+                        createNoteAndOpen(context: context, ref: ref),
+                    onSave: _saveActiveContent,
+                    onClose: () => _closeTab(_activeTabIndex),
+                    onFind: _find.show,
+                  ),
             drawer: isDesktop
                 ? null
                 : Drawer(width: 300, child: SafeArea(child: sidebar)),
@@ -832,64 +858,6 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     );
   }
 
-  PreferredSizeWidget _buildMobileAppBar() {
-    if (!_hasTabs) {
-      return NotesLandingAppBar(
-        onCreateNote: () => createNoteAndOpen(context: context, ref: ref),
-      );
-    }
-
-    final tab = _activeTab;
-    final saveWidget = tab.isSaving
-        ? SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: context.colors.iconEmber,
-            ),
-          )
-        : tab.isDirty
-        ? Icon(
-            isApplePlatform ? CupertinoIcons.circle_fill : Icons.circle,
-            size: 8,
-            color: context.colors.iconEmber,
-          )
-        : null;
-
-    // Leave `leading` null so Scaffold keeps the hamburger — the user
-    // can open the sidebar drawer mid-edit to pick a different note
-    // without first closing the current one. Closing happens via the
-    // trailing X action instead.
-    return AppBar(
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (saveWidget != null) ...[saveWidget, const SizedBox(width: 6)],
-          Flexible(
-            child: Text(
-              tab.fileName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        if (tab.isDirty && !tab.isSaving)
-          TextButton(
-            onPressed: _saveActiveContent,
-            child: Text(AppLocalizations.of(context).commonSave),
-          ),
-        IconButton(
-          icon: Icon(isApplePlatform ? CupertinoIcons.xmark : AppIcons.close),
-          tooltip: AppLocalizations.of(context).notesCloseNote,
-          onPressed: () => _closeTab(_activeTabIndex),
-        ),
-      ],
-    );
-  }
-
   Widget _buildMobileBody() => _buildMainArea(showTabs: false);
 
   /// Empty tabs → recent-notes panel; one or more tabs → editor chrome.
@@ -904,6 +872,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
       showTabs: showTabs,
       editorReady: _editorReady,
       editor: _buildEditorContent(),
+      findBar: _find.buildBar(),
       onSelectTab: _switchTab,
       onCloseTab: _closeTab,
       onExpandSidebar: collapsed ? _expandSidebar : null,
@@ -926,40 +895,10 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     'document.activeElement && document.activeElement.blur()',
   );
 
-  Widget _buildEditorContent() {
-    final tab = _activeTab;
+  Widget _buildEditorContent() =>
+      NotesEditorPane(tab: _activeTab, webViewController: _webViewController);
 
-    if (tab.loading || !tab.loaded) {
-      final file = tab.file;
-      if (file != null) {
-        final manager = ref.watch(transferManagerProvider);
-        final transfer = manager.transfers
-            .where(
-              (t) => t.fileId == file.id && t.status == TransferStatus.active,
-            )
-            .firstOrNull;
-
-        return PreviewLoading(
-          progress: transfer?.progress,
-          stage: transfer?.type.label,
-        );
-      }
-      return const PreviewLoading();
-    }
-
-    if (tab.error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(
-            tab.error!,
-            style: TextStyle(color: context.colors.text, fontSize: 14),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
-    return WebViewWidget(controller: _webViewController);
+  void _onFindChanged() {
+    if (mounted) setState(() {});
   }
 }

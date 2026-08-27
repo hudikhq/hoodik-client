@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/crypto/crypto_service.dart';
 import '../../../core/providers.dart';
@@ -24,8 +25,10 @@ String? encryptMcpToken(WidgetRef ref, String plaintext) => encryptMcpTokenWith(
 );
 
 /// Decrypts a token produced by [encryptMcpToken]. Returns null on any failure
-/// (wrong account, corrupted or previous-format ciphertext) so the caller can
-/// fall back to minting a fresh token.
+/// (wrong account, wrapping key not ready, corrupted or previous-format
+/// ciphertext). Callers must not mint or persist a replacement when this
+/// returns null for a stored blob — leave the ciphertext in place until the
+/// user explicitly rotates.
 String? decryptMcpToken(WidgetRef ref, String ciphertext) =>
     decryptMcpTokenWith(
       account: ref.read(activeAccountProvider),
@@ -81,4 +84,50 @@ String? decryptMcpTokenWith({
   } catch (_) {
     return null;
   }
+}
+
+/// Result of [loadMcpBearerToken].
+class McpTokenLoad {
+  const McpTokenLoad({required this.plaintext, required this.minted});
+
+  /// Plaintext bearer, or null when a stored blob could not be decrypted.
+  final String? plaintext;
+
+  /// True when [plaintext] was freshly minted because the DB had no token.
+  final bool minted;
+}
+
+String _mintMcpBearer() => const Uuid().v4();
+
+/// Loads the MCP bearer from stored ciphertext.
+///
+/// Mints a new UUID only when [storedCiphertext] is null or empty (first
+/// time). If ciphertext exists and [decrypt] returns null, [McpTokenLoad.plaintext]
+/// is null and [McpTokenLoad.minted] is false — do not mint, do not persist a
+/// replacement, leave the stored blob as-is.
+McpTokenLoad loadMcpBearerToken({
+  required String? storedCiphertext,
+  required String? Function(String ciphertext) decrypt,
+  String Function()? mint,
+}) {
+  final encrypted = storedCiphertext ?? '';
+  if (encrypted.isEmpty) {
+    return McpTokenLoad(plaintext: (mint ?? _mintMcpBearer)(), minted: true);
+  }
+  return McpTokenLoad(plaintext: decrypt(encrypted), minted: false);
+}
+
+/// Ciphertext to persist when enabling MCP (tray / first-time).
+///
+/// If [storedCiphertext] is non-empty, returns it unchanged — never remints.
+/// If empty, mints a UUID and encrypts it with [encrypt]. Returns null when
+/// encryption cannot proceed.
+String? resolveStoredMcpCiphertext({
+  required String? storedCiphertext,
+  required String? Function(String plaintext) encrypt,
+  String Function()? mint,
+}) {
+  final existing = storedCiphertext ?? '';
+  if (existing.isNotEmpty) return existing;
+  return encrypt((mint ?? _mintMcpBearer)());
 }

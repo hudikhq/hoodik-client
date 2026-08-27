@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 
 import '../api/api_client.dart';
 import '../crypto/file_crypto.dart';
+import '../crypto/off_ui_crypto.dart';
 import '../utils/l10n_lookup.dart';
 import '../workers/worker_manager.dart';
 import 'background_upload_service.dart';
@@ -344,6 +345,11 @@ class FileUploader {
       totalChunks,
       isOwner: file.isOwner,
     );
+    final accountId = _accountId;
+    final offline = _offlineManager;
+    if (accountId != null && offline != null) {
+      await offline.removeCachedFile(accountId, fileId);
+    }
   }
 
   /// Encrypt [plaintext] and upload it as chunks on the main thread, then
@@ -367,22 +373,15 @@ class FileUploader {
       action: 'upload',
     );
 
-    // Encrypted up front rather than chunk by chunk as they go out: the
-    // server signs each chunk's exact ciphertext length into its URL, so the
-    // lengths have to be known before any URL is asked for. A note is small
-    // enough that holding it twice costs nothing.
-    final encrypted = <int, Uint8List>{
-      for (var i = 0; i < totalChunks; i++)
-        i: _fileCrypto.encryptChunk(
-          data: plaintext.sublist(
-            i * kUploadChunkSize,
-            ((i + 1) * kUploadChunkSize).clamp(0, plaintext.length),
-          ),
-          fileKey: fileKey,
-          cipher: cipher,
-          chunkIndex: i,
-        ),
-    };
+    // Encrypted off the UI isolate. sublist views into the plaintext used
+    // to SIGSEGV Dart AOT at 0xf when FRB encoded them on the main isolate
+    // (MCP create_note after a failed mkdir, iOS note save after a 409).
+    final encrypted = await encryptChunksOffUi(
+      cipher: cipher,
+      fileKey: fileKey,
+      plaintext: plaintext,
+      chunkSize: kUploadChunkSize,
+    );
 
     // Not asked for at all on a server that does not serve bucket URLs: the
     // request is refused every time, and a note save is frequent enough that

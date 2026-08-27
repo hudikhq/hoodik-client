@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -494,7 +495,7 @@ class _ErrorView extends StatelessWidget {
 /// `'restore'` when the user taps the restore action so the parent can
 /// chain into the existing confirm-then-restore flow without forcing
 /// the user to swipe back and tap again.
-class _VersionPreviewScreen extends StatelessWidget {
+class _VersionPreviewScreen extends StatefulWidget {
   final FileVersion version;
   final String content;
   final String dateLabel;
@@ -506,7 +507,37 @@ class _VersionPreviewScreen extends StatelessWidget {
   });
 
   @override
+  State<_VersionPreviewScreen> createState() => _VersionPreviewScreenState();
+}
+
+class _VersionPreviewScreenState extends State<_VersionPreviewScreen> {
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onHardwareKey);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onHardwareKey);
+    super.dispose();
+  }
+
+  bool _onHardwareKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    if (!mounted) return false;
+    if (event.logicalKey != LogicalKeyboardKey.escape) return false;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return false;
+    Navigator.of(context).maybePop();
+    return true;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final version = widget.version;
+    final dateLabel = widget.dateLabel;
+    final content = widget.content;
     return Scaffold(
       appBar: AppBar(
         title: Text('v${version.version} · $dateLabel'),

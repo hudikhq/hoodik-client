@@ -121,9 +121,93 @@ class _EntryList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: entries.length,
+      itemCount: entries.length + 1,
       separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (_, index) => _EntryRow(entry: entries[index]),
+      itemBuilder: (_, index) {
+        if (index == 0) return const _EntryHeader();
+        return _EntryRow(entry: entries[index - 1]);
+      },
+    );
+  }
+}
+
+/// First 8 characters of a hex digest (or the whole string if shorter).
+int _prefix(String value) => value.length < 8 ? value.length : 8;
+
+String _prefixed(String value) => '${value.substring(0, _prefix(value))}\u2026';
+
+class _AuditLine extends StatelessWidget {
+  const _AuditLine({
+    required this.tool,
+    required this.timestamp,
+    required this.status,
+    required this.duration,
+    required this.session,
+    required this.params,
+  });
+
+  final Widget tool;
+  final Widget timestamp;
+  final Widget status;
+  final Widget duration;
+  final Widget session;
+  final Widget params;
+
+  static const double _height = 44;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget cell(double width, Widget child) {
+      return SizedBox(
+        width: width,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Align(alignment: Alignment.centerLeft, child: child),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: _height,
+      child: ClipRect(
+        child: Row(
+          children: [
+            cell(140, tool),
+            cell(148, timestamp),
+            cell(72, status),
+            cell(88, duration),
+            cell(108, session),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Align(alignment: Alignment.centerLeft, child: params),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EntryHeader extends StatelessWidget {
+  const _EntryHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final style = TextStyle(
+      fontWeight: FontWeight.w600,
+      fontSize: 12,
+      color: context.colors.textMuted,
+    );
+    return _AuditLine(
+      tool: _Cell('', style: style),
+      timestamp: _Cell(l10n.accountAuditTimestamp, style: style),
+      status: _Cell(l10n.accountAuditStatus, style: style),
+      duration: _Cell(l10n.accountAuditDuration, style: style),
+      session: _Cell(l10n.accountAuditSession, style: style),
+      params: _Cell(l10n.accountAuditParamsHash, style: style),
     );
   }
 }
@@ -136,32 +220,59 @@ class _EntryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return ListTile(
-      title: Text(
-        entry.toolName,
-        style: const TextStyle(fontFamily: 'monospace'),
-      ),
-      subtitle: Text(
-        '${formatRelativeTime(entry.timestamp)} '
-        '\u2022 ${l10n.accountAuditMilliseconds(entry.durationMs)}',
-      ),
-      trailing: _StatusChip(status: entry.resultStatus),
+    const mono = TextStyle(fontFamily: 'monospace', fontSize: 13);
+    return InkWell(
       onTap: () => _showDetail(context, entry),
+      child: _AuditLine(
+        tool: _Cell(entry.toolName, style: mono),
+        timestamp: _Cell(
+          formatAbsoluteDate(entry.timestamp, includeTime: true),
+        ),
+        status: _StatusChip(status: entry.resultStatus),
+        duration: _Cell(l10n.accountAuditMilliseconds(entry.durationMs)),
+        session: _Cell(
+          entry.sessionId.isEmpty ? '—' : _prefixed(entry.sessionId),
+          style: mono,
+        ),
+        params: _Cell(
+          entry.paramsHash.isEmpty
+              ? l10n.accountAuditNoParams
+              : _prefixed(entry.paramsHash),
+          style: mono,
+        ),
+      ),
     );
   }
 
   void _showDetail(BuildContext context, McpAuditLogData entry) {
-    if (isApplePlatform) {
-      showCupertinoModalPopup<void>(
-        context: context,
-        builder: (_) => _DetailSheet(entry: entry),
-      );
-    } else {
-      showModalBottomSheet<void>(
-        context: context,
-        builder: (_) => _DetailSheet(entry: entry),
-      );
-    }
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440, maxHeight: 520),
+          child: _DetailSheet(entry: entry),
+        ),
+      ),
+    );
+  }
+}
+
+class _Cell extends StatelessWidget {
+  const _Cell(this.text, {this.style});
+
+  final String text;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      maxLines: 1,
+      softWrap: false,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
   }
 }
 
@@ -209,14 +320,24 @@ class _DetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.close),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               Text(
                 entry.toolName,
                 style: const TextStyle(
@@ -240,15 +361,13 @@ class _DetailSheet extends StatelessWidget {
               ),
               _DetailRow(
                 label: l10n.accountAuditSession,
-                value: entry.sessionId.isEmpty
-                    ? '—'
-                    : '${entry.sessionId.substring(0, _prefix(entry.sessionId))}\u2026',
+                value: entry.sessionId.isEmpty ? '—' : entry.sessionId,
               ),
               _DetailRow(
                 label: l10n.accountAuditParamsHash,
                 value: entry.paramsHash.isEmpty
                     ? l10n.accountAuditNoParams
-                    : '${entry.paramsHash.substring(0, _prefix(entry.paramsHash))}\u2026',
+                    : entry.paramsHash,
               ),
               _DetailRow(
                 label: l10n.accountTitle,
@@ -266,14 +385,14 @@ class _DetailSheet extends StatelessWidget {
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
                 ),
               ],
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
-
-  int _prefix(String value) => value.length < 8 ? value.length : 8;
 }
 
 class _DetailRow extends StatelessWidget {

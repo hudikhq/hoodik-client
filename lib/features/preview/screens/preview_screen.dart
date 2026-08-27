@@ -45,6 +45,9 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
   /// Vertical drag offset for swipe-down-to-dismiss.
   double _dragOffset = 0;
 
+  /// Native save/share sheets eat the event loop; don't pop on ESC under them.
+  bool _nativeOverlay = false;
+
   final FocusNode _focusNode = FocusNode();
 
   @override
@@ -65,11 +68,12 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
     _resetHideTimer();
-    _focusNode.requestFocus();
+    HardwareKeyboard.instance.addHandler(_onHardwareKey);
   }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onHardwareKey);
     _hideTimer?.cancel();
     _pageController.dispose();
     _focusNode.dispose();
@@ -148,10 +152,16 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
       savePath = await plaintextTempPath(fileId: file.id, basename: fileName);
     } else {
       // On desktop: show a save-file dialog.
-      final picked = await FilePicker.platform.saveFile(
-        dialogTitle: AppLocalizations.of(context).previewSaveFileTitle,
-        fileName: fileName,
-      );
+      _nativeOverlay = true;
+      final String? picked;
+      try {
+        picked = await FilePicker.platform.saveFile(
+          dialogTitle: AppLocalizations.of(context).previewSaveFileTitle,
+          fileName: fileName,
+        );
+      } finally {
+        _nativeOverlay = false;
+      }
       if (picked == null) return; // user dismissed the save dialog — cancel
       savePath = picked;
     }
@@ -254,26 +264,36 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
     _pageController.jumpToPage(_currentIndex);
   }
 
-  void _handleKey(KeyEvent event) {
-    if (event is! KeyDownEvent) return;
+  bool _onHardwareKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    if (!mounted || _nativeOverlay) return false;
+    // Delete confirm (and any other dialog) sits above this route.
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return false;
 
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       _close();
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      return true;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
       if (_currentIndex > 0) {
         _pageController.previousPage(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
         );
       }
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      return true;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
       if (_currentIndex < _files.length - 1) {
         _pageController.nextPage(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
         );
       }
+      return true;
     }
+    return false;
   }
 
   @override
@@ -307,9 +327,9 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
     );
     final opacity = 1.0 - dismissProgress * 0.5;
 
-    return KeyboardListener(
+    return Focus(
       focusNode: _focusNode,
-      onKeyEvent: _handleKey,
+      autofocus: true,
       child: Scaffold(
         backgroundColor: Colors.black.withValues(alpha: opacity),
         body: GestureDetector(

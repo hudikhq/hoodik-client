@@ -87,7 +87,7 @@ void main() {
       gateway = FakeMcpGateway();
 
       final audit = AuditingMcpToolDispatcher(
-        inner: McpToolHandler(gateway),
+        inner: McpToolHandler(gateway, isLocked: () => locked),
         logger: McpAuditLogger(db),
         bearerTokenResolver: () => testBearer,
         accountIdResolver: () => testAccountId,

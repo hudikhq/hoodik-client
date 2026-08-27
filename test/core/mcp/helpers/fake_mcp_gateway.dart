@@ -37,17 +37,17 @@ class FakeMcpGateway implements McpGateway {
   }
 
   @override
-  Future<StorageResponse> listFiles({
-    String? dirId,
-    bool editable = false,
-  }) async {
+  Future<StorageResponse> listFiles({String? dirId, bool? editable}) async {
     final children = files.values.where((f) {
+      // editable:true is a server-side flat list of notes and ignores dir_id.
+      if (editable == true) return f.editable;
+      if (editable == false)
+        return !f.editable &&
+            (dirId == null ? f.fileId == null : f.fileId == dirId);
       final parentMatches = dirId == null
           ? f.fileId == null
           : f.fileId == dirId;
-      if (!parentMatches) return false;
-      if (editable && !f.editable) return false;
-      return true;
+      return parentMatches;
     }).toList();
 
     return StorageResponse(children: children);
@@ -120,12 +120,16 @@ class FakeMcpGateway implements McpGateway {
   }
 
   @override
-  Future<void> uploadFileBytes({
+  Future<({String id, bool existed})> uploadFileBytes({
     required String name,
     required Uint8List bytes,
     String? parentDirId,
   }) async {
     _maybeThrow('write_file');
+    final existing = _existingChildId(name, parentDirId, directory: false);
+    if (existing != null) {
+      return (id: existing, existed: true);
+    }
     final id = _nextId();
     files[id] = FileItem(
       id: id,
@@ -139,11 +143,19 @@ class FakeMcpGateway implements McpGateway {
     );
     bodies[id] = Uint8List.fromList(bytes);
     plaintextNames[id] = name;
+    return (id: id, existed: false);
   }
 
   @override
-  Future<void> createFolder(String name, {String? parentDirId}) async {
+  Future<String> createFolder(String name, {String? parentDirId}) async {
     _maybeThrow('create_directory');
+    for (final entry in files.entries) {
+      if (entry.value.mime == 'dir' &&
+          entry.value.fileId == parentDirId &&
+          plaintextNames[entry.key] == name) {
+        return entry.key;
+      }
+    }
     final id = _nextId();
     files[id] = FileItem(
       id: id,
@@ -155,6 +167,12 @@ class FakeMcpGateway implements McpGateway {
       createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     );
     plaintextNames[id] = name;
+    return id;
+  }
+
+  @override
+  Future<List<String>> decryptFileNames(List<FileItem> files) async {
+    return [for (final f in files) decryptFileNameBestEffort(f)];
   }
 
   @override
@@ -214,12 +232,17 @@ class FakeMcpGateway implements McpGateway {
   }
 
   @override
-  Future<String> createNote(
+  Future<({String id, bool existed})> createNote(
     String name,
     String content, {
     String? parentDirId,
   }) async {
     _maybeThrow('create_note');
+    final existing = _existingChildId(name, parentDirId, directory: false);
+    if (existing != null) {
+      await updateNote(existing, content);
+      return (id: existing, existed: true);
+    }
     final id = _nextId();
     final bytes = Uint8List.fromList(utf8.encode(content));
     files[id] = FileItem(
@@ -235,7 +258,7 @@ class FakeMcpGateway implements McpGateway {
     );
     bodies[id] = bytes;
     plaintextNames[id] = name;
-    return id;
+    return (id: id, existed: false);
   }
 
   @override
@@ -271,6 +294,20 @@ class FakeMcpGateway implements McpGateway {
       throw Exception('File has no encryption key');
     }
     return Uint8List.fromList(utf8.encode(file.encryptedKey!));
+  }
+
+  String? _existingChildId(
+    String name,
+    String? parentDirId, {
+    required bool directory,
+  }) {
+    for (final entry in files.entries) {
+      final f = entry.value;
+      if (f.isDir != directory) continue;
+      if (f.fileId != parentDirId) continue;
+      if (plaintextNames[entry.key] == name) return entry.key;
+    }
+    return null;
   }
 
   String _inferMime(String name) {

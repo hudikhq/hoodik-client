@@ -99,4 +99,109 @@ void main() {
     final acc = account();
     expect(encryptMcpTokenWith(acc, crypto, 'token'), isNull);
   });
+
+  group('loadMcpBearerToken', () {
+    test('mints only when stored ciphertext is empty', () {
+      var mintCount = 0;
+      final loaded = loadMcpBearerToken(
+        storedCiphertext: '',
+        decrypt: (_) => 'should-not-run',
+        mint: () {
+          mintCount++;
+          return 'fresh-uuid';
+        },
+      );
+      expect(loaded.plaintext, 'fresh-uuid');
+      expect(loaded.minted, isTrue);
+      expect(mintCount, 1);
+    });
+
+    test('null stored ciphertext is treated as empty and mints', () {
+      final loaded = loadMcpBearerToken(
+        storedCiphertext: null,
+        decrypt: (_) => 'should-not-run',
+        mint: () => 'fresh-uuid',
+      );
+      expect(loaded.plaintext, 'fresh-uuid');
+      expect(loaded.minted, isTrue);
+    });
+
+    test('does not mint when ciphertext exists but decrypt fails', () {
+      var mintCount = 0;
+      final loaded = loadMcpBearerToken(
+        storedCiphertext: 'existing-blob',
+        decrypt: (_) => null,
+        mint: () {
+          mintCount++;
+          return 'fresh-uuid';
+        },
+      );
+      expect(loaded.plaintext, isNull);
+      expect(loaded.minted, isFalse);
+      expect(mintCount, 0);
+    });
+
+    test('returns decrypted token when ciphertext decrypts', () {
+      var mintCount = 0;
+      final loaded = loadMcpBearerToken(
+        storedCiphertext: 'existing-blob',
+        decrypt: (c) => c == 'existing-blob' ? 'plain-token' : null,
+        mint: () {
+          mintCount++;
+          return 'fresh-uuid';
+        },
+      );
+      expect(loaded.plaintext, 'plain-token');
+      expect(loaded.minted, isFalse);
+      expect(mintCount, 0);
+    });
+  });
+
+  group('resolveStoredMcpCiphertext', () {
+    test('keeps existing ciphertext and does not mint', () {
+      var encryptCount = 0;
+      var mintCount = 0;
+      final result = resolveStoredMcpCiphertext(
+        storedCiphertext: 'existing-blob',
+        encrypt: (p) {
+          encryptCount++;
+          return 'enc($p)';
+        },
+        mint: () {
+          mintCount++;
+          return 'fresh';
+        },
+      );
+      expect(result, 'existing-blob');
+      expect(encryptCount, 0);
+      expect(mintCount, 0);
+    });
+
+    test('mints and encrypts only when DB has no token', () {
+      final result = resolveStoredMcpCiphertext(
+        storedCiphertext: '',
+        encrypt: (p) => 'enc($p)',
+        mint: () => 'fresh',
+      );
+      expect(result, 'enc(fresh)');
+    });
+
+    test('null stored ciphertext mints and encrypts', () {
+      final result = resolveStoredMcpCiphertext(
+        storedCiphertext: null,
+        encrypt: (p) => 'enc($p)',
+        mint: () => 'fresh',
+      );
+      expect(result, 'enc(fresh)');
+    });
+
+    test('returns null when first-time encrypt cannot proceed', () {
+      final result = resolveStoredMcpCiphertext(
+        storedCiphertext: null,
+        encrypt: (_) => null,
+        mint: () => 'fresh',
+      );
+      expect(result, isNull);
+    });
+  });
 }

@@ -188,6 +188,11 @@
   "accountMcpStopServerSubtitle": "Closes the local MCP port",
   "accountMcpTokenCopied": "Token copied to clipboard",
   "accountMcpTokenRegenerated": "Token regenerated",
+  "accountMcpToolsNoParams": "No parameters",
+  "accountMcpToolsRawSchema": "Raw schema",
+  "accountMcpToolsRequired": "required",
+  "accountMcpToolsSubtitle": "What connected agents can call",
+  "accountMcpToolsTitle": "Agent tools",
   "accountMcpUnavailable": "MCP server is unavailable. Log in on macOS to continue.",
   "accountMcpViewAuditLog": "View audit log",
   "accountMcpViewAuditLogSubtitle": "Review every AI tool call",
@@ -1402,6 +1407,22 @@
     }
   },
   "notesFileNotFound": "File not found",
+  "notesFind": "Find",
+  "notesFindClose": "Close find",
+  "notesFindCaseSensitive": "Match case",
+  "notesFindMatches": "{index} of {count}",
+  "@notesFindMatches": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notesFindNext": "Next match",
+  "notesFindPrev": "Previous match",
   "notesFolderName": "folder",
   "notesFolderNameHint": "My folder",
   "notesForkFailed": "Fork failed: {error}",

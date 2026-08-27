@@ -230,7 +230,10 @@ class FilesClient {
     }
 
     final resp = await _dio.post('/api/storage', data: data);
-    return resp.data;
+    final body = resp.data;
+    if (body is Map<String, dynamic>) return body;
+    if (body is Map) return Map<String, dynamic>.from(body);
+    throw StateError('createDirectory returned no JSON body');
   }
 
   /// `POST /api/storage` — create a file metadata entry before uploading
