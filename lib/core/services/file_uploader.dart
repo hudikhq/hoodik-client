@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import '../api/api_client.dart';
 import '../crypto/file_crypto.dart';
 import '../utils/l10n_lookup.dart';
+import '../utils/logger.dart';
 import '../workers/worker_manager.dart';
 import '../workers/worker_messages.dart';
 import 'background_upload_service.dart';
@@ -20,6 +21,8 @@ import 'shared_folder_upload.dart';
 import 'transfer_manager.dart';
 
 export 'binary_upload_pipeline.dart' show kUploadChunkSize;
+
+const _log = Logger('FileUploader');
 
 /// Thrown by [FileUploader.updateNoteContent] when the server keeps
 /// returning 409 even after the automatic `force = true` retry — another
@@ -51,11 +54,6 @@ class FileUploader {
   final OfflineManager? _offlineManager;
   final BackgroundUploadService? _backgroundUploadService;
   final DirectChunkUploadService? _directUpload;
-
-  /// Whether the server advertises bucket URLs. The binary pipeline learns
-  /// this from [_directUpload] being present; a note is written here instead,
-  /// so it needs the flag itself.
-  final bool _directTransfer;
   final UploadTarTransport? _uploadTarTransport;
 
   /// Passed to the pipeline so an upload skips the archive on a server that
@@ -85,7 +83,6 @@ class FileUploader {
     OfflineManager? offlineManager,
     BackgroundUploadService? backgroundUploadService,
     DirectChunkUploadService? directUpload,
-    bool directTransfer = true,
     UploadTarTransport? uploadTarTransport,
     bool tarSupported = true,
     String? accountId,
@@ -100,7 +97,6 @@ class FileUploader {
        _offlineManager = offlineManager,
        _backgroundUploadService = backgroundUploadService,
        _directUpload = directUpload,
-       _directTransfer = directTransfer,
        _uploadTarTransport = uploadTarTransport,
        _tarSupported = tarSupported,
        _accountId = accountId,
@@ -352,6 +348,7 @@ class FileUploader {
     final bytes = Uint8List.fromList(utf8.encode(content));
     final fileSize = bytes.length;
     final totalChunks = (fileSize / kUploadChunkSize).ceil().clamp(1, 1 << 30);
+    _log.info('note save', fields: {'file_id': fileId, 'stage': 'key'});
 
     String? encryptedName;
     if (name != null) {
@@ -372,6 +369,7 @@ class FileUploader {
     final searchTokens = file.isOwner
         ? _fileCrypto.tokenizeForSearch(content)
         : null;
+    _log.info('note save', fields: {'file_id': fileId, 'stage': 'tokenized'});
 
     Future<Map<String, dynamic>> put({required bool force}) =>
         _client.storage.replaceContent(
@@ -404,6 +402,8 @@ class FileUploader {
       }
     }
 
+    _log.info('note save', fields: {'file_id': fileId, 'stage': 'put'});
+
     await _encryptAndUploadContent(
       fileId,
       bytes,
@@ -417,6 +417,7 @@ class FileUploader {
     if (accountId != null && offline != null) {
       await offline.removeCachedFile(accountId, fileId);
     }
+    _log.info('note save', fields: {'file_id': fileId, 'stage': 'done'});
   }
 
   /// Encrypt [plaintext] on the encrypt worker and upload it as chunks,
@@ -470,57 +471,28 @@ class FileUploader {
             '${staging.path}/${i.toString().padLeft(6, '0')}.enc',
           ).readAsBytes(),
       };
+      _log.info('note save', fields: {'file_id': fileId, 'stage': 'encrypted'});
     } finally {
       try {
         await staging.delete(recursive: true);
       } catch (_) {}
     }
 
-    // Not asked for at all on a server that does not serve bucket URLs: the
-    // request is refused every time, and a note save is frequent enough that
-    // one dead round trip per keystroke-batch is worth skipping. The refusal
-    // still decides it whenever the flag says yes.
-    final manifest = !_directTransfer
-        ? null
-        : await _client.files.fetchUploadUrls(
-            fileId: fileId,
-            transferToken: token.token,
-            chunkSizes: {
-              for (final entry in encrypted.entries)
-                entry.key: entry.value.length,
-            },
-          );
-
-    // Covers every chunk or none of them: a note is written in one shot, and a
-    // half-direct write would need the same commit either way for no gain.
-    final direct =
-        manifest != null &&
-        manifest.urls.length >= totalChunks &&
-        !manifest.urls.take(totalChunks).any((url) => url.isEmpty);
-
+    // Always the relaying route, never the presigned-bucket manifest the
+    // binary pipeline uses. A note is a handful of KB, the relay commits
+    // itself as its last chunk arrives on every server, and the manifest
+    // branch died in iOS AOT at a fixed instruction on direct-transfer
+    // servers (SIGSEGV at 0xf, three builds in a row) while this path ran
+    // clean everywhere.
     for (var i = 0; i < totalChunks; i++) {
-      if (direct) {
-        await _client.files.putChunkDirect(
-          url: manifest.urls[i],
-          data: encrypted[i]!,
-        );
-      } else {
-        await _client.files.uploadChunk(
-          fileId: fileId,
-          chunk: i,
-          data: encrypted[i]!,
-        );
-      }
-    }
-
-    // Nothing tells the server a bucket write landed, so the client says so.
-    // The relaying route commits itself as its own last chunk arrives.
-    if (direct) {
-      await _client.files.finalizeDirectUpload(
+      await _client.files.uploadChunk(
         fileId: fileId,
-        transferToken: token.token,
+        chunk: i,
+        data: encrypted[i]!,
       );
     }
+
+    _log.info('note save', fields: {'file_id': fileId, 'stage': 'chunks'});
 
     // Keyed before it touches the wire: the column stores the digest under
     // the file's search key so any key-holder can run the resume equality

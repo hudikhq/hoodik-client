@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
-import 'package:hoodik_app/core/api/chunk_urls_models.dart';
 import 'package:hoodik_app/core/crypto/file_crypto.dart';
 import 'package:hoodik_app/core/services/file_uploader.dart';
 import 'package:hoodik_app/core/workers/worker_manager.dart';
@@ -36,35 +35,14 @@ class _NoteFilesClient extends Fake implements FilesClient {
   final List<String> chunkFileIds = [];
   final List<Uint8List> chunkData = [];
   String? hashedFileId;
-  List<String> uploadUrls = const [];
 
   @override
   Future<Map<String, dynamic>> getFileMetadata(String fileId) async => metadata;
 
-  @override
-  Future<ChunkUrlsResponse?> fetchUploadUrls({
-    required String fileId,
-    required String transferToken,
-    required Map<int, int> chunkSizes,
-  }) async {
-    if (uploadUrls.isEmpty) return null;
-    return ChunkUrlsResponse(
-      urls: uploadUrls,
-      expiresAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
-    );
-  }
-
-  @override
-  Future<void> putChunkDirect({
-    required String url,
-    required Uint8List data,
-  }) async {}
-
-  @override
-  Future<void> finalizeDirectUpload({
-    required String fileId,
-    required String transferToken,
-  }) async {}
+  // No fetchUploadUrls / finalizeDirectUpload overrides on purpose: a note
+  // must never touch the presigned-bucket manifest (that branch SIGSEGV'd
+  // iOS AOT), so any call to them here throws through [Fake] and fails the
+  // test loudly.
 
   @override
   Future<Map<String, dynamic>> uploadChunk({
