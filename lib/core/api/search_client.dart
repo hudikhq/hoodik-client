@@ -28,6 +28,7 @@ class SearchClient {
   Future<List<FileItem>> searchFiles({
     required List<String> rootTags,
     List<String> fileTags = const [],
+    String? nameHash,
     String? dirId,
     int limit = 10,
     int skip = 0,
@@ -40,6 +41,7 @@ class SearchClient {
       'skip': skip,
       'compact': true,
     };
+    if (nameHash != null) data['name_hash'] = nameHash;
     if (dirId != null) data['dir_id'] = dirId;
     if (editable != null) data['editable'] = editable;
 

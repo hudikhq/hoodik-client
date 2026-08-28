@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../api/api_client.dart';
+import '../search/search_rank.dart';
 import 'find_in_note.dart';
 import 'mcp_gateway.dart';
 import 'mcp_protocol.dart';
@@ -345,6 +346,12 @@ class McpToolHandler implements McpToolDispatcher {
     return {'success': true, 'moved': fileIds.length};
   }
 
+  /// Notes above this size are ranked on their name and server evidence only.
+  static const int _hydrateMaxBytes = 512 * 1024;
+
+  /// How many note candidates get their body loaded per search.
+  static const int _hydrateMaxNotes = 20;
+
   Future<List<Map<String, dynamic>>> _searchFiles(
     Map<String, dynamic> args,
   ) async {
@@ -361,16 +368,88 @@ class McpToolHandler implements McpToolDispatcher {
     );
 
     final names = await _gateway.decryptFileNames(files);
-    return [
+
+    // Server recall, client precision: hydrate candidate note bodies, score
+    // against the plaintext only this side holds, and hand the agent each
+    // note's match positions so a follow-up find_in_note round trip is
+    // usually unnecessary.
+    final bodies = await _hydrateNoteBodies(files);
+    final rows = [
       for (var i = 0; i < files.length; i++)
+        RankableRow(
+          id: files[i].id,
+          name: names[i],
+          searchHits: files[i].searchHits,
+          searchNameHits: files[i].searchNameHits,
+          recency: files[i].finishedUploadAt ?? files[i].createdAt ?? 0,
+          body: bodies[files[i].id],
+        ),
+    ];
+
+    return [
+      for (final i in rankSearchResults(query, rows))
         {
           'id': files[i].id,
           'name': names[i],
+          'dir_id': files[i].fileId,
           'mime': files[i].mime,
           'is_dir': files[i].isDir,
           'size': files[i].size,
+          ...switch (bodies[files[i].id]) {
+            final String body => _bodyMatches(body, query),
+            null => const {},
+          },
         },
     ];
+  }
+
+  /// Match positions for a hydrated note body, in `find_in_note` shape so
+  /// agents read one format everywhere. Empty when the literal query does
+  /// not occur — the row may still have ranked on individual words.
+  Map<String, dynamic> _bodyMatches(String body, String query) {
+    if (query.trim().isEmpty) return const {};
+    final scan = findInNotePlaintext(
+      plaintext: body,
+      query: query.trim(),
+      maxMatches: 3,
+      context: 60,
+    );
+    if (scan.matches.isEmpty) return const {};
+    return {
+      'match_count': scan.matchCount,
+      'truncated': scan.truncated,
+      'matches': [for (final m in scan.matches) m.toJson()],
+    };
+  }
+
+  /// Download and decrypt the bodies of the note rows among [files].
+  /// Best-effort: a body that fails to load leaves its row scored on name
+  /// and server evidence alone.
+  Future<Map<String, String>> _hydrateNoteBodies(List<FileItem> files) async {
+    final bodies = <String, String>{};
+    final candidates = files
+        .where(
+          (f) => f.editable && !f.isDir && (f.size ?? 0) <= _hydrateMaxBytes,
+        )
+        .take(_hydrateMaxNotes)
+        .toList();
+
+    const concurrency = 4;
+    for (var i = 0; i < candidates.length; i += concurrency) {
+      await Future.wait(
+        candidates.skip(i).take(concurrency).map((file) async {
+          try {
+            final fileKey = _gateway.decryptFileKey(file);
+            final bytes = await _gateway.downloadFile(file, fileKey: fileKey);
+            bodies[file.id] = utf8.decode(bytes, allowMalformed: true);
+          } catch (_) {
+            // Name-only scoring for this row.
+          }
+        }),
+      );
+    }
+
+    return bodies;
   }
 
   Future<Map<String, dynamic>> _storageStats() async {

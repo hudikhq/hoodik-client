@@ -148,6 +148,10 @@ class ProductionMcpGateway implements McpGateway {
         ...fileCrypto.queryTags(rootKey, query),
         fileCrypto.exactTag(rootKey, exact),
       ],
+      // Hashed the way create hashes names — raw and case-preserving — so a
+      // pasted filename matches the stored name_hash byte for byte and the
+      // server ranks that file first.
+      nameHash: fileCrypto.hashFileName(query.trim()),
       fileTags: sharedKeys.expand((key) {
         final fileKey = fileCrypto.searchFileKeyHex(key);
         return [

@@ -123,6 +123,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ...fileCrypto.queryTags(rootKey, query),
           fileCrypto.exactTag(rootKey, exact),
         ],
+        // Hashed the way create hashes names, raw and case-preserving, so a
+        // pasted filename surfaces that file first.
+        nameHash: fileCrypto.hashFileName(query.trim()),
         fileTags: await ref
             .read(incomingSearchKeysProvider.future)
             .then(
