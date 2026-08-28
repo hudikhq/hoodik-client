@@ -3460,6 +3460,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reindexCancel => 'Cancel';
 
   @override
+  String get reindexDone => 'Done';
+
+  @override
   String get serverTooOldForSearch =>
       'This server is too old for search. Ask whoever runs it to update Hoodik to 2.5.0 or newer.';
 

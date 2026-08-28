@@ -3498,6 +3498,9 @@ class AppLocalizationsHr extends AppLocalizations {
   String get reindexCancel => 'Odustani';
 
   @override
+  String get reindexDone => 'Gotovo';
+
+  @override
   String get serverTooOldForSearch =>
       'Ovaj server je prestar za pretragu. Traži od administratora da ažurira Hoodik na 2.5.0 ili noviji.';
 

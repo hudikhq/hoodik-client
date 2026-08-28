@@ -5715,6 +5715,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get reindexCancel;
 
+  /// No description provided for @reindexDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get reindexDone;
+
   /// No description provided for @serverTooOldForSearch.
   ///
   /// In en, this message translates to:

@@ -948,6 +948,7 @@
   "reindexFailed": "{count} Dateien konnten nicht neu indexiert werden und werden beim nächsten Mal erneut versucht.",
   "reindexBackground": "Im Hintergrund fortsetzen",
   "reindexCancel": "Abbrechen",
+  "reindexDone": "Fertig",
   "serverTooOldForSearch": "Dieser Server ist zu alt für die Suche. Bitte den Betreiber, Hoodik auf 2.5.0 oder neuer zu aktualisieren.",
   "appBelowMinimumVersion": "Dieser Server benötigt eine neuere Version der App. Aktualisiere Hoodik, um sie weiter zu nutzen.",
   "appBelowRecommendedVersion": "Für diesen Server ist eine neuere Version der App verfügbar.",

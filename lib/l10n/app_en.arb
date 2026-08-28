@@ -2453,6 +2453,7 @@
   },
   "reindexBackground": "Continue in background",
   "reindexCancel": "Cancel",
+  "reindexDone": "Done",
   "serverTooOldForSearch": "This server is too old for search. Ask whoever runs it to update Hoodik to 2.5.0 or newer.",
   "appBelowMinimumVersion": "This server needs a newer version of the app. Update Hoodik to keep using it.",
   "appBelowRecommendedVersion": "A newer version of the app is available for this server.",
