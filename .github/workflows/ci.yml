@@ -88,6 +88,8 @@ jobs:
               with:
                   name: release-check-logs
                   path: .release-check/
+                  # The directory is dot-prefixed, which v4 skips by default.
+                  include-hidden-files: true
 
     build-verify-ios:
         name: Build Verify (iOS, no codesign)
