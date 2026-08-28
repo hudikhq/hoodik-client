@@ -28,6 +28,13 @@ class EditorTab {
   bool isSaving;
   String? error;
 
+  /// Bumped on every editor change event. A save captures the value before
+  /// reading the markdown and clears [isDirty] on completion only if it is
+  /// unchanged — keystrokes typed while the save was on the wire would
+  /// otherwise lose their dirty flag and be skipped by autosave and the
+  /// close-tab save.
+  int changeSeq = 0;
+
   EditorTab({
     required this.fileId,
     required this.fileName,

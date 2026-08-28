@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -8,6 +9,7 @@ import 'package:uuid/uuid.dart';
 
 import '../api/api_client.dart';
 import '../crypto/file_crypto.dart';
+import '../crypto/off_ui_crypto.dart';
 import '../providers.dart';
 import '../services/file_operations.dart';
 
@@ -19,7 +21,7 @@ import '../services/file_operations.dart';
 abstract class McpGateway {
   Future<void> ensureFreshSession();
 
-  Future<StorageResponse> listFiles({String? dirId, bool editable = false});
+  Future<StorageResponse> listFiles({String? dirId, bool? editable});
 
   Future<Map<String, dynamic>> getFileMetadata(String fileId);
 
@@ -33,13 +35,19 @@ abstract class McpGateway {
 
   Future<Uint8List> downloadFile(FileItem file, {required Uint8List fileKey});
 
-  Future<void> uploadFileBytes({
+  /// Upload a binary file. Returns the file id and whether it already existed.
+  ///
+  /// A name collision does not overwrite binary content: the existing id is
+  /// returned with `existed: true`. There is no in-place update for binaries.
+  Future<({String id, bool existed})> uploadFileBytes({
     required String name,
     required Uint8List bytes,
     String? parentDirId,
   });
 
-  Future<void> createFolder(String name, {String? parentDirId});
+  Future<String> createFolder(String name, {String? parentDirId});
+
+  Future<List<String>> decryptFileNames(List<FileItem> files);
 
   Future<void> deleteFile(String fileId);
 
@@ -51,7 +59,13 @@ abstract class McpGateway {
 
   Future<void> moveFiles(List<String> fileIds, {String? targetDirId});
 
-  Future<String> createNote(String name, String content, {String? parentDirId});
+  /// Create a markdown note, or upsert if a note with [name] already exists
+  /// in [parentDirId]. `existed: true` means the existing note was updated.
+  Future<({String id, bool existed})> createNote(
+    String name,
+    String content, {
+    String? parentDirId,
+  });
 
   Future<void> updateNote(String fileId, String content, {String? name});
 
@@ -98,7 +112,7 @@ class ProductionMcpGateway implements McpGateway {
   Future<void> ensureFreshSession() => _client().ensureFreshSession();
 
   @override
-  Future<StorageResponse> listFiles({String? dirId, bool editable = false}) {
+  Future<StorageResponse> listFiles({String? dirId, bool? editable}) {
     return _client().files.listFiles(dirId: dirId, editable: editable);
   }
 
@@ -134,6 +148,10 @@ class ProductionMcpGateway implements McpGateway {
         ...fileCrypto.queryTags(rootKey, query),
         fileCrypto.exactTag(rootKey, exact),
       ],
+      // Hashed the way create hashes names — raw and case-preserving — so a
+      // pasted filename matches the stored name_hash byte for byte and the
+      // server ranks that file first.
+      nameHash: fileCrypto.hashFileName(query.trim()),
       fileTags: sharedKeys.expand((key) {
         final fileKey = fileCrypto.searchFileKeyHex(key);
         return [
@@ -155,11 +173,20 @@ class ProductionMcpGateway implements McpGateway {
   }
 
   @override
-  Future<void> uploadFileBytes({
+  Future<({String id, bool existed})> uploadFileBytes({
     required String name,
     required Uint8List bytes,
     String? parentDirId,
   }) async {
+    final existing = await _existingChildId(
+      name,
+      parentDirId,
+      directory: false,
+    );
+    if (existing != null) {
+      return (id: existing, existed: true);
+    }
+
     final tempDir = await getTemporaryDirectory();
     final stagingDir = Directory(
       p.join(tempDir.path, 'mcp_upload_${const Uuid().v4()}'),
@@ -169,16 +196,74 @@ class ProductionMcpGateway implements McpGateway {
     try {
       await File(stagedPath).writeAsBytes(bytes);
       await _ops().uploadFile(stagedPath, parentDirId: parentDirId);
+    } catch (e) {
+      // UploadResume / HTTP 409 / serviceFileAlreadyExists: name is taken.
+      // Do not overwrite binary content; return the existing id instead of
+      // a dead 409.
+      final raced = await _existingChildId(name, parentDirId, directory: false);
+      if (raced != null) return (id: raced, existed: true);
+      rethrow;
     } finally {
       if (await stagingDir.exists()) {
         await stagingDir.delete(recursive: true);
       }
     }
+
+    final id = await _existingChildId(name, parentDirId, directory: false);
+    if (id == null) {
+      throw Exception('Upload completed but file id was not found');
+    }
+    return (id: id, existed: false);
   }
 
   @override
-  Future<void> createFolder(String name, {String? parentDirId}) =>
-      _ops().createFolder(name, parentDirId: parentDirId);
+  Future<String> createFolder(String name, {String? parentDirId}) async {
+    try {
+      return await _ops().createFolder(name, parentDirId: parentDirId);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status != 400 && status != 409 && status != 500) rethrow;
+      final existing = await _existingDirId(name, parentDirId);
+      if (existing != null) return existing;
+      rethrow;
+    }
+  }
+
+  Future<String?> _existingDirId(String name, String? parentDirId) =>
+      _existingChildId(name, parentDirId, directory: true);
+
+  Future<String?> _existingChildId(
+    String name,
+    String? parentDirId, {
+    required bool directory,
+  }) async {
+    final listing = await listFiles(dirId: parentDirId);
+    final names = await decryptFileNames(listing.children);
+    for (var i = 0; i < listing.children.length; i++) {
+      final f = listing.children[i];
+      if (f.isDir != directory) continue;
+      if (names[i] == name) return f.id;
+    }
+    return null;
+  }
+
+  @override
+  Future<List<String>> decryptFileNames(List<FileItem> files) async {
+    if (files.isEmpty) return const [];
+    final crypto = _crypto();
+    return decryptNamesOffUi(
+      privateKeyPem: crypto.privateKeyPem,
+      wrappingPrivateKeyPem: crypto.wrappingPrivateKeyPem,
+      files: [
+        for (final f in files)
+          (
+            encryptedName: f.encryptedName,
+            encryptedKey: f.encryptedKey,
+            cipher: f.cipher,
+          ),
+      ],
+    );
+  }
 
   @override
   Future<void> deleteFile(String fileId) => _ops().delete(fileId);
@@ -197,12 +282,37 @@ class ProductionMcpGateway implements McpGateway {
       _ops().moveMany(fileIds, targetDirId: targetDirId);
 
   @override
-  Future<String> createNote(
+  Future<({String id, bool existed})> createNote(
     String name,
     String content, {
     String? parentDirId,
-  }) {
-    return _ops().createNote(name, content, parentDirId: parentDirId);
+  }) async {
+    final existing = await _existingChildId(
+      name,
+      parentDirId,
+      directory: false,
+    );
+    if (existing != null) {
+      await updateNote(existing, content);
+      return (id: existing, existed: true);
+    }
+    try {
+      final id = await _ops().createNote(
+        name,
+        content,
+        parentDirId: parentDirId,
+      );
+      return (id: id, existed: false);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status != 400 && status != 409 && status != 500) rethrow;
+      final raced = await _existingChildId(name, parentDirId, directory: false);
+      if (raced != null) {
+        await updateNote(raced, content);
+        return (id: raced, existed: true);
+      }
+      rethrow;
+    }
   }
 
   @override

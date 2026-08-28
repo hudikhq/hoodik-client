@@ -39,6 +39,7 @@ void openEditor({
   required Map<String, Uint8List> keys,
   String? parentDirId,
   int returnToBranchIndex = filesBranchIndex,
+  String? highlightQuery,
 }) {
   final markdownFiles = siblings
       .where((f) => isMarkdownFile(f, displayName: names[f.id] ?? ''))
@@ -65,6 +66,7 @@ void openEditor({
     ref,
     file.id,
     returnToBranchIndex: returnToBranchIndex,
+    highlightQuery: highlightQuery,
   );
 
   context.go('/editor/${file.id}');

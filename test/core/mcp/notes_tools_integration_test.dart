@@ -53,6 +53,9 @@ void main() {
         'content': 'entry 1',
       });
       expect(created['success'], isTrue);
+      expect(created['existed'], isFalse);
+      expect(created['id'], isNotEmpty);
+      expect(created['file_id'], created['id']);
 
       final notes = await ctx.invokeList('list_notes', {});
       expect(notes, hasLength(1));
@@ -64,6 +67,44 @@ void main() {
         'list_notes',
       });
       expect(entries.every((e) => e.resultStatus == 'ok'), isTrue);
+    });
+
+    test('list_notes with dir_id only returns notes in that folder', () async {
+      final dir = await ctx.invoke('create_directory', {'name': 'folder'});
+      final dirId = dir['id'] as String;
+      await ctx.invoke('create_note', {'name': 'root.md', 'content': 'root'});
+      await ctx.invoke('create_note', {
+        'name': 'in-folder.md',
+        'content': 'nested',
+        'dir_id': dirId,
+      });
+
+      final scoped = await ctx.invokeList('list_notes', {'dir_id': dirId});
+      expect(scoped.map((n) => n['name']), ['in-folder.md']);
+
+      final all = await ctx.invokeList('list_notes', {});
+      expect(all.map((n) => n['name']).toSet(), {'root.md', 'in-folder.md'});
+    });
+
+    test('create_note upserts when the name already exists', () async {
+      final first = await ctx.invoke('create_note', {
+        'name': 'dup.md',
+        'content': 'v1',
+      });
+      final second = await ctx.invoke('create_note', {
+        'name': 'dup.md',
+        'content': 'v2',
+      });
+      expect(second['success'], isTrue);
+      expect(second['existed'], isTrue);
+      expect(second['id'], first['id']);
+      expect(second['file_id'], first['file_id']);
+      expect(ctx.gateway.files, hasLength(1));
+
+      final reread = await ctx.invoke('read_note', {
+        'file_id': first['file_id'],
+      });
+      expect(reread['content'], 'v2');
     });
 
     test('update_note replaces the content in place', () async {

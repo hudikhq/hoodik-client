@@ -41,6 +41,14 @@ class ChunkDownloadRunner {
     // to spare the server N requests; when the chunks aren't coming from the
     // server at all, bundling them through it is the one thing worth avoiding.
     if (_coversEveryChunk(directUrls, chunkCount)) {
+      _log.info(
+        'download transport',
+        fields: {
+          'file_id': fileId,
+          'transport': 'direct',
+          'chunks': chunkCount,
+        },
+      );
       Future<void> fetch(List<String> urls) => _transport.downloadDirectChunks(
         fileId: fileId,
         urls: urls,
@@ -88,6 +96,14 @@ class ChunkDownloadRunner {
     }
 
     if (_tarCapabilityCache.lookup(baseUrl) == false) {
+      _log.info(
+        'download transport',
+        fields: {
+          'file_id': fileId,
+          'transport': 'relay-chunks',
+          'reason': 'tar_unsupported',
+        },
+      );
       await _transport.downloadPerChunk(
         baseUrl: baseUrl,
         cookie: cookie,
@@ -103,6 +119,10 @@ class ChunkDownloadRunner {
     }
 
     try {
+      _log.info(
+        'download transport',
+        fields: {'file_id': fileId, 'transport': 'relay-tar'},
+      );
       await _transport.downloadAsTar(
         baseUrl: baseUrl,
         cookie: cookie,
@@ -122,6 +142,14 @@ class ChunkDownloadRunner {
         fields: {'base_url': baseUrl, 'error': describeError(e)},
       );
       _tarCapabilityCache.markUnsupported(baseUrl);
+      _log.info(
+        'download transport',
+        fields: {
+          'file_id': fileId,
+          'transport': 'relay-chunks',
+          'reason': 'tar_rejected',
+        },
+      );
       await _transport.downloadPerChunk(
         baseUrl: baseUrl,
         cookie: cookie,

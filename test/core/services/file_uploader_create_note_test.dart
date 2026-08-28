@@ -2,13 +2,15 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
-import 'package:hoodik_app/core/api/chunk_urls_models.dart';
 import 'package:hoodik_app/core/crypto/file_crypto.dart';
 import 'package:hoodik_app/core/services/file_uploader.dart';
 import 'package:hoodik_app/core/services/shared_folder_target.dart';
 import 'package:hoodik_app/core/services/shared_folder_upload.dart';
+import 'package:hoodik_app/core/workers/worker_manager.dart';
 import 'package:hoodik_app/src/rust/api.dart' as rust;
 import 'package:hoodik_app/src/rust/frb_generated.dart';
+
+import '../../helpers/test_workers.dart';
 
 class _FakeResolver extends Fake implements SharedFolderTargetResolver {
   _FakeResolver(this.shared);
@@ -85,43 +87,10 @@ class _NoteFilesClient extends Fake implements FilesClient {
   final List<String> chunkFileIds = [];
   String? hashedFileId;
 
-  /// URLs to hand back when asked for an upload manifest. Empty means the
-  /// server will not sign them, which is every local-disk deployment — and
-  /// the reason the relaying route below still has to work.
-  List<String> uploadUrls = const [];
-  Map<int, int>? declaredSizes;
-  final List<String> directPuts = [];
-  String? finalizedFileId;
-
-  @override
-  Future<ChunkUrlsResponse?> fetchUploadUrls({
-    required String fileId,
-    required String transferToken,
-    required Map<int, int> chunkSizes,
-  }) async {
-    declaredSizes = chunkSizes;
-    if (uploadUrls.isEmpty) return null;
-    return ChunkUrlsResponse(
-      urls: uploadUrls,
-      expiresAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600,
-    );
-  }
-
-  @override
-  Future<void> putChunkDirect({
-    required String url,
-    required Uint8List data,
-  }) async {
-    directPuts.add(url);
-  }
-
-  @override
-  Future<void> finalizeDirectUpload({
-    required String fileId,
-    required String transferToken,
-  }) async {
-    finalizedFileId = fileId;
-  }
+  // No fetchUploadUrls / finalizeDirectUpload overrides on purpose: a note
+  // must never touch the presigned-bucket manifest (that branch SIGSEGV'd
+  // iOS AOT), so any call to them here throws through [Fake] and fails the
+  // test loudly.
 
   @override
   Future<Map<String, dynamic>> createFileEntry({
@@ -196,7 +165,13 @@ class _FakeApiClient extends Fake implements ApiClient {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(() async => await RustLib.init());
+
+  late WorkerManager workers;
+  setUpAll(() async {
+    await RustLib.init();
+    workers = await startTestWorkers();
+  });
+  tearDownAll(() => workers.dispose());
 
   late FileCrypto fileCrypto;
   late String publicKeyPem;
@@ -217,6 +192,7 @@ void main() {
     fileCrypto: fileCrypto,
     publicKeyPem: publicKeyPem,
     defaultCipher: defaultCipher,
+    workerManager: workers,
     sharedTarget: _FakeResolver(shared),
     sharedUpload: upload,
   );
@@ -261,6 +237,15 @@ void main() {
     expect(files.createdCipher, 'aegis128l');
     expect(id, 'owner-note-id');
     expect(files.chunkFileIds.every((f) => f == 'owner-note-id'), isTrue);
+    // A note is searchable from birth: name tokens and body tokens land in
+    // both scopes on the create call itself.
+    expect(files.createdTokensRoot, fileCrypto.tokenizeForSearch('note.md'));
+    expect(files.createdTokensFile, isNotEmpty);
+    expect(
+      files.createdContentTokensRoot,
+      fileCrypto.tokenizeForSearch('# Hi\n'),
+    );
+    expect(files.createdContentTokensFile, isNotEmpty);
   });
 
   test('a note is encrypted with the injected default cipher', () async {
@@ -308,63 +293,21 @@ void main() {
   // Saving a note was the last write in the app still going through the
   // server. Everything else had moved to the bucket, and this one kept
   // relaying because it predates the manifest and nobody had looked at it.
-  group('note content reaches the bucket', () {
-    test(
-      'chunks are written straight to the bucket and then committed',
-      () async {
-        final files = _NoteFilesClient()
-          ..uploadUrls = const ['https://bucket.example.com/obj/000000.chunk'];
-        final uploader = build(
-          files: files,
-          shared: false,
-          upload: _MockSharedFolderUpload(),
-        );
+  group('note content reaches the server', () {
+    test('a note always takes the relaying route', () async {
+      final files = _NoteFilesClient();
+      final uploader = build(
+        files: files,
+        shared: false,
+        upload: _MockSharedFolderUpload(),
+      );
 
-        await uploader.createNote(
-          'note.md',
-          '# Hi\n',
-          parentDirId: 'folder-id',
-        );
+      await uploader.createNote('note.md', '# Hi\n', parentDirId: 'folder-id');
 
-        expect(files.directPuts, hasLength(1));
-        expect(
-          files.chunkFileIds,
-          isEmpty,
-          reason: 'nothing should have relayed',
-        );
-        expect(
-          files.finalizedFileId,
-          'owner-note-id',
-          reason:
-              'a bucket write tells the server nothing until the client does',
-        );
-      },
-    );
-
-    // The server signs each chunk's exact ciphertext length into its URL, so a
-    // declared plaintext length would have the bucket reject every chunk.
-    test(
-      'the declared size is the ciphertext length, not the plaintext one',
-      () async {
-        final files = _NoteFilesClient()
-          ..uploadUrls = const ['https://bucket.example.com/obj/000000.chunk'];
-        final uploader = build(
-          files: files,
-          shared: false,
-          upload: _MockSharedFolderUpload(),
-        );
-
-        const body = '# Hi\n';
-        await uploader.createNote('note.md', body, parentDirId: 'folder-id');
-
-        expect(files.declaredSizes, isNotNull);
-        expect(
-          files.declaredSizes![0],
-          greaterThan(body.length),
-          reason: 'every chunk carries its AEAD tag on top of the payload',
-        );
-      },
-    );
+      // The strict fake has no manifest or finalize stubs, so reaching for
+      // the presigned-bucket path would have thrown before this line.
+      expect(files.chunkFileIds, isNotEmpty);
+    });
 
     test('a new note is indexed by its body, not just its title', () async {
       final files = _NoteFilesClient();
@@ -398,25 +341,6 @@ void main() {
       expect(contentTags, containsAll(expected));
       expect(nameTags.intersection(expected), isEmpty);
       expect(files.createdContentTokensFile, isNotEmpty);
-    });
-
-    test('a server that will not sign the URLs still gets the note', () async {
-      final files = _NoteFilesClient();
-      final uploader = build(
-        files: files,
-        shared: false,
-        upload: _MockSharedFolderUpload(),
-      );
-
-      await uploader.createNote('note.md', '# Hi\n', parentDirId: 'folder-id');
-
-      expect(files.directPuts, isEmpty);
-      expect(files.chunkFileIds, isNotEmpty);
-      expect(
-        files.finalizedFileId,
-        isNull,
-        reason: 'the relaying route commits itself as its last chunk lands',
-      );
     });
   });
 }

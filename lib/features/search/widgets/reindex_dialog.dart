@@ -26,6 +26,14 @@ class ReindexDialog extends ConsumerStatefulWidget {
 
 class _ReindexDialogState extends ConsumerState<ReindexDialog> {
   late ReindexProgress _progress = widget.service.current;
+
+  /// A finished sweep keeps the dialog up until the user dismisses it — the
+  /// result (and any failures) should be seen, not vanish mid-read. Seeded
+  /// true when the sweep already completed before the dialog opened; the
+  /// fresh-service seed is `running: false` with nothing counted yet, which
+  /// is "not started", not "done".
+  late bool _finished = !_progress.running && _progress.total > 0;
+
   StreamSubscription<ReindexProgress>? _sub;
 
   @override
@@ -38,12 +46,14 @@ class _ReindexDialogState extends ConsumerState<ReindexDialog> {
     _sub = widget.service.progress.listen(
       (progress) {
         if (!mounted) return;
-        setState(() => _progress = progress);
-        // Nothing left to watch: close rather than leave a full bar sitting
-        // there waiting to be dismissed.
-        if (!progress.running) Navigator.of(context).maybePop();
+        setState(() {
+          _progress = progress;
+          if (!progress.running) _finished = true;
+        });
       },
       onError: (_) {
+        // A broken stream can never reach the done state; closing beats a
+        // dialog stuck mid-bar with no working exit.
         if (mounted) Navigator.of(context).maybePop();
       },
     );
@@ -90,23 +100,31 @@ class _ReindexDialogState extends ConsumerState<ReindexDialog> {
           ],
         ],
       ),
-      actions: [
-        TextButton(
-          // Stops after the batch in flight. Whatever is left stays pending
-          // server-side, so the next session picks it up.
-          onPressed: () {
-            widget.service.cancel();
-            Navigator.of(context).maybePop();
-          },
-          child: Text(l10n.reindexCancel),
-        ),
-        TextButton(
-          // Closes the dialog and lets the sweep finish: the service drives
-          // it, not this widget, so closing here detaches only the observer.
-          onPressed: () => Navigator.of(context).maybePop(),
-          child: Text(l10n.reindexBackground),
-        ),
-      ],
+      actions: _finished
+          ? [
+              TextButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: Text(l10n.reindexDone),
+              ),
+            ]
+          : [
+              TextButton(
+                // Stops after the batch in flight. Whatever is left stays
+                // pending server-side, so the next session picks it up.
+                onPressed: () {
+                  widget.service.cancel();
+                  Navigator.of(context).maybePop();
+                },
+                child: Text(l10n.reindexCancel),
+              ),
+              TextButton(
+                // Closes the dialog and lets the sweep finish: the service
+                // drives it, not this widget, so closing here detaches only
+                // the observer.
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: Text(l10n.reindexBackground),
+              ),
+            ],
     );
   }
 }

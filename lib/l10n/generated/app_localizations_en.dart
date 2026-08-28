@@ -418,6 +418,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountMcpTokenRegenerated => 'Token regenerated';
 
   @override
+  String get accountMcpToolsNoParams => 'No parameters';
+
+  @override
+  String get accountMcpToolsRawSchema => 'Raw schema';
+
+  @override
+  String get accountMcpToolsRequired => 'required';
+
+  @override
+  String get accountMcpToolsSubtitle => 'What connected agents can call';
+
+  @override
+  String get accountMcpToolsTitle => 'Agent tools';
+
+  @override
   String get accountMcpUnavailable =>
       'MCP server is unavailable. Log in on macOS to continue.';
 
@@ -2242,6 +2257,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesFileNotFound => 'File not found';
 
   @override
+  String get notesFind => 'Find';
+
+  @override
+  String get notesFindClose => 'Close find';
+
+  @override
+  String get notesFindCaseSensitive => 'Match case';
+
+  @override
+  String notesFindMatches(int index, int count) {
+    return '$index of $count';
+  }
+
+  @override
+  String get notesFindNext => 'Next match';
+
+  @override
+  String get notesFindPrev => 'Previous match';
+
+  @override
   String get notesFolderName => 'folder';
 
   @override
@@ -3423,6 +3458,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reindexCancel => 'Cancel';
+
+  @override
+  String get reindexDone => 'Done';
 
   @override
   String get serverTooOldForSearch =>

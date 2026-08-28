@@ -79,25 +79,28 @@ class _McpConnectWizardScreenState
 
     if (!mounted) return;
 
-    var token = '';
-    final encrypted = settings?.bearerToken ?? '';
-    if (encrypted.isNotEmpty) {
-      token = decryptMcpToken(ref, encrypted) ?? '';
-    }
-    if (token.isEmpty) {
-      token = const Uuid().v4();
-    }
+    final loaded = loadMcpBearerToken(
+      storedCiphertext: settings?.bearerToken,
+      decrypt: (ciphertext) => decryptMcpToken(ref, ciphertext),
+      keysReady: mcpTokenKeysReady(ref),
+    );
 
     setState(() {
       _port = settings?.port ?? kDefaultMcpPort;
-      _bearerToken = token;
+      _bearerToken = loaded.plaintext ?? '';
       _loading = false;
     });
+
+    // First-time mint: persist immediately so the token stays until rotate.
+    if (loaded.minted && (loaded.plaintext ?? '').isNotEmpty) {
+      await _persistSettings(enabled: settings?.enabled ?? false);
+    }
   }
 
   Future<void> _persistSettings({bool enabled = true}) async {
     final accountId = _accountId;
     if (accountId == null) return;
+    if (_bearerToken.isEmpty) return;
 
     final encrypted = encryptMcpToken(ref, _bearerToken);
     if (encrypted == null) return;
@@ -129,7 +132,7 @@ class _McpConnectWizardScreenState
 
     await _persistSettings(enabled: true);
     try {
-      if (!server.isRunning) {
+      if (!server.isRunning && _bearerToken.isNotEmpty) {
         await server.start(port: _port, bearerToken: _bearerToken);
       }
     } catch (e) {
@@ -302,6 +305,8 @@ class _McpConnectWizardScreenState
             WizardClientStep(
               port: _port,
               bearerToken: _bearerToken,
+              accountEmail: ref.watch(activeAccountProvider)?.email,
+              serverUrl: ref.watch(activeServerProvider)?.url,
               selected: _selectedClient,
               platform: _clientPlatform(),
               onSelected: (k) => setState(() => _selectedClient = k),

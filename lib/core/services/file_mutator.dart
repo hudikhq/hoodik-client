@@ -4,6 +4,7 @@ import '../api/api_client.dart';
 import '../crypto/file_crypto.dart';
 import 'shared_folder_target.dart';
 import 'shared_folder_upload.dart';
+import '../crypto/off_ui_crypto.dart';
 
 /// Metadata-only "write" operations against the files tree: create folder,
 /// rename, delete, move. Every operation that mutates a file or directory
@@ -43,25 +44,21 @@ class FileMutator {
   /// via the multi-key path (the server honours `mime: 'dir'` there), so the
   /// roster can decrypt the names of its children; [parentItem], when held,
   /// spares the share-status check a metadata round-trip.
-  Future<void> createFolder(
+  Future<String> createFolder(
     String name, {
     String? parentDirId,
     FileItem? parentItem,
   }) async {
     final cipher = _defaultCipher;
 
-    final fileKey = _fileCrypto.generateFileKey(cipher: cipher);
-    final nameHash = _fileCrypto.hashFileName(name);
-    final encryptedName = _fileCrypto.encryptFileName(
+    final prepared = await prepareFolderCreateOffUi(
       name: name,
-      fileKey: fileKey,
       cipher: cipher,
+      privateKeyPem: _fileCrypto.privateKeyPem,
+      wrappingPrivateKeyPem: _fileCrypto.wrappingPrivateKeyPem,
+      publicKeyPem: _publicKeyPem,
     );
-    final searchTokens = _fileCrypto.tokenizeForSearch(name);
-    final searchTokensFile = _fileCrypto.tokenizeForSearchWithFileKey(
-      fileKey,
-      name,
-    );
+    final fileKey = prepared.fileKey;
 
     final sharedId = await multiKeyCreateOrNull(
       resolver: _sharedTarget,
@@ -69,29 +66,30 @@ class FileMutator {
       parentDirId: parentDirId,
       parentItem: parentItem,
       fileKey: fileKey,
-      nameHash: nameHash,
-      encryptedName: encryptedName,
+      nameHash: prepared.nameHash,
+      encryptedName: prepared.encryptedName,
       mime: 'dir',
       cipher: cipher,
       chunks: 0,
-      searchTokensRoot: searchTokens,
-      searchTokensFile: searchTokensFile,
+      searchTokensRoot: prepared.searchTokensRoot,
+      searchTokensFile: prepared.searchTokensFile,
     );
-    if (sharedId != null) return;
+    if (sharedId != null) return sharedId;
 
-    final encryptedKey = _fileCrypto.encryptFileKey(
-      fileKey: fileKey,
-      publicKeyPem: _publicKeyPem,
-    );
-    await _client.files.createDirectory(
-      encryptedKey: encryptedKey,
-      nameHash: nameHash,
-      encryptedName: encryptedName,
+    final data = await _client.files.createDirectory(
+      encryptedKey: prepared.encryptedKey,
+      nameHash: prepared.nameHash,
+      encryptedName: prepared.encryptedName,
       parentDirId: parentDirId,
       cipher: cipher,
-      searchTokensRoot: searchTokens,
-      searchTokensFile: searchTokensFile,
+      searchTokensRoot: prepared.searchTokensRoot,
+      searchTokensFile: prepared.searchTokensFile,
     );
+    final id = data['id'] as String?;
+    if (id == null || id.isEmpty) {
+      throw StateError('createDirectory returned no id');
+    }
+    return id;
   }
 
   /// Rename a file or directory. The caller must provide the decrypted

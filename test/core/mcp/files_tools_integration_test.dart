@@ -17,6 +17,7 @@ void main() {
       expect(items, hasLength(1));
       expect(items.single['name'], 'docs');
       expect(items.single['is_dir'], isTrue);
+      expect(items.single['editable'], isFalse);
       expect(ctx.gateway.ensuredFreshSession, isTrue);
 
       await ctx.assertOneAuditEntry(toolName: 'list_files', status: 'ok');
@@ -50,10 +51,33 @@ void main() {
         'content': '{"a":1}',
       });
       expect(result['success'], isTrue);
+      expect(result['existed'], isFalse);
+      expect(result['id'], isNotEmpty);
+      expect(result['name'], 'note.json');
+      expect(result['size'], '{"a":1}'.length);
       expect(ctx.gateway.files.length, before + 1);
+      expect(ctx.gateway.files.containsKey(result['id']), isTrue);
       expect(ctx.gateway.plaintextNames.values, contains('note.json'));
 
       await ctx.assertOneAuditEntry(toolName: 'write_file', status: 'ok');
+    });
+
+    test('duplicate name returns existing id without overwriting', () async {
+      final first = await ctx.invoke('write_file', {
+        'name': 'dup.txt',
+        'content': 'original',
+      });
+      final second = await ctx.invoke('write_file', {
+        'name': 'dup.txt',
+        'content': 'replacement',
+      });
+      expect(second['success'], isTrue);
+      expect(second['existed'], isTrue);
+      expect(second['id'], first['id']);
+      expect(ctx.gateway.files, hasLength(1));
+
+      final reread = await ctx.invoke('read_file', {'file_id': first['id']});
+      expect(reread['content'], 'original');
     });
   });
 
@@ -129,11 +153,21 @@ void main() {
     test('adds a new directory entry and audits ok', () async {
       final result = await ctx.invoke('create_directory', {'name': 'projects'});
       expect(result['success'], isTrue);
+      expect(result['id'], isNotEmpty);
       final created = ctx.gateway.files.values.single;
+      expect(result['id'], created.id);
       expect(created.isDir, isTrue);
       expect(ctx.gateway.plaintextNames[created.id], 'projects');
 
       await ctx.assertOneAuditEntry(toolName: 'create_directory', status: 'ok');
+    });
+
+    test('duplicate name returns the existing id instead of failing', () async {
+      final first = await ctx.invoke('create_directory', {'name': 'projects'});
+      final second = await ctx.invoke('create_directory', {'name': 'projects'});
+      expect(second['success'], isTrue);
+      expect(second['id'], first['id']);
+      expect(ctx.gateway.files, hasLength(1));
     });
   });
 

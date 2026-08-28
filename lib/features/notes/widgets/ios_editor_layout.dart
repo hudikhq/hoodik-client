@@ -62,6 +62,7 @@ void applyIosEditorInset(WebViewController controller, double inset) {
 /// back into the page via [applyIosEditorInset].
 class IosEditorLayout extends StatefulWidget {
   final Widget? tabBar;
+  final Widget? findBar;
   final Widget? toolbar;
   final Widget editor;
   final ValueChanged<double> onBottomInsetChanged;
@@ -69,6 +70,7 @@ class IosEditorLayout extends StatefulWidget {
   const IosEditorLayout({
     super.key,
     this.tabBar,
+    this.findBar,
     this.toolbar,
     required this.editor,
     required this.onBottomInsetChanged,
@@ -125,6 +127,7 @@ class _IosEditorLayoutState extends State<IosEditorLayout> {
         Column(
           children: [
             ?widget.tabBar,
+            ?widget.findBar,
             Expanded(
               child: Padding(
                 padding: EdgeInsets.only(bottom: _reservedSlot(mq)),

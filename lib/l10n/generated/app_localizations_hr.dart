@@ -421,6 +421,21 @@ class AppLocalizationsHr extends AppLocalizations {
   String get accountMcpTokenRegenerated => 'Token je regeneriran';
 
   @override
+  String get accountMcpToolsNoParams => 'Nema parametara';
+
+  @override
+  String get accountMcpToolsRawSchema => 'Sirova shema';
+
+  @override
+  String get accountMcpToolsRequired => 'obavezno';
+
+  @override
+  String get accountMcpToolsSubtitle => 'Što povezani agenti mogu pozvati';
+
+  @override
+  String get accountMcpToolsTitle => 'Alati agenta';
+
+  @override
   String get accountMcpUnavailable =>
       'MCP server nije dostupan. Prijavi se na macOS-u za nastavak.';
 
@@ -2269,6 +2284,26 @@ class AppLocalizationsHr extends AppLocalizations {
   String get notesFileNotFound => 'Datoteka nije pronađena';
 
   @override
+  String get notesFind => 'Pronađi';
+
+  @override
+  String get notesFindClose => 'Zatvori pretragu';
+
+  @override
+  String get notesFindCaseSensitive => 'Razlikuj velika i mala slova';
+
+  @override
+  String notesFindMatches(int index, int count) {
+    return '$index od $count';
+  }
+
+  @override
+  String get notesFindNext => 'Sljedeće poklapanje';
+
+  @override
+  String get notesFindPrev => 'Prethodno poklapanje';
+
+  @override
   String get notesFolderName => 'folder';
 
   @override
@@ -3461,6 +3496,9 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get reindexCancel => 'Odustani';
+
+  @override
+  String get reindexDone => 'Gotovo';
 
   @override
   String get serverTooOldForSearch =>

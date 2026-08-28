@@ -47,7 +47,7 @@ void main() {
     allowReadOnly = false;
 
     auditing = AuditingMcpToolDispatcher(
-      inner: McpToolHandler(gateway),
+      inner: McpToolHandler(gateway, isLocked: () => locked),
       logger: auditLogger,
       bearerTokenResolver: () => 'bearer-token',
       accountIdResolver: () => 'acct',
@@ -67,12 +67,15 @@ void main() {
 
   test('read-only tool classification covers list/search/storage tools', () {
     expect(isReadOnlyMcpTool('list_files'), isTrue);
+    expect(isReadOnlyMcpTool('resolve_path'), isTrue);
     expect(isReadOnlyMcpTool('list_notes'), isTrue);
     expect(isReadOnlyMcpTool('search_files'), isTrue);
     expect(isReadOnlyMcpTool('storage_stats'), isTrue);
+    expect(isReadOnlyMcpTool('health'), isTrue);
 
     expect(isReadOnlyMcpTool('read_file'), isFalse);
     expect(isReadOnlyMcpTool('read_note'), isFalse);
+    expect(isReadOnlyMcpTool('find_in_note'), isFalse);
     expect(isReadOnlyMcpTool('write_file'), isFalse);
     expect(isReadOnlyMcpTool('rename_file'), isFalse);
     expect(isReadOnlyMcpTool('delete_file'), isFalse);
@@ -138,6 +141,40 @@ void main() {
     final entries = await db.getMcpAuditEntries();
     expect(entries.where((e) => e.resultStatus == 'ok'), hasLength(1));
     expect(entries.where((e) => e.resultStatus == 'denied'), isEmpty);
+  });
+
+  test(
+    'health when locked is allowed even if read-only policy is off',
+    () async {
+      locked = true;
+      allowReadOnly = false;
+
+      final response = await _call(makeDispatcher(), 'health');
+      expect(_isLockedError(response), isFalse);
+      expect(response['error'], isNull);
+
+      final result = response['result'] as Map<String, dynamic>;
+      expect(result['isError'], isNot(true));
+      final text = (result['content'] as List).first['text'] as String;
+      expect(text, contains('"running":true'));
+      expect(text, contains('"locked":true'));
+      expect(text, contains('"ready":false'));
+
+      final entries = await db.getMcpAuditEntries();
+      expect(entries.where((e) => e.resultStatus == 'denied'), isEmpty);
+    },
+  );
+
+  test('health when unlocked reports ready', () async {
+    locked = false;
+
+    final response = await _call(makeDispatcher(), 'health');
+    expect(_isLockedError(response), isFalse);
+    final result = response['result'] as Map<String, dynamic>;
+    final text = (result['content'] as List).first['text'] as String;
+    expect(text, contains('"running":true'));
+    expect(text, contains('"locked":false'));
+    expect(text, contains('"ready":true'));
   });
 
   test('locked + crypto tool + policy on = still denied', () async {

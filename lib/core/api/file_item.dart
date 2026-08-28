@@ -85,6 +85,13 @@ class FileItem {
   /// listing withheld the blob itself.
   final bool hasThumbnail;
 
+  /// Search-only ranking evidence: distinct query tags this row matched.
+  /// Null outside search responses.
+  final int? searchHits;
+
+  /// Search-only: how many matched index rows came from the name source.
+  final int? searchNameHits;
+
   bool get isDir => mime == 'dir';
   bool get isUploading => finishedUploadAt == null && !isDir;
   bool get hasPendingEdit => pendingVersion != null;
@@ -125,6 +132,8 @@ class FileItem {
     this.sharedByEmail,
     this.sharedWithCount,
     this.hasThumbnail = false,
+    this.searchHits,
+    this.searchNameHits,
   });
 
   factory FileItem.fromJson(Map<String, dynamic> json) {
@@ -163,6 +172,8 @@ class FileItem {
       sharedWithCount: json['shared_with_count'] as int?,
       hasThumbnail:
           json['has_thumbnail'] as bool? ?? json['encrypted_thumbnail'] != null,
+      searchHits: json['search_hits'] as int?,
+      searchNameHits: json['search_name_hits'] as int?,
     );
   }
 
@@ -195,6 +206,8 @@ class FileItem {
       sharedByEmail: sharedByEmail,
       sharedWithCount: sharedWithCount ?? this.sharedWithCount,
       hasThumbnail: hasThumbnail,
+      searchHits: searchHits,
+      searchNameHits: searchNameHits,
     );
   }
 

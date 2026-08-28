@@ -5,8 +5,11 @@ import 'package:hoodik_app/core/api/api_client.dart';
 import 'package:hoodik_app/core/api/chunk_urls_models.dart';
 import 'package:hoodik_app/core/crypto/crypto_service.dart';
 import 'package:hoodik_app/core/services/file_operations.dart';
+import 'package:hoodik_app/core/workers/worker_manager.dart';
 import 'package:hoodik_app/src/rust/api.dart' as rust;
 import 'package:hoodik_app/src/rust/frb_generated.dart';
+
+import '../../helpers/test_workers.dart';
 
 /// Records the `encrypted_key` the owner-only create/upload paths post so a
 /// test can round-trip it back through the account's own key.
@@ -118,7 +121,13 @@ class _FakeApiClient extends Fake implements ApiClient {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(() async => await RustLib.init());
+
+  late WorkerManager workers;
+  setUpAll(() async {
+    await RustLib.init();
+    workers = await startTestWorkers();
+  });
+  tearDownAll(() => workers.dispose());
 
   const crypto = CryptoService();
   late _CapturingFilesClient files;
@@ -137,6 +146,7 @@ void main() {
     wrappingPrivateKeyPem: wrappingPrivateKeyPem,
     wrappingPublicKeyPem: wrappingPublicKeyPem,
     crypto: crypto,
+    workerManager: workers,
   );
 
   group('curve25519 account', () {

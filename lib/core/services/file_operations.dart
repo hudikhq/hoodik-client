@@ -117,7 +117,6 @@ class FileOperations {
         offlineManager: offlineManager,
         backgroundUploadService: backgroundUploadService,
         directUpload: directUpload,
-        directTransfer: directTransfer,
         uploadTarTransport: uploadTarTransport,
         tarSupported: tarSupported,
         accountId: accountId,
@@ -141,8 +140,11 @@ class FileOperations {
     _downloader.requestCancel(fileId);
   }
 
-  Future<void> createFolder(String name, {String? parentDirId}) =>
-      _mutator.createFolder(name, parentDirId: parentDirId).then(_bump);
+  Future<String> createFolder(String name, {String? parentDirId}) async {
+    final id = await _mutator.createFolder(name, parentDirId: parentDirId);
+    _bump();
+    return id;
+  }
 
   Future<void> rename(
     FileItem file,

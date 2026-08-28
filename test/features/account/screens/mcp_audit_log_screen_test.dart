@@ -122,10 +122,11 @@ void main() {
     await tester.tap(find.text('list_files'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Timestamp'), findsOneWidget);
-    expect(find.text('Duration'), findsOneWidget);
-    expect(find.text('Session'), findsOneWidget);
-    expect(find.text('Params hash'), findsOneWidget);
+    // Header row and detail sheet both use these labels.
+    expect(find.text('Timestamp'), findsNWidgets(2));
+    expect(find.text('Duration'), findsNWidgets(2));
+    expect(find.text('Session'), findsNWidgets(2));
+    expect(find.text('Params hash'), findsNWidgets(2));
     expect(find.text('Account'), findsOneWidget);
   });
 

@@ -14,7 +14,7 @@ import '../../../core/utils/logger.dart';
 import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/helpers/file_helpers.dart' show formatErrorMessage;
-import '../widgets/markdown_preview_webview.dart';
+import '../widgets/version_preview_screen.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/theme/hoodik_scheme.dart';
 import '../widgets/version_row.dart';
@@ -133,7 +133,7 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
       // there — saves them the second tap on the history list.
       final result = await Navigator.of(context).push<String>(
         MaterialPageRoute(
-          builder: (_) => _VersionPreviewScreen(
+          builder: (_) => VersionPreviewScreen(
             version: v,
             content: text,
             dateLabel: _formatDate(v.createdAt),
@@ -486,42 +486,6 @@ class _ErrorView extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Full-screen renderer for a historical version's content. Pops with
-/// `'restore'` when the user taps the restore action so the parent can
-/// chain into the existing confirm-then-restore flow without forcing
-/// the user to swipe back and tap again.
-class _VersionPreviewScreen extends StatelessWidget {
-  final FileVersion version;
-  final String content;
-  final String dateLabel;
-
-  const _VersionPreviewScreen({
-    required this.version,
-    required this.content,
-    required this.dateLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('v${version.version} · $dateLabel'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.restore),
-            tooltip: AppLocalizations.of(context).notesRestoreThisVersion,
-            onPressed: () => Navigator.of(context).pop('restore'),
-          ),
-        ],
-      ),
-      // Reuse the live editor's HTML/Milkdown stack in read-only mode
-      // — gives byte-identical rendering to what the user sees while
-      // editing, including TOC anchors that scroll on tap.
-      body: MarkdownPreviewWebView(content: content),
     );
   }
 }

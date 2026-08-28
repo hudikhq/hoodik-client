@@ -10,10 +10,12 @@ import 'package:hoodik_app/core/mcp/mcp_tool_handler.dart';
 /// rejected at the transport layer rather than merely answered with an error.
 class _RecordingDispatcher implements McpToolDispatcher {
   final List<String> calls = [];
+  Object? throwWith;
 
   @override
   Future<Map<String, dynamic>> handleToolCall(McpRequest request) async {
     calls.add((request.params?['name'] as String?) ?? '<none>');
+    if (throwWith != null) throw throwWith!;
     return mcpResponse(request.id, {'content': <Object>[]});
   }
 }
@@ -68,6 +70,29 @@ void main() {
       expect(server.isRunning, isTrue);
     });
 
+    test('a dispatcher throw is JSON-RPC, not a dropped connection', () async {
+      dispatcher.throwWith = StateError('boom');
+      final response = await send(
+        'POST',
+        url(),
+        authToken: token,
+        body: {
+          'jsonrpc': '2.0',
+          'method': 'tools/call',
+          'id': 7,
+          'params': {'name': 'list_files', 'arguments': <String, dynamic>{}},
+        },
+      );
+
+      expect(response.statusCode, 200);
+      final payload =
+          jsonDecode(await utf8.decoder.bind(response).join())
+              as Map<String, dynamic>;
+      expect(payload['id'], 7);
+      expect(payload['error'], isA<Map<String, dynamic>>());
+      expect(payload['error']['code'], jsonRpcInternalError);
+    });
+
     test('a valid call reaches the dispatcher', () async {
       final response = await send(
         'POST',
@@ -85,6 +110,24 @@ void main() {
       expect(dispatcher.calls, ['list_files']);
     });
 
+    test('tools/list includes health', () async {
+      final response = await send(
+        'POST',
+        url(),
+        authToken: token,
+        body: {'jsonrpc': '2.0', 'method': 'tools/list', 'id': 3},
+      );
+
+      expect(response.statusCode, 200);
+      final payload =
+          jsonDecode(await utf8.decoder.bind(response).join())
+              as Map<String, dynamic>;
+      final tools = (payload['result']['tools'] as List).cast<Map>();
+      expect(tools.map((t) => t['name']), contains('health'));
+      final health = tools.firstWhere((t) => t['name'] == 'health');
+      expect((health['inputSchema'] as Map).containsKey('required'), isFalse);
+    });
+
     group('bearer auth', () {
       test('POST without a token never reaches the dispatcher', () async {
         final response = await send(
@@ -95,6 +138,15 @@ void main() {
 
         expect(response.statusCode, 401);
         expect(dispatcher.calls, isEmpty);
+
+        final payload =
+            jsonDecode(await utf8.decoder.bind(response).join())
+                as Map<String, dynamic>;
+        expect(payload['id'], 1);
+        expect(payload['error']['code'], -32000);
+        expect(payload['error']['message'], contains('bearer token'));
+        expect(payload['error']['message'], contains('AI Access'));
+        expect(payload['error']['message'], isNot(equals('Unauthorized')));
       });
 
       test('POST with the wrong token is rejected', () async {

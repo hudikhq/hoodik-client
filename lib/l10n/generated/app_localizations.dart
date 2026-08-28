@@ -810,6 +810,36 @@ abstract class AppLocalizations {
   /// **'Token regenerated'**
   String get accountMcpTokenRegenerated;
 
+  /// No description provided for @accountMcpToolsNoParams.
+  ///
+  /// In en, this message translates to:
+  /// **'No parameters'**
+  String get accountMcpToolsNoParams;
+
+  /// No description provided for @accountMcpToolsRawSchema.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw schema'**
+  String get accountMcpToolsRawSchema;
+
+  /// No description provided for @accountMcpToolsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'required'**
+  String get accountMcpToolsRequired;
+
+  /// No description provided for @accountMcpToolsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What connected agents can call'**
+  String get accountMcpToolsSubtitle;
+
+  /// No description provided for @accountMcpToolsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent tools'**
+  String get accountMcpToolsTitle;
+
   /// No description provided for @accountMcpUnavailable.
   ///
   /// In en, this message translates to:
@@ -3792,6 +3822,42 @@ abstract class AppLocalizations {
   /// **'File not found'**
   String get notesFileNotFound;
 
+  /// No description provided for @notesFind.
+  ///
+  /// In en, this message translates to:
+  /// **'Find'**
+  String get notesFind;
+
+  /// No description provided for @notesFindClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close find'**
+  String get notesFindClose;
+
+  /// No description provided for @notesFindCaseSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'Match case'**
+  String get notesFindCaseSensitive;
+
+  /// No description provided for @notesFindMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'{index} of {count}'**
+  String notesFindMatches(int index, int count);
+
+  /// No description provided for @notesFindNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next match'**
+  String get notesFindNext;
+
+  /// No description provided for @notesFindPrev.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous match'**
+  String get notesFindPrev;
+
   /// No description provided for @notesFolderName.
   ///
   /// In en, this message translates to:
@@ -5648,6 +5714,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get reindexCancel;
+
+  /// No description provided for @reindexDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get reindexDone;
 
   /// No description provided for @serverTooOldForSearch.
   ///

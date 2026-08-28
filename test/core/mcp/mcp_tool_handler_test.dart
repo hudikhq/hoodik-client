@@ -11,6 +11,7 @@ void main() {
 
       expect(toolNames, [
         'list_files',
+        'resolve_path',
         'read_file',
         'write_file',
         'create_directory',
@@ -21,8 +22,10 @@ void main() {
         'storage_stats',
         'list_notes',
         'read_note',
+        'find_in_note',
         'create_note',
         'update_note',
+        'health',
       ]);
     });
 
@@ -49,6 +52,7 @@ void main() {
 
     test('tools with required params declare them correctly', () {
       final expected = {
+        'resolve_path': ['path'],
         'read_file': ['file_id'],
         'write_file': ['name', 'content'],
         'create_directory': ['name'],
@@ -57,6 +61,7 @@ void main() {
         'move_files': ['file_ids'],
         'search_files': ['query'],
         'read_note': ['file_id'],
+        'find_in_note': ['file_id', 'query'],
         'create_note': ['name', 'content'],
         'update_note': ['file_id', 'content'],
       };
@@ -73,9 +78,14 @@ void main() {
     });
 
     test(
-      'list_files, storage_stats, and list_notes have no required params',
+      'list_files, storage_stats, list_notes, and health have no required params',
       () {
-        for (final name in ['list_files', 'storage_stats', 'list_notes']) {
+        for (final name in [
+          'list_files',
+          'storage_stats',
+          'list_notes',
+          'health',
+        ]) {
           final tool = mcpTools.firstWhere((t) => t['name'] == name);
           expect(
             tool['inputSchema'].containsKey('required'),
@@ -109,6 +119,63 @@ void main() {
       final limit = (tool['inputSchema']['properties'] as Map)['limit'] as Map;
 
       expect(limit['type'], 'integer');
+    });
+
+    test(
+      'create_directory requires name and describes id-idempotent returns',
+      () {
+        final tool = mcpTools.firstWhere(
+          (t) => t['name'] == 'create_directory',
+        );
+        expect(tool['inputSchema']['required'], contains('name'));
+        final desc = tool['description'] as String;
+        expect(desc, contains('{id, name}'));
+        expect(desc.toLowerCase(), contains('already exists'));
+        expect(desc.toLowerCase(), contains('returned id'));
+      },
+    );
+
+    test('create_note description matches upsert and existed flag', () {
+      final tool = mcpTools.firstWhere((t) => t['name'] == 'create_note');
+      final desc = tool['description'] as String;
+      expect(desc.toLowerCase(), contains('upsert'));
+      expect(desc, contains('existed'));
+    });
+
+    test(
+      'write_file description says duplicate returns id without overwrite',
+      () {
+        final tool = mcpTools.firstWhere((t) => t['name'] == 'write_file');
+        final desc = tool['description'] as String;
+        expect(desc, contains('existed'));
+        expect(desc.toLowerCase(), contains('without overwriting'));
+        expect(desc, contains('create_note/update_note'));
+      },
+    );
+
+    test('find_in_note describes in-note find vs search_files', () {
+      final tool = mcpTools.firstWhere((t) => t['name'] == 'find_in_note');
+      expect(
+        tool['inputSchema']['required'],
+        containsAll(['file_id', 'query']),
+      );
+      final desc = tool['description'] as String;
+      expect(desc, contains('search_files'));
+      expect(desc, contains('find_in_note'));
+      expect(desc.toLowerCase(), contains('inside'));
+      final props = tool['inputSchema']['properties'] as Map;
+      expect(props['max_matches']['type'], 'integer');
+      expect(props['context']['type'], 'integer');
+      expect(props['case_sensitive']['type'], 'boolean');
+    });
+
+    test('health has no required args and describes running/locked/ready', () {
+      final tool = mcpTools.firstWhere((t) => t['name'] == 'health');
+      expect(tool['inputSchema'].containsKey('required'), false);
+      final desc = tool['description'] as String;
+      expect(desc, contains('running'));
+      expect(desc, contains('locked'));
+      expect(desc, contains('ready'));
     });
   });
 
@@ -158,7 +225,7 @@ void main() {
       expect(response['id'], 1);
 
       final tools = response['result']['tools'] as List;
-      expect(tools, hasLength(13));
+      expect(tools, hasLength(16));
 
       for (final tool in tools) {
         final t = tool as Map;

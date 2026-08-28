@@ -79,6 +79,18 @@ jobs:
             - name: release-check-fast (format + analyze + invariants + unit)
               run: just release-check-fast
 
+            # The recipe streams only phase summaries; the per-test output that
+            # names a failure lives in .release-check/ and dies with the runner
+            # unless uploaded.
+            - name: Upload release-check logs
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: release-check-logs
+                  path: .release-check/
+                  # The directory is dot-prefixed, which v4 skips by default.
+                  include-hidden-files: true
+
     build-verify-ios:
         name: Build Verify (iOS, no codesign)
         runs-on: macos-latest

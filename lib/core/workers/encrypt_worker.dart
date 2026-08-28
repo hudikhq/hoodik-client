@@ -129,7 +129,9 @@ Future<void> _handleEncrypt({
         final start = i * _kChunkSize;
         final end = (start + _kChunkSize).clamp(0, cmd.fileSize);
         final chunkLen = end - start;
-        if (chunkLen <= 0) break;
+        // An empty file still owes the server its one declared chunk — an
+        // AEAD tag over nothing — or the upload never reaches completion.
+        if (chunkLen <= 0 && i > 0) break;
 
         await raf.setPosition(start);
         final plaintext = await raf.read(chunkLen);

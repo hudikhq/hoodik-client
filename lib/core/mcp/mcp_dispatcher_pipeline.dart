@@ -43,7 +43,10 @@ buildMcpDispatcherPipeline({
 }) {
   final db = ref.read(databaseProvider);
   final auditLogger = McpAuditLogger(db);
-  final inner = McpToolHandler(ProductionMcpGateway(ref));
+  final inner = McpToolHandler(
+    ProductionMcpGateway(ref),
+    isLocked: () => ref.read(isLockedProvider),
+  );
 
   final auditing = AuditingMcpToolDispatcher(
     inner: inner,
