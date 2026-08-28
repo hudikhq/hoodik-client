@@ -171,9 +171,13 @@ const List<Map<String, dynamic>> mcpTools = [
   {
     'name': 'search_files',
     'description':
-        'Search files and notes by name (privacy-preserving tags). '
-        'Use this to find which note matched, then find_in_note to locate the '
-        'query inside it (or read_note for the full body). '
+        'Search files and notes by name and note content. Matching is '
+        'whole-word and case-insensitive; the server only ever sees hashed '
+        'tags, so there is no fuzzy or substring matching — retry with word '
+        'variants (singular/plural, stem) when a query comes up empty. An '
+        'exact full filename ranks first; multi-word queries match any word, '
+        'best-ranked first. Use find_in_note to locate the query inside a '
+        'matched note (or read_note for the full body). '
         'Optional dir_id scopes the search to one folder.',
     'inputSchema': {
       'type': 'object',
