@@ -144,21 +144,24 @@ void main() {
       expect(mintCount, 0);
     });
 
-    test('mints when decrypt fails with the keys unlocked — the blob is dead', () {
-      var mintCount = 0;
-      final loaded = loadMcpBearerToken(
-        storedCiphertext: 'blob-wrapped-to-old-keys',
-        decrypt: (_) => null,
-        keysReady: true,
-        mint: () {
-          mintCount++;
-          return 'fresh-uuid';
-        },
-      );
-      expect(loaded.plaintext, 'fresh-uuid');
-      expect(loaded.minted, isTrue);
-      expect(mintCount, 1);
-    });
+    test(
+      'mints when decrypt fails with the keys unlocked — the blob is dead',
+      () {
+        var mintCount = 0;
+        final loaded = loadMcpBearerToken(
+          storedCiphertext: 'blob-wrapped-to-old-keys',
+          decrypt: (_) => null,
+          keysReady: true,
+          mint: () {
+            mintCount++;
+            return 'fresh-uuid';
+          },
+        );
+        expect(loaded.plaintext, 'fresh-uuid');
+        expect(loaded.minted, isTrue);
+        expect(mintCount, 1);
+      },
+    );
 
     test('returns decrypted token when ciphertext decrypts', () {
       var mintCount = 0;
