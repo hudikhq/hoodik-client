@@ -106,6 +106,7 @@ void main() {
       final loaded = loadMcpBearerToken(
         storedCiphertext: '',
         decrypt: (_) => 'should-not-run',
+        keysReady: true,
         mint: () {
           mintCount++;
           return 'fresh-uuid';
@@ -120,17 +121,19 @@ void main() {
       final loaded = loadMcpBearerToken(
         storedCiphertext: null,
         decrypt: (_) => 'should-not-run',
+        keysReady: false,
         mint: () => 'fresh-uuid',
       );
       expect(loaded.plaintext, 'fresh-uuid');
       expect(loaded.minted, isTrue);
     });
 
-    test('does not mint when ciphertext exists but decrypt fails', () {
+    test('does not mint when decrypt fails while the account is locked', () {
       var mintCount = 0;
       final loaded = loadMcpBearerToken(
         storedCiphertext: 'existing-blob',
         decrypt: (_) => null,
+        keysReady: false,
         mint: () {
           mintCount++;
           return 'fresh-uuid';
@@ -141,11 +144,28 @@ void main() {
       expect(mintCount, 0);
     });
 
+    test('mints when decrypt fails with the keys unlocked — the blob is dead', () {
+      var mintCount = 0;
+      final loaded = loadMcpBearerToken(
+        storedCiphertext: 'blob-wrapped-to-old-keys',
+        decrypt: (_) => null,
+        keysReady: true,
+        mint: () {
+          mintCount++;
+          return 'fresh-uuid';
+        },
+      );
+      expect(loaded.plaintext, 'fresh-uuid');
+      expect(loaded.minted, isTrue);
+      expect(mintCount, 1);
+    });
+
     test('returns decrypted token when ciphertext decrypts', () {
       var mintCount = 0;
       final loaded = loadMcpBearerToken(
         storedCiphertext: 'existing-blob',
         decrypt: (c) => c == 'existing-blob' ? 'plain-token' : null,
+        keysReady: true,
         mint: () {
           mintCount++;
           return 'fresh-uuid';

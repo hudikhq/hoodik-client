@@ -82,6 +82,7 @@ class _McpConnectWizardScreenState
     final loaded = loadMcpBearerToken(
       storedCiphertext: settings?.bearerToken,
       decrypt: (ciphertext) => decryptMcpToken(ref, ciphertext),
+      keysReady: mcpTokenKeysReady(ref),
     );
 
     setState(() {

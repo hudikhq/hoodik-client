@@ -26,9 +26,8 @@ String? encryptMcpToken(WidgetRef ref, String plaintext) => encryptMcpTokenWith(
 
 /// Decrypts a token produced by [encryptMcpToken]. Returns null on any failure
 /// (wrong account, wrapping key not ready, corrupted or previous-format
-/// ciphertext). Callers must not mint or persist a replacement when this
-/// returns null for a stored blob — leave the ciphertext in place until the
-/// user explicitly rotates.
+/// ciphertext). Whether a failure means "locked" or "dead blob" is decided by
+/// [mcpTokenKeysReady] — see [loadMcpBearerToken].
 String? decryptMcpToken(WidgetRef ref, String ciphertext) =>
     decryptMcpTokenWith(
       account: ref.read(activeAccountProvider),
@@ -99,22 +98,41 @@ class McpTokenLoad {
 
 String _mintMcpBearer() => const Uuid().v4();
 
+/// Whether the unlocked key material needed to decrypt this account's stored
+/// MCP token is in memory. Mirrors the dispatch in [decryptMcpToken].
+bool mcpTokenKeysReady(WidgetRef ref) {
+  final account = ref.read(activeAccountProvider);
+  if (account?.wrappingPublicKey != null) {
+    return ref.read(decryptedWrappingPrivateKeyProvider) != null;
+  }
+  return ref.read(decryptedPrivateKeyProvider) != null;
+}
+
 /// Loads the MCP bearer from stored ciphertext.
 ///
-/// Mints a new UUID only when [storedCiphertext] is null or empty (first
-/// time). If ciphertext exists and [decrypt] returns null, [McpTokenLoad.plaintext]
-/// is null and [McpTokenLoad.minted] is false — do not mint, do not persist a
-/// replacement, leave the stored blob as-is.
+/// Mints a new UUID when [storedCiphertext] is null or empty (first time),
+/// and also when [decrypt] fails while [keysReady] is true: with the unlocked
+/// key in hand a failed decrypt means the blob was wrapped to keys this
+/// account no longer has (re-login, re-key), so it is unrecoverable for every
+/// client and replacing it beats presenting an empty bearer. While the
+/// account is locked ([keysReady] false) a failed decrypt proves nothing —
+/// the blob stays untouched and nothing is minted.
 McpTokenLoad loadMcpBearerToken({
   required String? storedCiphertext,
   required String? Function(String ciphertext) decrypt,
+  required bool keysReady,
   String Function()? mint,
 }) {
   final encrypted = storedCiphertext ?? '';
   if (encrypted.isEmpty) {
     return McpTokenLoad(plaintext: (mint ?? _mintMcpBearer)(), minted: true);
   }
-  return McpTokenLoad(plaintext: decrypt(encrypted), minted: false);
+
+  final plaintext = decrypt(encrypted);
+  if (plaintext == null && keysReady) {
+    return McpTokenLoad(plaintext: (mint ?? _mintMcpBearer)(), minted: true);
+  }
+  return McpTokenLoad(plaintext: plaintext, minted: false);
 }
 
 /// Ciphertext to persist when enabling MCP (tray / first-time).
