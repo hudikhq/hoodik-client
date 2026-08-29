@@ -1,7 +1,7 @@
 name: hoodik_app
 description: "Hoodik - End-to-End Encrypted Cloud Storage"
 publish_to: "none"
-version: 2.5.2+62
+version: 2.5.3+63
 
 environment:
     sdk: ^3.11.4
