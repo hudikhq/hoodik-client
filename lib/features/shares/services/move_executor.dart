@@ -31,12 +31,14 @@ class MoveExecutor {
     return switch (decision) {
       PlainMove() => _plain(ops, sources, destinationId),
       BlockedMove(:final message) => FilesActionResult.error(message),
-      MoveIntoShared(:final destinationFolderId) => _intoShared(
-        sources,
-        destinationFolderId,
-        confirm: confirm,
-        onProgress: onProgress,
-      ),
+      MoveIntoShared(:final destinationFolderId, :final rosterFolderId) =>
+        _intoShared(
+          sources,
+          destinationFolderId,
+          rosterFolderId: rosterFolderId,
+          confirm: confirm,
+          onProgress: onProgress,
+        ),
       MoveOutOfShared(:final destinationFolderId) => _outOfShared(
         sources,
         destinationFolderId,
@@ -69,6 +71,7 @@ class MoveExecutor {
   Future<FilesActionResult> _intoShared(
     List<FileItem> sources,
     String destinationFolderId, {
+    required String rosterFolderId,
     Future<bool> Function(MoveCascadePreview preview)? confirm,
     void Function(int done, int total)? onProgress,
   }) async {
@@ -79,12 +82,14 @@ class MoveExecutor {
           ? await cascade.moveFolderIntoShared(
               folder: item,
               destinationFolderId: destinationFolderId,
+              rosterFolderId: rosterFolderId,
               confirm: confirm,
               onProgress: onProgress,
             )
           : await relocation.moveIntoShared(
               file: item,
               destinationFolderId: destinationFolderId,
+              rosterFolderId: rosterFolderId,
             );
       final blocked = _error(outcome);
       if (blocked != null) return blocked;

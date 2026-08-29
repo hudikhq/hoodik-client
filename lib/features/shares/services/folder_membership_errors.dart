@@ -12,6 +12,7 @@ enum FolderMemberListInvalidReason {
   fingerprintMismatch,
   unknownSigner,
   ownerMissing,
+  folderMismatch,
 }
 
 /// Raised by `FolderMembership.verifyFolderMemberList` on any verification

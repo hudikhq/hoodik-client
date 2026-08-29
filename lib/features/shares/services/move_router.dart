@@ -34,10 +34,18 @@ class BlockedMove extends MoveDecision {
 /// the whole list (not one root) keeps the no-partial guarantee — every item
 /// is owned, so the batch either all moves or was blocked up front.
 class MoveIntoShared extends MoveDecision {
-  const MoveIntoShared(this.sources, this.destinationFolderId);
+  const MoveIntoShared(
+    this.sources,
+    this.destinationFolderId,
+    this.rosterFolderId,
+  );
 
   final List<FileItem> sources;
   final String destinationFolderId;
+
+  /// The folder whose signed member list authorises the wraps — the nearest
+  /// signed ancestor-or-self of the destination.
+  final String rosterFolderId;
 }
 
 /// Owned items leaving a shared scope for a private destination — the move-out
@@ -66,17 +74,22 @@ class SplitMove extends MoveDecision {
 
 /// Classifies a move from the source items, each item's own parent, and the
 /// destination — the single place the funnel's decision tree lives. Detection
-/// mirrors the upload path's [SharedFolderTargetResolver.isMultiKeyTarget]
-/// predicate (`dir && (!is_owner || members_signed_at != null)`) for both the
-/// destination and each item's parent folder.
+/// mirrors the upload path's roster resolution
+/// ([SharedFolderTargetResolver.resolveWriteRosterId]) for both the
+/// destination and each item's parent folder, so a folder anywhere below a
+/// share root routes the same way the root itself does.
 ///
 /// The classifier never wraps a key or hits a mutation endpoint; it only reads
-/// share-state (one metadata fetch per distinct source parent) and returns the
-/// route. All hard server rules (ownership, dest-is-shared, folder-requires-
-/// cascade) are still enforced server-side — this is the client-side routing
-/// and the early "block the whole move" guard.
+/// share-state (metadata fetches along each probed parent chain) and returns
+/// the route. All hard server rules (ownership, dest-is-shared, folder-
+/// requires-cascade) are still enforced server-side — this is the client-side
+/// routing and the early "block the whole move" guard.
 class MoveRouter {
-  MoveRouter({required this.files, required this.sharingEnabled});
+  MoveRouter({required this.files, required this.sharingEnabled})
+    : _resolver = SharedFolderTargetResolver(
+        files: files,
+        sharingEnabled: sharingEnabled,
+      );
 
   final FilesClient files;
 
@@ -85,24 +98,35 @@ class MoveRouter {
   /// fetched, so a server that doesn't speak sharing never engages these paths.
   final bool sharingEnabled;
 
+  final SharedFolderTargetResolver _resolver;
+
   Future<MoveDecision> classify({
     required List<FileItem> sources,
     required FileItem? destination,
   }) async {
     if (sources.isEmpty) return const PlainMove();
 
-    final destShared =
-        sharingEnabled &&
-        destination != null &&
-        SharedFolderTargetResolver.isMultiKeyTarget(destination);
+    String? destRosterId;
+    if (sharingEnabled && destination != null) {
+      try {
+        destRosterId = await _resolver.resolveWriteRosterId(
+          destination.id,
+          parentItem: destination,
+        );
+      } catch (_) {
+        // Same posture as an unreadable source parent below: guessing
+        // "not shared" could land a shared-tree move on the plain path.
+        return BlockedMove(ambientL10n.sharesMoveCheckFailed);
+      }
+    }
 
-    if (destShared) {
+    if (destRosterId != null) {
       // Moving INTO a shared folder: every selected item must be owned by the
       // caller, or the whole move is blocked (the user's no-partial decision).
       if (sources.any((f) => !f.isOwner)) {
         return BlockedMove(ambientL10n.sharesOnlyOwnedIntoShared);
       }
-      return MoveIntoShared(sources, destination.id);
+      return MoveIntoShared(sources, destination!.id, destRosterId);
     }
 
     // Destination is private (or root). Route each item by its OWN parent's
@@ -139,12 +163,14 @@ class MoveRouter {
     return SplitMove(plainSources, outSources, destId);
   }
 
-  /// Probes each distinct source parent once, concurrently, for whether it is a
-  /// shared folder (the same roster predicate the destination uses). The account
-  /// root (a null parent) is never shared and isn't probed. A parent whose
-  /// metadata can't be read is reported as `unresolved` rather than guessed — the
-  /// caller blocks on that, because guessing "not shared" could strand a shared
-  /// item on the plain path.
+  /// Probes each distinct source parent once, concurrently, for whether it
+  /// sits inside a shared tree (the same roster resolution the destination
+  /// uses — a parent below a share root counts, so a move out of a nested
+  /// folder still drops the other members' rows). The account root (a null
+  /// parent) is never shared and isn't probed. A parent whose chain can't be
+  /// read is reported as `unresolved` rather than guessed — the caller blocks
+  /// on that, because guessing "not shared" could strand a shared item on the
+  /// plain path.
   Future<({Set<String> shared, bool unresolved})> _probeParents(
     List<FileItem> sources,
   ) async {
@@ -155,10 +181,7 @@ class MoveRouter {
     await Future.wait(
       parents.map((id) async {
         try {
-          final meta = await files.getFileMetadata(id);
-          if (SharedFolderTargetResolver.isMultiKeyTarget(
-            FileItem.fromJson(meta),
-          )) {
+          if (await _resolver.resolveWriteRosterId(id) != null) {
             shared.add(id);
           }
         } catch (_) {

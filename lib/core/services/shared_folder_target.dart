@@ -19,14 +19,13 @@ class SharingUnavailableException implements Exception {
 }
 
 /// Decides whether a create operation must take the multi-key
-/// (`upload-multikey`) path because its destination folder carries a member
-/// roster the new file's key has to be wrapped for.
+/// (`upload-multikey`) path because its destination sits inside a shared
+/// tree, and which folder's signed member list authorises the wraps.
 ///
-/// The predicate mirrors the web browser's upload routing
-/// (`web/.../LayoutFileBrowserInner.vue`): a folder is a multi-key destination
-/// when it is shared *with* the caller (`!isOwner`) or is an owned folder the
-/// caller has already shared (`membersSignedAt != null`). The caller's own,
-/// never-shared folders keep the unchanged owner-only create path.
+/// Mirrors the web's roster resolution (`Storage.writeRosterId`): a folder is
+/// a multi-key destination when it — or any ancestor — carries a signed
+/// member list, or when it is shared *with* the caller (the legacy fallback).
+/// The caller's own, never-shared trees keep the owner-only create path.
 class SharedFolderTargetResolver {
   SharedFolderTargetResolver({
     required FilesClient files,
@@ -44,37 +43,64 @@ class SharedFolderTargetResolver {
   /// server that isn't running sharing is never routed through multi-key.
   final bool _sharingEnabled;
 
-  /// The roster predicate, applied to a parent folder the caller already holds.
-  static bool isMultiKeyTarget(FileItem parent) =>
-      parent.isDir && (!parent.isOwner || parent.membersSignedAt != null);
-
-  /// Whether a create into [parentDirId] must fan its key out to a folder
-  /// roster. Returns false whenever sharing is off (kill-switch or an older
-  /// server) and for the account root ([parentDirId] null), so an unsupported
-  /// or disabled server never engages the multi-key path.
+  /// Nearest ancestor-or-self folder of [parentDirId] carrying a signed
+  /// member list — the folder whose list authorises a multi-key write
+  /// anywhere in its subtree. Folders below a share root hold the root's
+  /// roster (fan-out, cascade moves and multi-key creates all copy it) but
+  /// no signature of their own, and the server rejects any write whose wrap
+  /// set doesn't match the actual target's rows, so resolving at the root is
+  /// exactly as strong as writing into the root itself.
   ///
-  /// [parentItem] is used directly when the caller holds it; otherwise the
-  /// parent's share status is read from one `metadata` fetch, acceptable
-  /// because a multi-key upload needs a live roster fetch anyway.
-  Future<bool> isSharedDestination(
+  /// Walks one metadata fetch per unsigned level; [parentItem] spares the
+  /// first when the caller already holds it. Returns null for a private
+  /// tree; a metadata fetch failure propagates so callers can distinguish
+  /// "unreadable" from "not shared".
+  Future<String?> resolveRosterFolderId(
     String? parentDirId, {
     FileItem? parentItem,
   }) async {
-    if (!_sharingEnabled || parentDirId == null) return false;
-    if (parentItem != null) return isMultiKeyTarget(parentItem);
-    final meta = await _files.getFileMetadata(parentDirId);
-    return isMultiKeyTarget(FileItem.fromJson(meta));
+    if (!_sharingEnabled || parentDirId == null) return null;
+    final seen = <String>{};
+    String? cursor = parentDirId;
+    var item = parentItem;
+    while (cursor != null && seen.add(cursor)) {
+      item ??= FileItem.fromJson(await _files.getFileMetadata(cursor));
+      if (!item.isDir) return null;
+      if (item.membersSignedAt != null) return item.id;
+      cursor = item.fileId;
+      item = null;
+    }
+    return null;
+  }
+
+  /// Roster source for a write into [parentDirId], or null for a plain
+  /// owner-only write. A non-owned folder with no signed list anywhere in
+  /// its chain (a pre-signature legacy share) falls back to the folder
+  /// itself, so those writes keep today's verification error instead of
+  /// silently producing an owner-only row.
+  Future<String?> resolveWriteRosterId(
+    String? parentDirId, {
+    FileItem? parentItem,
+  }) async {
+    if (!_sharingEnabled || parentDirId == null) return null;
+    final item =
+        parentItem ??
+        FileItem.fromJson(await _files.getFileMetadata(parentDirId));
+    final resolved = await resolveRosterFolderId(parentDirId, parentItem: item);
+    if (resolved != null) return resolved;
+    return item.isDir && !item.isOwner ? item.id : null;
   }
 }
 
-/// Route a create whose destination might be a shared folder.
+/// Route a create whose destination might sit inside a shared tree.
 ///
 /// When [parentDirId] (optionally pre-resolved via [parentItem]) is a shared
-/// folder, [fileKey] is wrapped for every member and the file is created via
-/// `upload-multikey` under a freshly minted id, which is returned and which the
-/// caller reuses as the chunk-upload id so the audit signature binds to it. A
-/// destination the caller owns outright returns null, signalling the caller to
-/// run its normal owner-only create.
+/// folder — or any folder below a share root — [fileKey] is wrapped for every
+/// member of the resolved roster and the file is created via `upload-multikey`
+/// under a freshly minted id, which is returned and which the caller reuses as
+/// the chunk-upload id so the audit signature binds to it. A destination in a
+/// private tree returns null, signalling the caller to run its normal
+/// owner-only create.
 ///
 /// A shared destination with no [upload] available throws rather than silently
 /// owner-only-wrapping — this is the single place that guard is enforced for
@@ -102,18 +128,18 @@ Future<String?> multiKeyCreateOrNull({
   List<String>? digestTokensFile,
   String? encryptedThumbnail,
 }) async {
-  if (resolver == null ||
-      !await resolver.isSharedDestination(
-        parentDirId,
-        parentItem: parentItem,
-      )) {
-    return null;
-  }
+  if (resolver == null || parentDirId == null) return null;
+  final rosterFolderId = await resolver.resolveWriteRosterId(
+    parentDirId,
+    parentItem: parentItem,
+  );
+  if (rosterFolderId == null) return null;
   if (upload == null) {
     throw const SharingUnavailableException();
   }
   return upload.uploadIntoSharedFolder(
-    folderId: parentDirId!,
+    folderId: parentDirId,
+    rosterFolderId: rosterFolderId,
     newFileId: const Uuid().v4(),
     fileKey: fileKey,
     nameHash: nameHash,

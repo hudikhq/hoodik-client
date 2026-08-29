@@ -60,6 +60,7 @@ class SharedFolderUpload {
     required String encryptedName,
     required String mime,
     required int chunks,
+    String? rosterFolderId,
     int? size,
     String? sha256,
     String? cipher,
@@ -73,7 +74,11 @@ class SharedFolderUpload {
     String? encryptedThumbnail,
     int? fileModifiedAt,
   }) async {
-    var roster = await _verifiedRoster(folderId);
+    // The roster source and the target diverge for a create below the
+    // share root: the root's signed list authorises the wraps while the
+    // file still lands under its real parent.
+    final rosterId = rosterFolderId ?? folderId;
+    var roster = await _verifiedRoster(rosterId);
 
     Future<String> submit(FolderMembersResponse snapshot) {
       final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -137,22 +142,19 @@ class SharedFolderUpload {
 
     try {
       return await submit(roster);
-    } on ShareMembershipChangedError catch (e) {
-      roster = await _verifiedRoster(folderId, fresh: e.currentMembers);
+    } on ShareMembershipChangedError {
+      // The 409 payload carries the target's roster, which below a share
+      // root has no signature to verify — refetch from the roster source
+      // instead of trusting it.
+      roster = await _verifiedRoster(rosterId);
       return submit(roster);
     }
   }
 
-  /// Fetch (or take a server-supplied fresh) roster, verify its signatures, and
-  /// reconcile fingerprints. Both verification and reconciliation throw on
-  /// failure, so a returned roster is always safe to wrap keys against.
-  Future<FolderMembersResponse> _verifiedRoster(
-    String folderId, {
-    FolderMembersResponse? fresh,
-  }) async {
-    final response = fresh ?? await client.getFolderMembers(folderId);
-    final verified = folderMembership.verifyFolderMemberList(response);
-    await folderMembership.reconcileFingerprints(verified);
-    return response;
-  }
+  Future<FolderMembersResponse> _verifiedRoster(String rosterFolderId) =>
+      fetchVerifiedRoster(
+        fetch: client.getFolderMembers,
+        membership: folderMembership,
+        rosterFolderId: rosterFolderId,
+      );
 }

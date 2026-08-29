@@ -148,7 +148,9 @@ class FolderMemberTile extends StatelessWidget {
 
   Widget _signatureBadge(BuildContext context) {
     return switch (signatureStatus) {
-      MemberSignatureStatus.verified => Icon(
+      // Verified directly or against the nearest signed ancestor's list —
+      // the same guarantee, so the same badge.
+      MemberSignatureStatus.verified || MemberSignatureStatus.viaRoot => Icon(
         Icons.verified_outlined,
         size: 13,
         color: context.colors.sageFill,

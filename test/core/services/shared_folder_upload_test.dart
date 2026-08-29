@@ -25,11 +25,12 @@ class _MockSharesClient extends Fake implements SharesClient {
   final List<Object> uploadResults;
 
   final List<Map<String, dynamic>> postedBodies = [];
-  int membersFetches = 0;
+  final List<String> fetchedIds = [];
+  int get membersFetches => fetchedIds.length;
 
   @override
   Future<FolderMembersResponse> getFolderMembers(String folderId) async {
-    membersFetches += 1;
+    fetchedIds.add(folderId);
     return membersQueue.removeAt(0);
   }
 
@@ -189,23 +190,26 @@ void main() {
   });
 
   test('409 refreshes the roster and retries once, then succeeds', () async {
-    final fresh = fx.validRoster();
     final client = _MockSharesClient(
-      membersQueue: [fx.validRoster()],
-      uploadResults: [ShareMembershipChangedError(fresh), 'retried-file-id'],
+      membersQueue: [fx.validRoster(), fx.validRoster()],
+      uploadResults: [
+        ShareMembershipChangedError(fx.validRoster()),
+        'retried-file-id',
+      ],
     );
 
     final result = await run(build(client));
 
     expect(result, 'retried-file-id');
     expect(client.postedBodies.length, 2);
-    // The fresh roster came from the conflict body, not a second fetch.
-    expect(client.membersFetches, 1);
+    // The retry refetched from the roster source rather than trusting the
+    // conflict body — below a share root that body has no signature.
+    expect(client.membersFetches, 2);
   });
 
   test('a second 409 propagates', () async {
     final client = _MockSharesClient(
-      membersQueue: [fx.validRoster()],
+      membersQueue: [fx.validRoster(), fx.validRoster()],
       uploadResults: [
         ShareMembershipChangedError(fx.validRoster()),
         ShareMembershipChangedError(fx.validRoster()),
@@ -217,6 +221,61 @@ void main() {
       throwsA(isA<ShareMembershipChangedError>()),
     );
     expect(client.postedBodies.length, 2);
+  });
+
+  test('a pinned roster authorises a create below the share root', () async {
+    const nestedTarget = '12121212-3434-5656-7878-909090909090';
+    final client = _MockSharesClient(
+      membersQueue: [fx.validRoster()],
+      uploadResults: ['server-file-id'],
+    );
+
+    final result = await build(client).uploadIntoSharedFolder(
+      folderId: nestedTarget,
+      rosterFolderId: folderId,
+      newFileId: newFileId,
+      fileKey: fileKey,
+      nameHash: 'name-hash',
+      encryptedName: 'enc-name',
+      mime: 'dir',
+      chunks: 0,
+    );
+
+    expect(result, 'server-file-id');
+    // The roster came from the share root while the file lands under its
+    // real parent.
+    expect(client.fetchedIds, [folderId]);
+    final body = client.postedBodies.single;
+    expect(body['parent_file_id'], nestedTarget);
+    expect((body['member_keys'] as List).length, 3);
+  });
+
+  test('a roster for a different folder is refused with no upload', () async {
+    const requested = '12121212-3434-5656-7878-909090909090';
+    final client = _MockSharesClient(
+      membersQueue: [fx.validRoster()], // carries the kit's folder id
+      uploadResults: const [],
+    );
+
+    await expectLater(
+      build(client).uploadIntoSharedFolder(
+        folderId: requested,
+        newFileId: newFileId,
+        fileKey: fileKey,
+        nameHash: 'name-hash',
+        encryptedName: 'enc-name',
+        mime: 'text/plain',
+        chunks: 1,
+      ),
+      throwsA(
+        isA<FolderMemberListInvalid>().having(
+          (e) => e.reason,
+          'reason',
+          FolderMemberListInvalidReason.folderMismatch,
+        ),
+      ),
+    );
+    expect(client.postedBodies, isEmpty);
   });
 
   test('a tampered roster propagates with no upload', () async {

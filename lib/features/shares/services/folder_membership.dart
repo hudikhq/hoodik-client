@@ -319,3 +319,33 @@ class FolderMembership {
   static bool _fingerprintsEqual(String a, String b) =>
       a.toLowerCase() == b.toLowerCase();
 }
+
+/// Fetch the signed roster of [rosterFolderId], verify it, and reconcile
+/// fingerprints — the one safe way to obtain a member list to wrap keys
+/// against. Refuses a response whose `folder_id` differs from the id it asked
+/// about: the list signature only authenticates the roster for the folder
+/// named inside the canonical, so any other validly signed roster of the same
+/// owner must not authorise the wraps.
+///
+/// [rosterFolderId] is the folder whose signed list authorises the write. For
+/// a write below a share root that is the root, not the direct parent —
+/// folders under a root carry the root's roster (fan-out, cascade moves and
+/// multi-key creates all copy it) but no signature of their own, and the
+/// server rejects any wrap set that doesn't match the actual target's rows.
+Future<FolderMembersResponse> fetchVerifiedRoster({
+  required Future<FolderMembersResponse> Function(String folderId) fetch,
+  required FolderMembership membership,
+  required String rosterFolderId,
+}) async {
+  final response = await fetch(rosterFolderId);
+  if (response.folderId != rosterFolderId) {
+    throw FolderMemberListInvalid(
+      FolderMemberListInvalidReason.folderMismatch,
+      'Member list is for folder ${response.folderId}, '
+      'not the requested $rosterFolderId.',
+    );
+  }
+  final verified = membership.verifyFolderMemberList(response);
+  await membership.reconcileFingerprints(verified);
+  return response;
+}

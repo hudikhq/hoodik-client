@@ -16,10 +16,10 @@ class _FakeResolver extends Fake implements SharedFolderTargetResolver {
   _FakeResolver(this.shared);
   final bool shared;
   @override
-  Future<bool> isSharedDestination(
+  Future<String?> resolveWriteRosterId(
     String? parentDirId, {
     FileItem? parentItem,
-  }) async => shared;
+  }) async => shared ? parentDirId : null;
 }
 
 class _MockSharedFolderUpload extends Fake implements SharedFolderUpload {
@@ -39,6 +39,7 @@ class _MockSharedFolderUpload extends Fake implements SharedFolderUpload {
     required String encryptedName,
     required String mime,
     required int chunks,
+    String? rosterFolderId,
     int? size,
     String? sha256,
     String? cipher,
