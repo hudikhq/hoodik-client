@@ -32,6 +32,7 @@ class FolderRelocationController {
   Future<FolderShareOutcome> moveIntoShared({
     required FileItem file,
     required String destinationFolderId,
+    String? rosterFolderId,
   }) async {
     final client = _ref.read(apiClientProvider);
     final shareCrypto = _ref.read(shareCryptoProvider);
@@ -93,20 +94,15 @@ class FolderRelocationController {
         });
       }
 
-      var roster = await _verifiedRoster(
-        membership,
-        client.shares,
-        destinationFolderId,
-      );
+      final rosterId = rosterFolderId ?? destinationFolderId;
+      var roster = await _verifiedRoster(membership, client.shares, rosterId);
       try {
         await submit(roster);
-      } on ShareMembershipChangedError catch (e) {
-        roster = await _verifiedRoster(
-          membership,
-          client.shares,
-          destinationFolderId,
-          fresh: e.currentMembers,
-        );
+      } on ShareMembershipChangedError {
+        // The 409 payload carries the destination's roster, which below a
+        // share root has no signature to verify — refetch from the roster
+        // source instead of trusting it.
+        roster = await _verifiedRoster(membership, client.shares, rosterId);
         await submit(roster);
       }
       return const FolderShareOutcome.success();
@@ -157,20 +153,15 @@ class FolderRelocationController {
     }
   }
 
-  /// Fetch (or take a server-supplied fresh) destination roster, hard-verify
-  /// its signatures, and reconcile fingerprints — both throw on failure, so a
-  /// returned roster is safe to wrap keys against.
   Future<FolderMembersResponse> _verifiedRoster(
     FolderMembership membership,
     SharesClient shares,
-    String folderId, {
-    FolderMembersResponse? fresh,
-  }) async {
-    final response = fresh ?? await shares.getFolderMembers(folderId);
-    final verified = membership.verifyFolderMemberList(response);
-    await membership.reconcileFingerprints(verified);
-    return response;
-  }
+    String rosterFolderId,
+  ) => fetchVerifiedRoster(
+    fetch: shares.getFolderMembers,
+    membership: membership,
+    rosterFolderId: rosterFolderId,
+  );
 }
 
 final folderRelocationControllerProvider = Provider<FolderRelocationController>(

@@ -53,6 +53,7 @@ class MoveIntoSharedCascade {
   Future<FolderShareOutcome> moveFolderIntoShared({
     required FileItem folder,
     required String destinationFolderId,
+    String? rosterFolderId,
     void Function(int done, int total)? onProgress,
     Future<bool> Function(MoveCascadePreview preview)? confirm,
   }) async {
@@ -69,7 +70,8 @@ class MoveIntoSharedCascade {
       );
       final nodes = await subtree.collect(folder);
 
-      var initialRoster = await _verifiedRoster(deps, destinationFolderId);
+      final rosterId = rosterFolderId ?? destinationFolderId;
+      var initialRoster = await _verifiedRoster(deps, rosterId);
       if (confirm != null) {
         final verified = deps.membership.verifyFolderMemberList(initialRoster);
         final proceed = await confirm(
@@ -118,12 +120,11 @@ class MoveIntoSharedCascade {
 
       try {
         await submit(initialRoster);
-      } on ShareMembershipChangedError catch (e) {
-        initialRoster = await _verifiedRoster(
-          deps,
-          destinationFolderId,
-          fresh: e.currentMembers,
-        );
+      } on ShareMembershipChangedError {
+        // The 409 payload carries the destination's roster, which below a
+        // share root has no signature to verify — refetch from the roster
+        // source instead of trusting it.
+        initialRoster = await _verifiedRoster(deps, rosterId);
         await submit(initialRoster);
       }
       return const FolderShareOutcome.success();
@@ -187,21 +188,14 @@ class MoveIntoSharedCascade {
     }
   }
 
-  /// Fetch (or take a server-supplied fresh) destination roster and hard-verify
-  /// its signatures plus reconcile fingerprints — both throw on failure, so a
-  /// returned roster is safe to wrap keys against. Mirrors
-  /// [FolderRelocationController]'s `_verifiedRoster`.
   Future<FolderMembersResponse> _verifiedRoster(
     _CascadeDeps deps,
-    String folderId, {
-    FolderMembersResponse? fresh,
-  }) async {
-    final response =
-        fresh ?? await deps.client.shares.getFolderMembers(folderId);
-    final verified = deps.membership.verifyFolderMemberList(response);
-    await deps.membership.reconcileFingerprints(verified);
-    return response;
-  }
+    String rosterFolderId,
+  ) => fetchVerifiedRoster(
+    fetch: deps.client.shares.getFolderMembers,
+    membership: deps.membership,
+    rosterFolderId: rosterFolderId,
+  );
 
   static String _moveOutMessage(MoveOutRejection reason) {
     switch (reason) {

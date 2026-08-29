@@ -274,6 +274,7 @@ class _SpyRelocation extends Fake implements FolderRelocationController {
   Future<FolderShareOutcome> moveIntoShared({
     required FileItem file,
     required String destinationFolderId,
+    String? rosterFolderId,
   }) async {
     intoSharedCalls += 1;
     return const FolderShareOutcome.success();
@@ -292,6 +293,7 @@ class _SpyCascade extends Fake implements MoveIntoSharedCascade {
   Future<FolderShareOutcome> moveFolderIntoShared({
     required FileItem folder,
     required String destinationFolderId,
+    String? rosterFolderId,
     void Function(int done, int total)? onProgress,
     Future<bool> Function(MoveCascadePreview preview)? confirm,
   }) async {
@@ -363,7 +365,7 @@ void _executorTests() {
     'MoveIntoShared routes a file to relocation, a folder to cascade',
     () async {
       final sources = [_file('a'), _dir('d')];
-      await run(MoveIntoShared(sources, 'shared'), sources);
+      await run(MoveIntoShared(sources, 'shared', 'shared'), sources);
       expect(relocation.intoSharedCalls, 1, reason: 'the plain file');
       expect(cascade.folderCalls, 1, reason: 'the folder');
       expect(ops.moves, isEmpty);
