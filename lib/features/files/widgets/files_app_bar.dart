@@ -39,6 +39,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final VoidCallback onDeleteSelected;
   final VoidCallback onExportSelected;
   final VoidCallback onMakeOfflineSelected;
+  final VoidCallback onFavoriteSelected;
   final VoidCallback onEnterSelection;
 
   /// Opens the create/upload sheet. Lives in the bar rather than a
@@ -63,6 +64,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
     required this.onDeleteSelected,
     required this.onExportSelected,
     required this.onMakeOfflineSelected,
+    required this.onFavoriteSelected,
     required this.onEnterSelection,
     required this.onCreate,
     required this.onSortFieldSelected,
@@ -100,6 +102,7 @@ class FilesAppBar extends ConsumerWidget implements PreferredSizeWidget {
         onMakeOfflineSelected: onMakeOfflineSelected,
         onMoveSelected: onMoveSelected,
         onDeleteSelected: onDeleteSelected,
+        onFavoriteSelected: onFavoriteSelected,
       );
     }
     return _buildNormalAppBar(context, ref, l10n);

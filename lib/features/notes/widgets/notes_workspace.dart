@@ -280,7 +280,6 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
         ref,
         refreshed,
         tab.fileKey,
-        'md',
         displayName: tab.fileName,
       );
 

@@ -47,6 +47,7 @@ void main() {
               onMakeOfflineSelected: () {},
               onMoveSelected: () {},
               onDeleteSelected: () {},
+              onFavoriteSelected: () {},
             ),
           ),
         ),
@@ -54,7 +55,7 @@ void main() {
     );
   }
 
-  testWidgets('Select all / Clear label flips; Export disabled at count 0', (
+  testWidgets('Select all / Clear tooltip flips; Export disabled at count 0', (
     tester,
   ) async {
     final files = [_file('a'), _file('b')];
@@ -64,7 +65,7 @@ void main() {
       state: FilesState(loading: false, files: files, selectionMode: true),
     );
 
-    expect(find.text('Select all'), findsOneWidget);
+    expect(find.byTooltip('Select all'), findsOneWidget);
     expect(
       tester
           .widget<IconButton>(
@@ -87,7 +88,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Clear'), findsOneWidget);
+    expect(find.byTooltip('Clear'), findsOneWidget);
     expect(
       tester
           .widget<IconButton>(

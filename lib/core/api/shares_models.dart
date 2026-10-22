@@ -120,6 +120,7 @@ class IncomingShare {
     required this.shareRole,
     required this.encryptedKey,
     required this.createdAt,
+    this.favorite = false,
     this.sharedAt,
     required this.ownerId,
     required this.ownerEmail,
@@ -151,6 +152,8 @@ class IncomingShare {
   final ShareRole shareRole;
   final String encryptedKey;
   final int createdAt;
+
+  final bool favorite;
   final int? sharedAt;
   final String ownerId;
   final String ownerEmail;
@@ -182,6 +185,7 @@ class IncomingShare {
       shareRole: ShareRole.fromWire(json['share_role'] as String? ?? ''),
       encryptedKey: json['encrypted_key'] as String? ?? '',
       createdAt: json['created_at'] as int? ?? 0,
+      favorite: json['favorite'] as bool? ?? false,
       sharedAt: json['shared_at'] as int?,
       ownerId: json['owner_id'] as String? ?? '',
       ownerEmail: json['owner_email'] as String? ?? '',

@@ -106,6 +106,10 @@ class AppIcons {
   );
   static IconData get preview =>
       _pick(material: Icons.visibility, cupertino: CupertinoIcons.eye);
+  static IconData get favorite =>
+      _pick(material: Icons.star, cupertino: CupertinoIcons.star_fill);
+  static IconData get favoriteOutline =>
+      _pick(material: Icons.star_border, cupertino: CupertinoIcons.star);
   static IconData get signOut => _pick(
     material: Icons.logout,
     cupertino: CupertinoIcons.square_arrow_right,

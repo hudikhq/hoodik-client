@@ -5,23 +5,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/providers.dart';
 
-/// Try to load a preview from the offline chunk cache.
-///
-/// Decrypts cached encrypted chunks to a temp file and returns its path.
-/// Returns `null` if the file is not cached, if the cached version is stale,
-/// or if decryption fails.
-/// This is the second-level cache check after the in-memory [PreviewCache].
-Future<String?> loadFromCache(
+Future<Uint8List?> loadBytesFromCache(
   WidgetRef ref,
   FileItem file,
   Uint8List? fileKey,
-  String extension,
 ) async {
   if (fileKey == null) return null;
 
   final offlineManager = ref.read(offlineManagerProvider);
   final account = ref.read(activeAccountProvider);
   if (account == null) return null;
+
+  final crypto = ref.read(fileCryptoProvider);
+  if (crypto == null) return null;
 
   // Check if the cached version is stale. When a file is re-uploaded (edited
   // on another device or via the web), its finishedUploadAt changes. If the
@@ -42,12 +38,15 @@ Future<String?> loadFromCache(
     }
   }
 
-  return offlineManager.decryptToTempFile(
+  return offlineManager.decryptToMemory(
     accountId: account.id,
     fileId: file.id,
-    fileKey: fileKey,
-    cipher: file.cipher,
     chunkCount: file.chunks ?? 1,
-    extension: extension,
+    decryptChunk: (encrypted, index) => crypto.decryptChunk(
+      data: encrypted,
+      fileKey: fileKey,
+      cipher: file.cipher,
+      chunkIndex: index,
+    ),
   );
 }

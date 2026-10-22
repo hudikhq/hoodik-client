@@ -211,6 +211,10 @@
     }
   },
   "accountOfflineCacheTitle": "Offline Cache",
+  "accountPreviewPreloadTitle": "Preload nearby previews",
+  "accountPreviewPreloadSubtitle": "Loads the next and previous files under 5 MB so swiping is instant.",
+  "accountDownloadNotificationsTitle": "Download notifications",
+  "accountDownloadNotificationsSubtitle": "Notify when a download has finished.",
   "accountOfflineCacheOfLimit": "{used} of {limit}",
   "@accountOfflineCacheOfLimit": {
     "placeholders": {
@@ -823,6 +827,8 @@
     }
   },
   "filesExport": "Export",
+  "filesAddToFavorites": "Add to favorites",
+  "filesRemoveFromFavorites": "Remove from favorites",
   "filesExportBulkBody": "Each file will be downloaded and decrypted first. This can take a while, and you can pick where to send them once all the files are ready.",
   "filesExportBulkTitle": "Export {count} files?",
   "@filesExportBulkTitle": {
@@ -1621,6 +1627,8 @@
   "notesZoomIn": "Zoom in",
   "notesZoomOut": "Zoom out",
   "previewCannotDecrypt": "Cannot decrypt file",
+  "previewFavoriteFile": "Add to favorites",
+  "previewUnfavoriteFile": "Remove from favorites",
   "previewDecryptAfterDownloadFailed": "Failed to decrypt after download",
   "previewDeleteFailed": "Failed to delete: {error}",
   "@previewDeleteFailed": {

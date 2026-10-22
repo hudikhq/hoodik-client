@@ -12,6 +12,7 @@ import '../../../core/utils/logger.dart';
 import '../../../core/workers/worker_messages.dart';
 import '../../shares/services/incoming_shares.dart';
 import '../../shares/shared_constants.dart';
+import '../controllers/files_action_result.dart';
 import '../widgets/file_sort_controls.dart';
 import 'files_selection.dart';
 import 'files_state.dart';
@@ -359,6 +360,54 @@ class FilesNotifier extends FamilyNotifier<FilesState, String?>
           () {
             changed = true;
             return f.copyWith(sharedWithCount: 0);
+          }()
+        else
+          f,
+    ];
+    if (changed) state = state.copyWith(files: updated);
+  }
+
+  Future<FilesActionResult> setFavorite(
+    Iterable<String> ids,
+    bool favorite,
+  ) async {
+    final client = ref.read(apiClientProvider);
+    final targets = ids
+        .where((id) => id != sharedWithMeDirId)
+        .toSet()
+        .toList(growable: false);
+    if (targets.isEmpty || client == null) {
+      return const FilesActionResult.success('');
+    }
+
+    try {
+      if (targets.length == 1) {
+        await client.files.setFavorite(
+          fileId: targets.first,
+          favorite: favorite,
+        );
+      } else {
+        await client.files.setFavoriteMany(ids: targets, favorite: favorite);
+      }
+    } catch (e) {
+      return FilesActionResult.error(_formatError(e));
+    }
+
+    applyFavoriteLocally(targets, favorite);
+    return const FilesActionResult.success('');
+  }
+
+  void applyFavoriteLocally(Iterable<String> ids, bool favorite) {
+    final current = state.files;
+    if (current == null) return;
+    final target = ids.toSet();
+    var changed = false;
+    final updated = [
+      for (final f in current)
+        if (target.contains(f.id) && f.favorite != favorite)
+          () {
+            changed = true;
+            return f.copyWith(favorite: favorite);
           }()
         else
           f,

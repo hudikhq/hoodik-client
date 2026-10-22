@@ -73,6 +73,16 @@ class HoodikTheme {
         onError: c.onFill,
       ),
 
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+          TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+        },
+      ),
+
       // Screen body — matches the notes editor's main area.
       scaffoldBackgroundColor: c.canvas,
 

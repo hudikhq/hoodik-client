@@ -274,6 +274,39 @@ void _dispatch(TaskUpdate update) {
   }
 }
 
+bool _downloadCompleteNotifications = true;
+
+Future<void> setDownloadCompleteNotifications(bool enabled) async {
+  _downloadCompleteNotifications = enabled;
+  final configuring = _configuring;
+  if (configuring == null || !Platform.isAndroid) return;
+  await configuring;
+  _configureDownloadNotifications();
+}
+
+void _configureDownloadNotifications() {
+  for (final group in const [
+    'chunk-downloads',
+    'direct-chunks',
+    'tar-downloads',
+  ]) {
+    FileDownloader().configureNotificationForGroup(
+      group,
+      running: TaskNotification(
+        ambientL10n.serviceTransferDownloading,
+        '{progress} — {networkSpeed}',
+      ),
+      complete: _downloadCompleteNotifications
+          ? TaskNotification(
+              ambientL10n.serviceNotificationDownloadComplete,
+              ambientL10n.serviceNotificationReady,
+            )
+          : null,
+      progressBar: true,
+    );
+  }
+}
+
 Future<void> _doConfigure() async {
   final configs = <(String, dynamic)>[
     // Hand every task straight to the OS on mobile, with nothing held back.
@@ -323,24 +356,7 @@ Future<void> _doConfigure() async {
     // Android 13+ requires runtime permission for notifications.
     await Permission.notification.request();
 
-    for (final group in const [
-      'chunk-downloads',
-      'direct-chunks',
-      'tar-downloads',
-    ]) {
-      FileDownloader().configureNotificationForGroup(
-        group,
-        running: TaskNotification(
-          ambientL10n.serviceTransferDownloading,
-          '{progress} — {networkSpeed}',
-        ),
-        complete: TaskNotification(
-          ambientL10n.serviceNotificationDownloadComplete,
-          ambientL10n.serviceNotificationReady,
-        ),
-        progressBar: true,
-      );
-    }
+    _configureDownloadNotifications();
     for (final group in const [
       'chunk-uploads',
       'direct-chunk-uploads',

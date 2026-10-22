@@ -77,6 +77,23 @@ class FileGridItem extends StatelessWidget {
                   child: Stack(
                     children: [
                       Positioned.fill(child: _buildThumbnail(color)),
+                      if (file.favorite)
+                        Positioned(
+                          left: 4,
+                          top: 4,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: context.colors.canvas,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              AppIcons.favorite,
+                              size: 12,
+                              color: context.colors.iconEmber,
+                            ),
+                          ),
+                        ),
                       if (!file.isDir && isOffline)
                         Positioned(
                           right: 4,

@@ -276,7 +276,7 @@ class _FilesTreeViewState extends ConsumerState<FilesTreeView> {
       return;
     }
 
-    if (isPreviewable(f)) {
+    if (isPreviewable(f, fileName: name)) {
       openPreview(
         context: context,
         ref: ref,

@@ -98,6 +98,14 @@ class TreeFolderRow extends StatelessWidget {
                   ),
                 ),
               ),
+              if (file.favorite) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  AppIcons.favorite,
+                  size: 14,
+                  color: context.colors.iconEmber,
+                ),
+              ],
               if (shareIcon != null) TreeShareIndicator(icon: shareIcon!),
               if (loading)
                 const SizedBox(
@@ -166,6 +174,14 @@ class TreeFileRow extends StatelessWidget {
                   ),
                 ),
               ),
+              if (file.favorite) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  AppIcons.favorite,
+                  size: 14,
+                  color: context.colors.iconEmber,
+                ),
+              ],
               if (shareIcon != null) TreeShareIndicator(icon: shareIcon!),
             ],
           ),

@@ -68,7 +68,6 @@ class _PreviewImageState extends ConsumerState<PreviewImage> {
         ref,
         widget.file,
         widget.fileKey,
-        'jpg',
         displayName: widget.fileName,
       );
 

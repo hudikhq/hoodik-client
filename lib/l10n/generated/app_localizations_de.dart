@@ -474,6 +474,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String get accountOfflineCacheTitle => 'Offline-Cache';
 
   @override
+  String get accountPreviewPreloadTitle => 'Vorschauen vorausladen';
+
+  @override
+  String get accountPreviewPreloadSubtitle =>
+      'Lädt die nächste und vorherige Datei unter 5 MB, damit das Wischen sofort reagiert.';
+
+  @override
+  String get accountDownloadNotificationsTitle => 'Download-Benachrichtigungen';
+
+  @override
+  String get accountDownloadNotificationsSubtitle =>
+      'Benachrichtigen, wenn ein Download abgeschlossen ist.';
+
+  @override
   String accountOfflineCacheOfLimit(String used, String limit) {
     return '$used von $limit';
   }
@@ -1602,6 +1616,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get filesExport => 'Exportieren';
 
   @override
+  String get filesAddToFavorites => 'Zu Favoriten hinzufügen';
+
+  @override
+  String get filesRemoveFromFavorites => 'Aus Favoriten entfernen';
+
+  @override
   String get filesExportBulkBody =>
       'Jede Datei wird zuerst heruntergeladen und entschlüsselt. Das kann eine Weile dauern. Danach kannst du wählen, wohin die Dateien gehen.';
 
@@ -2559,6 +2579,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get previewCannotDecrypt => 'Datei kann nicht entschlüsselt werden';
+
+  @override
+  String get previewFavoriteFile => 'Zu Favoriten hinzufügen';
+
+  @override
+  String get previewUnfavoriteFile => 'Aus Favoriten entfernen';
 
   @override
   String get previewDecryptAfterDownloadFailed =>

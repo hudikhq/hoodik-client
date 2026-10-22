@@ -322,6 +322,27 @@ class FilesClient {
     return resp.data;
   }
 
+  Future<FileItem> setFavorite({
+    required String fileId,
+    required bool favorite,
+  }) async {
+    final resp = await _dio.put(
+      '/api/storage/$fileId/favorite',
+      data: {'favorite': favorite},
+    );
+    return FileItem.fromJson(resp.data as Map<String, dynamic>);
+  }
+
+  Future<void> setFavoriteMany({
+    required List<String> ids,
+    required bool favorite,
+  }) async {
+    await _dio.post(
+      '/api/storage/favorite-many',
+      data: {'ids': ids, 'favorite': favorite},
+    );
+  }
+
   /// `GET /api/storage/{fileId}?chunk=N` — download a single encrypted
   /// chunk. Returns raw bytes; caller decrypts.
   Future<Uint8List> downloadChunk({

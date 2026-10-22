@@ -60,6 +60,8 @@ class FileItem {
   /// multi-key upload predicate.
   final bool isOwner;
 
+  final bool favorite;
+
   /// The caller's role on a shared row (null when [isOwner]). Gates fork
   /// (co-owner only) and the editor surface for shared files.
   final ShareRole? shareRole;
@@ -126,6 +128,7 @@ class FileItem {
     this.pendingChunks,
     this.pendingSize,
     this.isOwner = true,
+    this.favorite = false,
     this.shareRole,
     this.membersSignedAt,
     this.ownerEmail,
@@ -163,6 +166,7 @@ class FileItem {
       pendingChunks: json['pending_chunks'] as int?,
       pendingSize: json['pending_size'] as int?,
       isOwner: json['is_owner'] as bool? ?? true,
+      favorite: json['favorite'] as bool? ?? false,
       shareRole: shareRoleWire == null
           ? null
           : ShareRole.fromWire(shareRoleWire),
@@ -177,7 +181,7 @@ class FileItem {
     );
   }
 
-  FileItem copyWith({int? sharedWithCount}) {
+  FileItem copyWith({int? sharedWithCount, bool? favorite}) {
     return FileItem(
       id: id,
       fileId: fileId,
@@ -200,6 +204,7 @@ class FileItem {
       pendingChunks: pendingChunks,
       pendingSize: pendingSize,
       isOwner: isOwner,
+      favorite: favorite ?? this.favorite,
       shareRole: shareRole,
       membersSignedAt: membersSignedAt,
       ownerEmail: ownerEmail,
@@ -233,6 +238,7 @@ class FileItem {
       finishedUploadAt: s.finishedUploadAt,
       sha256: s.sha256,
       isOwner: false,
+      favorite: s.favorite,
       shareRole: s.shareRole,
       ownerEmail: s.ownerEmail,
       sharedByEmail: s.sharedByEmail,

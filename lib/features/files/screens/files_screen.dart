@@ -288,6 +288,22 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     if (result != null) _applyResult(result);
   }
 
+  Future<void> _favoriteSelected() async {
+    final state = ref.read(filesNotifierProvider(widget.dirId));
+    final selected = [
+      for (final file in state.files ?? const <FileItem>[])
+        if (state.selectedIds.contains(file.id) && file.id != sharedWithMeDirId)
+          file,
+    ];
+    if (selected.isEmpty) return;
+
+    final next = !selected.every((file) => file.favorite);
+    final result = await ref
+        .read(filesNotifierProvider(widget.dirId).notifier)
+        .setFavorite(selected.map((file) => file.id), next);
+    _applyResult(result);
+  }
+
   void _openCreateSheet([Offset? anchor]) {
     final isDesktop =
         Platform.isMacOS || Platform.isWindows || Platform.isLinux;
@@ -367,7 +383,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       _notifier.toggleSelection(file.id);
     } else if (file.isDir) {
       context.push('/files/${file.id}', extra: state.displayName(file));
-    } else if (isPreviewable(file)) {
+    } else if (isPreviewable(file, fileName: state.displayName(file))) {
       openFilesPreview(
         context: context,
         ref: ref,
@@ -443,6 +459,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
         onDeleteSelected: _deleteSelected,
         onExportSelected: _exportSelected,
         onMakeOfflineSelected: _offlineSelected,
+        onFavoriteSelected: _favoriteSelected,
         onEnterSelection: _notifier.enterEmptySelectionMode,
         onCreate: _openCreateSheet,
         onSortFieldSelected: _notifier.toggleSort,

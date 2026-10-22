@@ -32,7 +32,7 @@ List<FileItem> sortFiles({
       comparator = (a, b) {
         final nameA = displayName(a).toLowerCase();
         final nameB = displayName(b).toLowerCase();
-        return nameA.compareTo(nameB);
+        return compareNatural(nameA, nameB);
       };
     case SortField.date:
       comparator = (a, b) {
@@ -59,6 +59,47 @@ List<FileItem> sortFiles({
     return [...dirs.reversed, ...items.reversed];
   }
   return [...dirs, ...items];
+}
+
+int compareNatural(String a, String b) {
+  var i = 0;
+  var j = 0;
+  while (i < a.length && j < b.length) {
+    final ca = a.codeUnitAt(i);
+    final cb = b.codeUnitAt(j);
+    if (_isDigit(ca) && _isDigit(cb)) {
+      final startA = i;
+      final startB = j;
+      while (i < a.length && _isDigit(a.codeUnitAt(i))) {
+        i++;
+      }
+      while (j < b.length && _isDigit(b.codeUnitAt(j))) {
+        j++;
+      }
+      final numA = a.substring(startA, i).replaceFirst(RegExp('^0+'), '');
+      final numB = b.substring(startB, j).replaceFirst(RegExp('^0+'), '');
+      if (numA.length != numB.length) return numA.length - numB.length;
+      final cmp = numA.compareTo(numB);
+      if (cmp != 0) return cmp;
+      continue;
+    }
+    if (ca != cb) return ca - cb;
+    i++;
+    j++;
+  }
+  return (a.length - i) - (b.length - j);
+}
+
+bool _isDigit(int c) => c >= 0x30 && c <= 0x39;
+
+List<FileItem> pinFavoritesFirst(List<FileItem> files) {
+  if (!files.any((f) => f.favorite)) return files;
+  return [
+    for (final f in files)
+      if (f.favorite) f,
+    for (final f in files)
+      if (!f.favorite) f,
+  ];
 }
 
 /// A popup menu button that lets the user pick a sort field.

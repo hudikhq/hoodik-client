@@ -51,7 +51,6 @@ class _PreviewTextState extends ConsumerState<PreviewText> {
         ref,
         widget.file,
         widget.fileKey,
-        'txt',
         displayName: widget.fileName,
       );
 
