@@ -183,34 +183,36 @@ Uint8List cipherDecryptString({
   ciphertext: ciphertext,
 );
 
-/// Encrypt one chunk of a multi-chunk payload with a per-chunk derived nonce.
-/// Chunk 0 is byte-identical to [cipher_encrypt], so single-chunk payloads
-/// stay wire-compatible with every existing file.
+/// Encrypt chunk `chunk_index` of a `total_chunks`-chunk payload. Each call
+/// uses a fresh random nonce, stored in the chunk (see
+/// `cryptfns::cipher::Cipher::encrypt_chunk`).
 Uint8List cipherEncryptChunk({
   required String cipher,
   required List<int> key,
   required BigInt chunkIndex,
+  required BigInt totalChunks,
   required List<int> plaintext,
 }) => RustLib.instance.api.crateApiCipherEncryptChunk(
   cipher: cipher,
   key: key,
   chunkIndex: chunkIndex,
+  totalChunks: totalChunks,
   plaintext: plaintext,
 );
 
-/// Decrypt one chunk of a multi-chunk payload. Tries the per-chunk nonce
-/// first, then falls back to the blob's own nonce so files uploaded before
-/// per-chunk nonces existed still decrypt — the AEAD tag rejects the wrong
-/// branch.
+/// Decrypt chunk `chunk_index` of a `total_chunks`-chunk payload. The chunk's
+/// header selects the format, so chunks from earlier releases still decrypt.
 Uint8List cipherDecryptChunk({
   required String cipher,
   required List<int> key,
   required BigInt chunkIndex,
+  required BigInt totalChunks,
   required List<int> ciphertext,
 }) => RustLib.instance.api.crateApiCipherDecryptChunk(
   cipher: cipher,
   key: key,
   chunkIndex: chunkIndex,
+  totalChunks: totalChunks,
   ciphertext: ciphertext,
 );
 

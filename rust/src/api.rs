@@ -233,34 +233,34 @@ pub fn cipher_decrypt_string(
     c.decrypt_string(key, ciphertext).map_err(|e| e.to_string())
 }
 
-/// Encrypt one chunk of a multi-chunk payload with a per-chunk derived nonce.
-/// Chunk 0 is byte-identical to [cipher_encrypt], so single-chunk payloads
-/// stay wire-compatible with every existing file.
+/// Encrypt chunk `chunk_index` of a `total_chunks`-chunk payload. Each call
+/// uses a fresh random nonce, stored in the chunk (see
+/// `cryptfns::cipher::Cipher::encrypt_chunk`).
 #[frb(sync)]
 pub fn cipher_encrypt_chunk(
     cipher: String,
     key: Vec<u8>,
     chunk_index: u64,
+    total_chunks: u64,
     plaintext: Vec<u8>,
 ) -> Result<Vec<u8>, String> {
     let c = cryptfns::cipher::Cipher::from_str(&cipher).map_err(|e| e.to_string())?;
-    c.encrypt_chunk(&key, chunk_index, plaintext)
+    c.encrypt_chunk(&key, chunk_index, total_chunks, plaintext)
         .map_err(|e| e.to_string())
 }
 
-/// Decrypt one chunk of a multi-chunk payload. Tries the per-chunk nonce
-/// first, then falls back to the blob's own nonce so files uploaded before
-/// per-chunk nonces existed still decrypt — the AEAD tag rejects the wrong
-/// branch.
+/// Decrypt chunk `chunk_index` of a `total_chunks`-chunk payload. The chunk's
+/// header selects the format, so chunks from earlier releases still decrypt.
 #[frb(sync)]
 pub fn cipher_decrypt_chunk(
     cipher: String,
     key: Vec<u8>,
     chunk_index: u64,
+    total_chunks: u64,
     ciphertext: Vec<u8>,
 ) -> Result<Vec<u8>, String> {
     let c = cryptfns::cipher::Cipher::from_str(&cipher).map_err(|e| e.to_string())?;
-    c.decrypt_chunk(&key, chunk_index, ciphertext)
+    c.decrypt_chunk(&key, chunk_index, total_chunks, ciphertext)
         .map_err(|e| e.to_string())
 }
 
@@ -2126,26 +2126,23 @@ mod tests {
         let key = cipher_generate_key("aegis128l".to_string()).unwrap();
         let plaintext = b"chunked payload".to_vec();
 
-        // Chunk 0 stays byte-identical to the whole-payload encryption.
-        assert_eq!(
-            cipher_encrypt_chunk("aegis128l".to_string(), key.clone(), 0, plaintext.clone())
-                .unwrap(),
-            cipher_encrypt("aegis128l".to_string(), key.clone(), plaintext.clone()).unwrap()
-        );
-
         let chunk3 =
-            cipher_encrypt_chunk("aegis128l".to_string(), key.clone(), 3, plaintext.clone())
+            cipher_encrypt_chunk("aegis128l".to_string(), key.clone(), 3, 5, plaintext.clone())
                 .unwrap();
         assert_eq!(
-            cipher_decrypt_chunk("aegis128l".to_string(), key.clone(), 3, chunk3).unwrap(),
+            cipher_decrypt_chunk("aegis128l".to_string(), key.clone(), 3, 5, chunk3.clone())
+                .unwrap(),
             plaintext
         );
 
-        // A pre-fix blob (fixed nonce at every index) still decrypts.
+        // A chunk only authenticates under the chunk count it was written for.
+        assert!(cipher_decrypt_chunk("aegis128l".to_string(), key.clone(), 3, 4, chunk3).is_err());
+
+        // A pre-tag blob (fixed nonce at every index) still decrypts.
         let legacy =
             cipher_encrypt("aegis128l".to_string(), key.clone(), plaintext.clone()).unwrap();
         assert_eq!(
-            cipher_decrypt_chunk("aegis128l".to_string(), key, 3, legacy).unwrap(),
+            cipher_decrypt_chunk("aegis128l".to_string(), key, 3, 5, legacy).unwrap(),
             plaintext
         );
     }

@@ -171,6 +171,7 @@ class CryptoService {
     required String cipher,
     required Uint8List key,
     required int chunkIndex,
+    required int totalChunks,
     required Uint8List plaintext,
   }) {
     // Owned copies. The iOS/macOS AOT binding for Vec<u8> has SIGSEGV'd
@@ -183,23 +184,25 @@ class CryptoService {
       cipher: cipher,
       key: keyCopy,
       chunkIndex: BigInt.from(chunkIndex),
+      totalChunks: BigInt.from(totalChunks),
       plaintext: plainCopy,
     );
   }
 
-  /// Decrypt one chunk of a multi-chunk payload. Tries the per-chunk nonce
-  /// first, then the blob's own nonce so files uploaded before per-chunk
-  /// nonces existed still decrypt — the AEAD tag rejects the wrong branch.
+  /// Decrypt one chunk of a multi-chunk payload. The chunk's header selects
+  /// the format, so chunks from earlier releases still decrypt.
   Uint8List symmetricDecryptChunk({
     required String cipher,
     required Uint8List key,
     required int chunkIndex,
+    required int totalChunks,
     required Uint8List ciphertext,
   }) {
     return rust.cipherDecryptChunk(
       cipher: cipher,
       key: key,
       chunkIndex: BigInt.from(chunkIndex),
+      totalChunks: BigInt.from(totalChunks),
       ciphertext: ciphertext,
     );
   }

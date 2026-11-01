@@ -260,6 +260,7 @@ class FilesForkController {
         fileKey: fileKey,
         cipher: cipher,
         chunkIndex: i,
+        totalChunks: chunks,
       );
       await client.files.uploadChunk(fileId: fileId, chunk: i, data: encrypted);
     }

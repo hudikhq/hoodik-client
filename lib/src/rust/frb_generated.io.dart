@@ -807,12 +807,14 @@ class RustLibWire implements BaseWire {
     ffi.Pointer<wire_cst_list_prim_u_8_strict> cipher,
     ffi.Pointer<wire_cst_list_prim_u_8_loose> key,
     int chunk_index,
+    int total_chunks,
     ffi.Pointer<wire_cst_list_prim_u_8_loose> ciphertext,
   ) {
     return _wire__crate__api__cipher_decrypt_chunk(
       cipher,
       key,
       chunk_index,
+      total_chunks,
       ciphertext,
     );
   }
@@ -824,6 +826,7 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_loose>,
             ffi.Uint64,
+            ffi.Uint64,
             ffi.Pointer<wire_cst_list_prim_u_8_loose>,
           )
         >
@@ -834,6 +837,7 @@ class RustLibWire implements BaseWire {
             WireSyncRust2DartDco Function(
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+              int,
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_loose>,
             )
@@ -899,12 +903,14 @@ class RustLibWire implements BaseWire {
     ffi.Pointer<wire_cst_list_prim_u_8_strict> cipher,
     ffi.Pointer<wire_cst_list_prim_u_8_loose> key,
     int chunk_index,
+    int total_chunks,
     ffi.Pointer<wire_cst_list_prim_u_8_loose> plaintext,
   ) {
     return _wire__crate__api__cipher_encrypt_chunk(
       cipher,
       key,
       chunk_index,
+      total_chunks,
       plaintext,
     );
   }
@@ -916,6 +922,7 @@ class RustLibWire implements BaseWire {
             ffi.Pointer<wire_cst_list_prim_u_8_strict>,
             ffi.Pointer<wire_cst_list_prim_u_8_loose>,
             ffi.Uint64,
+            ffi.Uint64,
             ffi.Pointer<wire_cst_list_prim_u_8_loose>,
           )
         >
@@ -926,6 +933,7 @@ class RustLibWire implements BaseWire {
             WireSyncRust2DartDco Function(
               ffi.Pointer<wire_cst_list_prim_u_8_strict>,
               ffi.Pointer<wire_cst_list_prim_u_8_loose>,
+              int,
               int,
               ffi.Pointer<wire_cst_list_prim_u_8_loose>,
             )

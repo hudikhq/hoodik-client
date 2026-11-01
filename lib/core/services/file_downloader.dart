@@ -180,6 +180,7 @@ class FileDownloader {
           fileKey: fileKey,
           cipher: file.cipher,
           chunkIndex: i,
+          totalChunks: totalChunks,
         );
 
         builder.add(decrypted);

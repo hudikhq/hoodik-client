@@ -139,12 +139,12 @@ Future<void> _handleEncrypt({
         // Feed plaintext to streaming SHA-256 hasher.
         sha256Hasher.add(plaintext);
 
-        // Encrypt via sync Rust FFI with a per-chunk nonce derived from the
-        // index — a fixed nonce across chunks would void the AEAD guarantees.
+        // Encrypt via sync Rust FFI; every chunk gets a fresh random nonce.
         final encrypted = rust.cipherEncryptChunk(
           cipher: cmd.cipher,
           key: cmd.fileKey,
           chunkIndex: BigInt.from(i),
+          totalChunks: BigInt.from(cmd.totalChunks),
           plaintext: plaintext,
         );
 

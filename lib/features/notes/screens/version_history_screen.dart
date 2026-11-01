@@ -117,6 +117,7 @@ class _VersionHistoryScreenState extends ConsumerState<VersionHistoryScreen> {
         fileKey: key,
         cipher: cipher,
         chunkIndex: i,
+        totalChunks: v.chunks,
       );
       out.add(plaintext);
     }

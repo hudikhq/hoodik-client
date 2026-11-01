@@ -77,6 +77,7 @@ class _NoteStorageClient extends Fake implements StorageClient {
   int inFlight = 0;
   int maxInFlight = 0;
   int conflictRemaining = 0;
+  final List<int> sentChunks = [];
 
   /// Awaited on entry, before the conflict check — lets a test park the
   /// first save inside replaceContent while more saves queue behind it.
@@ -97,6 +98,7 @@ class _NoteStorageClient extends Fake implements StorageClient {
     bool force = false,
   }) async {
     replaceCalls += 1;
+    sentChunks.add(chunks);
     forceFlags.add(force);
     rootTokens.add(searchTokensRoot);
     fileTokens.add(searchTokensFile);
@@ -204,14 +206,19 @@ void main() {
     return (uploader: uploader, files: files, storage: storage, auth: auth);
   }
 
-  String decryptBody(Uint8List chunk) => utf8.decode(
-    fileCrypto.decryptChunk(
-      data: chunk,
-      fileKey: fileKey,
-      cipher: 'aegis128l',
-      chunkIndex: 0,
-    ),
-  );
+  // Decrypting with the chunk count the save declared to replaceContent
+  // proves the uploader encrypted with that same count — a tagged chunk
+  // only authenticates under the total it was written for.
+  String decryptBody(Uint8List chunk, {required int totalChunks}) =>
+      utf8.decode(
+        fileCrypto.decryptChunk(
+          data: chunk,
+          fileKey: fileKey,
+          cipher: 'aegis128l',
+          chunkIndex: 0,
+          totalChunks: totalChunks,
+        ),
+      );
 
   test(
     'overlapping saves coalesce: never concurrent, newest body wins',
@@ -238,8 +245,22 @@ void main() {
       expect(built.storage.replaceCalls, 2);
       expect(built.storage.maxInFlight, 1);
       expect(built.files.chunkFileIds, hasLength(2));
-      expect(decryptBody(built.files.chunkData.first), 'first body');
-      expect(decryptBody(built.files.chunkData.last), 'third body');
+      // Each save declares the new body's chunk count and encrypts with it.
+      expect(built.storage.sentChunks, [1, 1]);
+      expect(
+        decryptBody(
+          built.files.chunkData.first,
+          totalChunks: built.storage.sentChunks.first,
+        ),
+        'first body',
+      );
+      expect(
+        decryptBody(
+          built.files.chunkData.last,
+          totalChunks: built.storage.sentChunks.last,
+        ),
+        'third body',
+      );
 
       // Every save carries search tokens for the body it actually wrote —
       // the coalesced save indexes the coalesced text, not the original.
@@ -262,7 +283,14 @@ void main() {
 
     expect(built.storage.forceFlags, [false, true]);
     expect(built.files.chunkFileIds, hasLength(1));
-    expect(decryptBody(built.files.chunkData.single), 'body');
+    expect(built.storage.sentChunks, [1, 1]);
+    expect(
+      decryptBody(
+        built.files.chunkData.single,
+        totalChunks: built.storage.sentChunks.last,
+      ),
+      'body',
+    );
     expect(built.files.hashedFileId, fileId);
     // The forced retry re-sends the same tokens the first attempt carried.
     final expectedTokens = fileCrypto.tokenizeForSearchWithFileKey(
@@ -309,7 +337,13 @@ void main() {
 
     expect(built.storage.forceFlags, [false, true, false]);
     expect(built.files.chunkFileIds, hasLength(1));
-    expect(decryptBody(built.files.chunkData.single), 'queued body');
+    expect(
+      decryptBody(
+        built.files.chunkData.single,
+        totalChunks: built.storage.sentChunks.last,
+      ),
+      'queued body',
+    );
   });
 
   test('an explicit force save takes over on the first attempt', () async {

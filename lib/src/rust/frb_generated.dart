@@ -115,6 +115,7 @@ abstract class RustLibApi extends BaseApi {
     required String cipher,
     required List<int> key,
     required BigInt chunkIndex,
+    required BigInt totalChunks,
     required List<int> ciphertext,
   });
 
@@ -134,6 +135,7 @@ abstract class RustLibApi extends BaseApi {
     required String cipher,
     required List<int> key,
     required BigInt chunkIndex,
+    required BigInt totalChunks,
     required List<int> plaintext,
   });
 
@@ -696,6 +698,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required String cipher,
     required List<int> key,
     required BigInt chunkIndex,
+    required BigInt totalChunks,
     required List<int> ciphertext,
   }) {
     return handler.executeSync(
@@ -704,12 +707,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           var arg0 = cst_encode_String(cipher);
           var arg1 = cst_encode_list_prim_u_8_loose(key);
           var arg2 = cst_encode_u_64(chunkIndex);
-          var arg3 = cst_encode_list_prim_u_8_loose(ciphertext);
+          var arg3 = cst_encode_u_64(totalChunks);
+          var arg4 = cst_encode_list_prim_u_8_loose(ciphertext);
           return wire.wire__crate__api__cipher_decrypt_chunk(
             arg0,
             arg1,
             arg2,
             arg3,
+            arg4,
           );
         },
         codec: DcoCodec(
@@ -717,7 +722,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: dco_decode_String,
         ),
         constMeta: kCrateApiCipherDecryptChunkConstMeta,
-        argValues: [cipher, key, chunkIndex, ciphertext],
+        argValues: [cipher, key, chunkIndex, totalChunks, ciphertext],
         apiImpl: this,
       ),
     );
@@ -725,7 +730,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiCipherDecryptChunkConstMeta => const TaskConstMeta(
     debugName: "cipher_decrypt_chunk",
-    argNames: ["cipher", "key", "chunkIndex", "ciphertext"],
+    argNames: ["cipher", "key", "chunkIndex", "totalChunks", "ciphertext"],
   );
 
   @override
@@ -794,6 +799,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required String cipher,
     required List<int> key,
     required BigInt chunkIndex,
+    required BigInt totalChunks,
     required List<int> plaintext,
   }) {
     return handler.executeSync(
@@ -802,12 +808,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           var arg0 = cst_encode_String(cipher);
           var arg1 = cst_encode_list_prim_u_8_loose(key);
           var arg2 = cst_encode_u_64(chunkIndex);
-          var arg3 = cst_encode_list_prim_u_8_loose(plaintext);
+          var arg3 = cst_encode_u_64(totalChunks);
+          var arg4 = cst_encode_list_prim_u_8_loose(plaintext);
           return wire.wire__crate__api__cipher_encrypt_chunk(
             arg0,
             arg1,
             arg2,
             arg3,
+            arg4,
           );
         },
         codec: DcoCodec(
@@ -815,7 +823,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: dco_decode_String,
         ),
         constMeta: kCrateApiCipherEncryptChunkConstMeta,
-        argValues: [cipher, key, chunkIndex, plaintext],
+        argValues: [cipher, key, chunkIndex, totalChunks, plaintext],
         apiImpl: this,
       ),
     );
@@ -823,7 +831,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiCipherEncryptChunkConstMeta => const TaskConstMeta(
     debugName: "cipher_encrypt_chunk",
-    argNames: ["cipher", "key", "chunkIndex", "plaintext"],
+    argNames: ["cipher", "key", "chunkIndex", "totalChunks", "plaintext"],
   );
 
   @override

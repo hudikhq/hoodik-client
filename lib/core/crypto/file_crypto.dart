@@ -219,37 +219,38 @@ class FileCrypto {
   List<String> queryTags(String key, String text) =>
       _crypto.searchQueryTags(key, text);
 
-  /// Encrypt a data chunk with the file's symmetric key. [chunkIndex] derives
-  /// a per-chunk nonce — encrypting every chunk with the key blob as-is would
-  /// reuse the embedded nonce across the file and void the AEAD guarantees.
-  /// Chunk 0 stays byte-identical to the whole-payload encryption.
+  /// Encrypt chunk [chunkIndex] of a [totalChunks]-chunk file with the file's
+  /// symmetric key. Every call uses a fresh random nonce stored in the chunk.
   Uint8List encryptChunk({
     required Uint8List data,
     required Uint8List fileKey,
     required String cipher,
     required int chunkIndex,
+    required int totalChunks,
   }) {
     return _crypto.symmetricEncryptChunk(
       cipher: cipher,
       key: fileKey,
       chunkIndex: chunkIndex,
+      totalChunks: totalChunks,
       plaintext: data,
     );
   }
 
-  /// Decrypt a data chunk with the file's symmetric key. Tries the per-chunk
-  /// nonce for [chunkIndex] first, then the key blob's own nonce so files
-  /// uploaded before per-chunk nonces existed still decrypt.
+  /// Decrypt chunk [chunkIndex] of a [totalChunks]-chunk file. The chunk's
+  /// header selects the format, so chunks from earlier releases still decrypt.
   Uint8List decryptChunk({
     required Uint8List data,
     required Uint8List fileKey,
     required String cipher,
     required int chunkIndex,
+    required int totalChunks,
   }) {
     return _crypto.symmetricDecryptChunk(
       cipher: cipher,
       key: fileKey,
       chunkIndex: chunkIndex,
+      totalChunks: totalChunks,
       ciphertext: data,
     );
   }
