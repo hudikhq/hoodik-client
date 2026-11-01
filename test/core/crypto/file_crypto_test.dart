@@ -55,50 +55,52 @@ void main() {
   group('chunk crypto (tagged chunk format)', () {
     final fileCrypto = FileCrypto();
 
-    test('chunks round-trip and identical plaintext never repeats ciphertext',
-        () {
-      final key = fileCrypto.generateFileKey();
-      final plaintext = Uint8List.fromList(List.filled(64, 0x41));
+    test(
+      'chunks round-trip and identical plaintext never repeats ciphertext',
+      () {
+        final key = fileCrypto.generateFileKey();
+        final plaintext = Uint8List.fromList(List.filled(64, 0x41));
 
-      final chunk1 = fileCrypto.encryptChunk(
-        data: plaintext,
-        fileKey: key,
-        cipher: 'aegis128l',
-        chunkIndex: 1,
-        totalChunks: 3,
-      );
-      final chunk2 = fileCrypto.encryptChunk(
-        data: plaintext,
-        fileKey: key,
-        cipher: 'aegis128l',
-        chunkIndex: 2,
-        totalChunks: 3,
-      );
-      expect(chunk1, isNot(equals(chunk2)));
-
-      // The same index twice still differs: every call draws a fresh nonce.
-      final chunk1Again = fileCrypto.encryptChunk(
-        data: plaintext,
-        fileKey: key,
-        cipher: 'aegis128l',
-        chunkIndex: 1,
-        totalChunks: 3,
-      );
-      expect(chunk1Again, isNot(equals(chunk1)));
-
-      for (final (index, chunk) in [(1, chunk1), (2, chunk2)]) {
-        expect(
-          fileCrypto.decryptChunk(
-            data: chunk,
-            fileKey: key,
-            cipher: 'aegis128l',
-            chunkIndex: index,
-            totalChunks: 3,
-          ),
-          equals(plaintext),
+        final chunk1 = fileCrypto.encryptChunk(
+          data: plaintext,
+          fileKey: key,
+          cipher: 'aegis128l',
+          chunkIndex: 1,
+          totalChunks: 3,
         );
-      }
-    });
+        final chunk2 = fileCrypto.encryptChunk(
+          data: plaintext,
+          fileKey: key,
+          cipher: 'aegis128l',
+          chunkIndex: 2,
+          totalChunks: 3,
+        );
+        expect(chunk1, isNot(equals(chunk2)));
+
+        // The same index twice still differs: every call draws a fresh nonce.
+        final chunk1Again = fileCrypto.encryptChunk(
+          data: plaintext,
+          fileKey: key,
+          cipher: 'aegis128l',
+          chunkIndex: 1,
+          totalChunks: 3,
+        );
+        expect(chunk1Again, isNot(equals(chunk1)));
+
+        for (final (index, chunk) in [(1, chunk1), (2, chunk2)]) {
+          expect(
+            fileCrypto.decryptChunk(
+              data: chunk,
+              fileKey: key,
+              cipher: 'aegis128l',
+              chunkIndex: index,
+              totalChunks: 3,
+            ),
+            equals(plaintext),
+          );
+        }
+      },
+    );
 
     test('a legacy fixed-nonce chunk still decrypts via the fallback', () {
       final key = fileCrypto.generateFileKey();
