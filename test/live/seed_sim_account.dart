@@ -122,6 +122,7 @@ void main() {
         fileKey: fileKey,
         cipher: cipher,
         chunkIndex: i,
+        totalChunks: _chunks,
       );
     }
 

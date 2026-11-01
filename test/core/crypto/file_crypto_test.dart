@@ -52,60 +52,55 @@ void main() {
     });
   });
 
-  group('chunk crypto (per-chunk nonces)', () {
+  group('chunk crypto (tagged chunk format)', () {
     final fileCrypto = FileCrypto();
 
-    test('identical plaintext encrypts to distinct ciphertext per index', () {
-      final key = fileCrypto.generateFileKey();
-      final plaintext = Uint8List.fromList(List.filled(64, 0x41));
+    test(
+      'chunks round-trip and identical plaintext never repeats ciphertext',
+      () {
+        final key = fileCrypto.generateFileKey();
+        final plaintext = Uint8List.fromList(List.filled(64, 0x41));
 
-      final chunk1 = fileCrypto.encryptChunk(
-        data: plaintext,
-        fileKey: key,
-        cipher: 'aegis128l',
-        chunkIndex: 1,
-      );
-      final chunk2 = fileCrypto.encryptChunk(
-        data: plaintext,
-        fileKey: key,
-        cipher: 'aegis128l',
-        chunkIndex: 2,
-      );
-      expect(chunk1, isNot(equals(chunk2)));
-
-      for (final (index, chunk) in [(1, chunk1), (2, chunk2)]) {
-        expect(
-          fileCrypto.decryptChunk(
-            data: chunk,
-            fileKey: key,
-            cipher: 'aegis128l',
-            chunkIndex: index,
-          ),
-          equals(plaintext),
-        );
-      }
-    });
-
-    test('chunk 0 is byte-identical to the whole-payload encryption', () {
-      final key = fileCrypto.generateFileKey();
-      final plaintext = Uint8List.fromList(List.filled(64, 0x42));
-
-      expect(
-        fileCrypto.encryptChunk(
+        final chunk1 = fileCrypto.encryptChunk(
           data: plaintext,
           fileKey: key,
           cipher: 'aegis128l',
-          chunkIndex: 0,
-        ),
-        equals(
-          crypto.symmetricEncrypt(
-            cipher: 'aegis128l',
-            key: key,
-            plaintext: plaintext,
-          ),
-        ),
-      );
-    });
+          chunkIndex: 1,
+          totalChunks: 3,
+        );
+        final chunk2 = fileCrypto.encryptChunk(
+          data: plaintext,
+          fileKey: key,
+          cipher: 'aegis128l',
+          chunkIndex: 2,
+          totalChunks: 3,
+        );
+        expect(chunk1, isNot(equals(chunk2)));
+
+        // The same index twice still differs: every call draws a fresh nonce.
+        final chunk1Again = fileCrypto.encryptChunk(
+          data: plaintext,
+          fileKey: key,
+          cipher: 'aegis128l',
+          chunkIndex: 1,
+          totalChunks: 3,
+        );
+        expect(chunk1Again, isNot(equals(chunk1)));
+
+        for (final (index, chunk) in [(1, chunk1), (2, chunk2)]) {
+          expect(
+            fileCrypto.decryptChunk(
+              data: chunk,
+              fileKey: key,
+              cipher: 'aegis128l',
+              chunkIndex: index,
+              totalChunks: 3,
+            ),
+            equals(plaintext),
+          );
+        }
+      },
+    );
 
     test('a legacy fixed-nonce chunk still decrypts via the fallback', () {
       final key = fileCrypto.generateFileKey();
@@ -124,6 +119,7 @@ void main() {
           fileKey: key,
           cipher: 'aegis128l',
           chunkIndex: 3,
+          totalChunks: 4,
         ),
         equals(plaintext),
       );
@@ -136,6 +132,7 @@ void main() {
         fileKey: key,
         cipher: 'aegis128l',
         chunkIndex: 2,
+        totalChunks: 6,
       );
       expect(
         () => fileCrypto.decryptChunk(
@@ -143,8 +140,58 @@ void main() {
           fileKey: key,
           cipher: 'aegis128l',
           chunkIndex: 5,
+          totalChunks: 6,
         ),
         throwsA(anything),
+      );
+    });
+
+    test('a chunk fed the wrong chunk count fails authentication', () {
+      final key = fileCrypto.generateFileKey();
+      final chunk = fileCrypto.encryptChunk(
+        data: Uint8List.fromList(List.filled(64, 0x45)),
+        fileKey: key,
+        cipher: 'aegis128l',
+        chunkIndex: 1,
+        totalChunks: 3,
+      );
+      for (final total in [2, 4]) {
+        expect(
+          () => fileCrypto.decryptChunk(
+            data: chunk,
+            fileKey: key,
+            cipher: 'aegis128l',
+            chunkIndex: 1,
+            totalChunks: total,
+          ),
+          throwsA(anything),
+        );
+      }
+    });
+
+    // Cross-client anchor for the tagged chunk layout: the same vector is
+    // asserted in `cryptfns/src/cipher.rs` (chunk_golden_vector_decrypts) and
+    // the web frontend's `web/tests/crypto-cipher.test.ts`. If any
+    // implementation of the layout or its associated data drifts, one of the
+    // three fails. Only decryption is pinned; the encryption nonce is random.
+    test('cross-client golden chunk vector decrypts', () {
+      final key = crypto.hexDecode(
+        '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f',
+      );
+      final chunk = crypto.hexDecode(
+        '48444b43484b0002a0a1a2a3a4a5a6a7a8a9aaabacadaeaf'
+        '555f6e84c13c89dd00b3fe3a08937b3a8568eb1fbdc286e675a515fb',
+      );
+
+      expect(
+        fileCrypto.decryptChunk(
+          data: chunk,
+          fileKey: key,
+          cipher: 'aegis128l',
+          chunkIndex: 1,
+          totalChunks: 3,
+        ),
+        equals(Uint8List.fromList('hoodik chunk'.codeUnits)),
       );
     });
   });

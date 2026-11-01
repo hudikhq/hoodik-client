@@ -117,6 +117,7 @@ class _FakeFileCrypto extends Fake implements FileCrypto {
     required Uint8List fileKey,
     required String cipher,
     required int chunkIndex,
+    required int totalChunks,
   }) => data;
 }
 

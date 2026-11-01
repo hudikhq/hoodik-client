@@ -227,6 +227,7 @@ fn wire__crate__api__cipher_decrypt_chunk_impl(
     cipher: impl CstDecode<String>,
     key: impl CstDecode<Vec<u8>>,
     chunk_index: impl CstDecode<u64>,
+    total_chunks: impl CstDecode<u64>,
     ciphertext: impl CstDecode<Vec<u8>>,
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec, _>(
@@ -239,12 +240,14 @@ fn wire__crate__api__cipher_decrypt_chunk_impl(
             let api_cipher = cipher.cst_decode();
             let api_key = key.cst_decode();
             let api_chunk_index = chunk_index.cst_decode();
+            let api_total_chunks = total_chunks.cst_decode();
             let api_ciphertext = ciphertext.cst_decode();
             transform_result_dco::<_, _, String>((move || {
                 let output_ok = crate::api::cipher_decrypt_chunk(
                     api_cipher,
                     api_key,
                     api_chunk_index,
+                    api_total_chunks,
                     api_ciphertext,
                 )?;
                 Ok(output_ok)
@@ -301,6 +304,7 @@ fn wire__crate__api__cipher_encrypt_chunk_impl(
     cipher: impl CstDecode<String>,
     key: impl CstDecode<Vec<u8>>,
     chunk_index: impl CstDecode<u64>,
+    total_chunks: impl CstDecode<u64>,
     plaintext: impl CstDecode<Vec<u8>>,
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::DcoCodec, _>(
@@ -313,12 +317,14 @@ fn wire__crate__api__cipher_encrypt_chunk_impl(
             let api_cipher = cipher.cst_decode();
             let api_key = key.cst_decode();
             let api_chunk_index = chunk_index.cst_decode();
+            let api_total_chunks = total_chunks.cst_decode();
             let api_plaintext = plaintext.cst_decode();
             transform_result_dco::<_, _, String>((move || {
                 let output_ok = crate::api::cipher_encrypt_chunk(
                     api_cipher,
                     api_key,
                     api_chunk_index,
+                    api_total_chunks,
                     api_plaintext,
                 )?;
                 Ok(output_ok)
@@ -2790,9 +2796,16 @@ mod io {
         cipher: *mut wire_cst_list_prim_u_8_strict,
         key: *mut wire_cst_list_prim_u_8_loose,
         chunk_index: u64,
+        total_chunks: u64,
         ciphertext: *mut wire_cst_list_prim_u_8_loose,
     ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
-        wire__crate__api__cipher_decrypt_chunk_impl(cipher, key, chunk_index, ciphertext)
+        wire__crate__api__cipher_decrypt_chunk_impl(
+            cipher,
+            key,
+            chunk_index,
+            total_chunks,
+            ciphertext,
+        )
     }
 
     #[unsafe(no_mangle)]
@@ -2818,9 +2831,16 @@ mod io {
         cipher: *mut wire_cst_list_prim_u_8_strict,
         key: *mut wire_cst_list_prim_u_8_loose,
         chunk_index: u64,
+        total_chunks: u64,
         plaintext: *mut wire_cst_list_prim_u_8_loose,
     ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
-        wire__crate__api__cipher_encrypt_chunk_impl(cipher, key, chunk_index, plaintext)
+        wire__crate__api__cipher_encrypt_chunk_impl(
+            cipher,
+            key,
+            chunk_index,
+            total_chunks,
+            plaintext,
+        )
     }
 
     #[unsafe(no_mangle)]
@@ -4037,9 +4057,16 @@ mod web {
         cipher: String,
         key: Box<[u8]>,
         chunk_index: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue,
+        total_chunks: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue,
         ciphertext: Box<[u8]>,
     ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
-        wire__crate__api__cipher_decrypt_chunk_impl(cipher, key, chunk_index, ciphertext)
+        wire__crate__api__cipher_decrypt_chunk_impl(
+            cipher,
+            key,
+            chunk_index,
+            total_chunks,
+            ciphertext,
+        )
     }
 
     #[wasm_bindgen]
@@ -4065,9 +4092,16 @@ mod web {
         cipher: String,
         key: Box<[u8]>,
         chunk_index: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue,
+        total_chunks: flutter_rust_bridge::for_generated::wasm_bindgen::JsValue,
         plaintext: Box<[u8]>,
     ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartDco {
-        wire__crate__api__cipher_encrypt_chunk_impl(cipher, key, chunk_index, plaintext)
+        wire__crate__api__cipher_encrypt_chunk_impl(
+            cipher,
+            key,
+            chunk_index,
+            total_chunks,
+            plaintext,
+        )
     }
 
     #[wasm_bindgen]

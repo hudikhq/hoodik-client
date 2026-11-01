@@ -585,11 +585,13 @@ class RustLibWire implements BaseWire {
     String cipher,
     JSAny key,
     JSAny chunk_index,
+    JSAny total_chunks,
     JSAny ciphertext,
   ) => wasmModule.wire__crate__api__cipher_decrypt_chunk(
     cipher,
     key,
     chunk_index,
+    total_chunks,
     ciphertext,
   );
 
@@ -613,11 +615,13 @@ class RustLibWire implements BaseWire {
     String cipher,
     JSAny key,
     JSAny chunk_index,
+    JSAny total_chunks,
     JSAny plaintext,
   ) => wasmModule.wire__crate__api__cipher_encrypt_chunk(
     cipher,
     key,
     chunk_index,
+    total_chunks,
     plaintext,
   );
 
@@ -1176,6 +1180,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String cipher,
     JSAny key,
     JSAny chunk_index,
+    JSAny total_chunks,
     JSAny ciphertext,
   );
 
@@ -1194,6 +1199,7 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
     String cipher,
     JSAny key,
     JSAny chunk_index,
+    JSAny total_chunks,
     JSAny plaintext,
   );
 

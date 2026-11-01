@@ -173,6 +173,7 @@ void main() {
           fileKey: fileKey,
           cipher: cipher,
           chunkIndex: 0,
+          totalChunks: 1,
         );
 
         const name = 'direct-upload-probe.bin';
@@ -249,6 +250,7 @@ void main() {
             fileKey: fileKey,
             cipher: cipher,
             chunkIndex: 0,
+            totalChunks: 1,
           ),
           equals(plaintext),
         );
@@ -322,6 +324,7 @@ void main() {
           fileKey: fileKey,
           cipher: cipher,
           chunkIndex: 0,
+          totalChunks: 1,
         );
 
         const name = 'relay-upload-probe.bin';
@@ -384,6 +387,7 @@ void main() {
             fileKey: fileKey,
             cipher: cipher,
             chunkIndex: 0,
+            totalChunks: 1,
           ),
           equals(plaintext),
         );

@@ -134,6 +134,7 @@ void main() {
             fileKey: newKey,
             cipher: 'chacha20poly1305',
             chunkIndex: index,
+            totalChunks: filesClient.uploadedChunks.length,
           ),
         );
       }
