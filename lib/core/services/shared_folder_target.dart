@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../api/api_models.dart';
 import '../api/files_client.dart';
+import '../../features/shares/shared_constants.dart';
 import 'shared_folder_upload.dart';
 
 /// Thrown when a create targets a shared folder but the session can't wrap the
@@ -59,6 +60,7 @@ class SharedFolderTargetResolver {
     String? parentDirId, {
     FileItem? parentItem,
   }) async {
+    _rejectVirtualDir(parentDirId);
     if (!_sharingEnabled || parentDirId == null) return null;
     final seen = <String>{};
     String? cursor = parentDirId;
@@ -82,6 +84,7 @@ class SharedFolderTargetResolver {
     String? parentDirId, {
     FileItem? parentItem,
   }) async {
+    _rejectVirtualDir(parentDirId);
     if (!_sharingEnabled || parentDirId == null) return null;
     final item =
         parentItem ??
@@ -89,6 +92,13 @@ class SharedFolderTargetResolver {
     final resolved = await resolveRosterFolderId(parentDirId, parentItem: item);
     if (resolved != null) return resolved;
     return item.isDir && !item.isOwner ? item.id : null;
+  }
+
+  /// The "Shared with me" view is client-only; nothing can be written into it.
+  static void _rejectVirtualDir(String? parentDirId) {
+    if (parentDirId == sharedWithMeDirId) {
+      throw StateError('cannot write into the "Shared with me" view');
+    }
   }
 }
 

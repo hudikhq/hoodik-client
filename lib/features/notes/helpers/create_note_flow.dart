@@ -8,6 +8,7 @@ import '../../../core/widgets/app_notification.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../files/providers/files_notifier.dart';
 import '../../preview/providers/preview_providers.dart';
+import '../../shares/shared_constants.dart';
 import '../providers/notes_sidebar_notifier.dart';
 import '../providers/open_note_request.dart';
 import '../widgets/new_note_dialog.dart';
@@ -32,6 +33,12 @@ Future<void> createNoteAndOpen({
   int? returnToBranchIndex,
 }) async {
   final l10n = AppLocalizations.of(context);
+  // "Shared with me" is a client-only view, not a folder a note can live in.
+  // Start the dialog at the drive root instead.
+  if (parentDirId == sharedWithMeDirId) {
+    parentDirId = null;
+    parentFolderName = null;
+  }
   final chosen = await showNewNoteDialog(
     context: context,
     parentDirId: parentDirId,

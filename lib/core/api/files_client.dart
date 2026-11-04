@@ -37,6 +37,16 @@ class FilesClient {
   }) : _baseUrl = baseUrl,
        _auth = auth;
 
+  /// Client-only ids (the "Shared with me" view's `__shared_with_me__` and
+  /// any other `__`-prefixed sentinel) never name a server row. Refuse them
+  /// here instead of letting the server answer a request it can't parse.
+  static String _serverId(String id) {
+    if (id.startsWith('__')) {
+      throw ArgumentError.value(id, 'id', 'client-only id sent to the server');
+    }
+    return id;
+  }
+
   /// `GET /api/storage` — list files in a directory.
   ///
   /// When [editable] is true the server returns editable files from *all*
@@ -70,7 +80,9 @@ class FilesClient {
   /// fall back to downloading through the server.
   Future<ChunkUrlsResponse?> fetchChunkUrls(String fileId) async {
     try {
-      final resp = await _dio.get('/api/storage/$fileId/chunk-urls');
+      final resp = await _dio.get(
+        '/api/storage/${_serverId(fileId)}/chunk-urls',
+      );
       final data = resp.data;
       if (data is! Map<String, dynamic>) return null;
       return ChunkUrlsResponse.fromJson(data);
@@ -101,7 +113,7 @@ class FilesClient {
     final tokenDio = _tokenDio(transferToken);
     try {
       final resp = await tokenDio.post(
-        '/api/storage/$fileId/upload-urls',
+        '/api/storage/${_serverId(fileId)}/upload-urls',
         data: {
           'chunks': [
             for (final entry in chunkSizes.entries)
@@ -141,7 +153,7 @@ class FilesClient {
   }) async {
     final tokenDio = _tokenDio(transferToken);
     try {
-      await tokenDio.post('/api/storage/$fileId/finalize');
+      await tokenDio.post('/api/storage/${_serverId(fileId)}/finalize');
     } finally {
       tokenDio.close();
     }
@@ -167,7 +179,9 @@ class FilesClient {
   /// thumbnail or the server predates the route (404).
   Future<String?> fetchThumbnail(String fileId) async {
     try {
-      final resp = await _dio.get('/api/storage/$fileId/thumbnail');
+      final resp = await _dio.get(
+        '/api/storage/${_serverId(fileId)}/thumbnail',
+      );
       final data = resp.data;
       if (data is Map<String, dynamic>) {
         return data['encrypted_thumbnail'] as String?;
@@ -195,7 +209,7 @@ class FilesClient {
       'encrypted_name': encryptedName,
       'mime': 'dir',
     };
-    if (parentDirId != null) data['file_id'] = parentDirId;
+    if (parentDirId != null) data['file_id'] = _serverId(parentDirId);
     if (cipher != null) data['cipher'] = cipher;
     if (searchTokensRoot != null) {
       data['search_tokens_root'] = searchTokensRoot;
@@ -241,7 +255,7 @@ class FilesClient {
       'size': size,
       'chunks': chunks,
     };
-    if (parentDirId != null) data['file_id'] = parentDirId;
+    if (parentDirId != null) data['file_id'] = _serverId(parentDirId);
     if (cipher != null) data['cipher'] = cipher;
     if (editable != null) data['editable'] = editable;
     if (encryptedThumbnail != null) {
@@ -291,7 +305,10 @@ class FilesClient {
       data['search_tokens_file'] = searchTokensFile;
     }
 
-    final resp = await _dio.put('/api/storage/$fileId', data: data);
+    final resp = await _dio.put(
+      '/api/storage/${_serverId(fileId)}',
+      data: data,
+    );
     return resp.data;
   }
 
@@ -308,7 +325,7 @@ class FilesClient {
 
   /// `DELETE /api/storage/{fileId}` — delete a single file or directory.
   Future<void> deleteFile(String fileId) async {
-    await _dio.delete('/api/storage/$fileId');
+    await _dio.delete('/api/storage/${_serverId(fileId)}');
   }
 
   /// `POST /api/storage/delete-many` — bulk delete.
@@ -318,7 +335,7 @@ class FilesClient {
 
   /// `GET /api/storage/{fileId}/metadata`
   Future<Map<String, dynamic>> getFileMetadata(String fileId) async {
-    final resp = await _dio.get('/api/storage/$fileId/metadata');
+    final resp = await _dio.get('/api/storage/${_serverId(fileId)}/metadata');
     return resp.data;
   }
 
@@ -329,7 +346,7 @@ class FilesClient {
     required int chunk,
   }) async {
     final resp = await _dio.get(
-      '/api/storage/$fileId',
+      '/api/storage/${_serverId(fileId)}',
       queryParameters: {'chunk': chunk},
       options: Options(responseType: ResponseType.bytes),
     );
@@ -352,7 +369,7 @@ class FilesClient {
       params['checksum_function'] = checksumFunction;
     }
 
-    final uri = Uri.parse('$_baseUrl/api/storage/$fileId');
+    final uri = Uri.parse('$_baseUrl/api/storage/${_serverId(fileId)}');
 
     final Map<String, dynamic> authHeaders = {'Content-Length': data.length};
     final useHeader = _auth.useHeaderAuth;
@@ -380,7 +397,7 @@ class FilesClient {
 
     try {
       final resp = await uploadDio.post(
-        '/api/storage/$fileId',
+        '/api/storage/${_serverId(fileId)}',
         data: data,
         queryParameters: params,
         options: Options(
@@ -443,7 +460,10 @@ class FilesClient {
     );
 
     try {
-      await tokenDio.put('/api/storage/$fileId/hashes', data: data);
+      await tokenDio.put(
+        '/api/storage/${_serverId(fileId)}/hashes',
+        data: data,
+      );
     } finally {
       tokenDio.close();
     }

@@ -13,6 +13,7 @@ Future<void> _pump(
   WidgetTester tester, {
   String? dirId,
   String? dirName,
+  bool canCreate = true,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -39,7 +40,7 @@ Future<void> _pump(
             onExportSelected: () {},
             onMakeOfflineSelected: () {},
             onEnterSelection: () {},
-            onCreate: (_) {},
+            onCreate: canCreate ? (_) {} : null,
             onSortFieldSelected: (_) {},
           ),
           body: const SizedBox.expand(),
@@ -71,5 +72,15 @@ void main() {
   testWidgets('shared-with-me keeps its virtual-folder title', (tester) async {
     await _pump(tester, dirId: sharedWithMeDirId, dirName: 'ignored');
     expect(find.text('Shared with me'), findsOneWidget);
+  });
+
+  testWidgets('create button hides without a callback', (tester) async {
+    await _pump(tester, dirId: sharedWithMeDirId, canCreate: false);
+    expect(find.byTooltip('Create'), findsNothing);
+  });
+
+  testWidgets('create button shows with a callback', (tester) async {
+    await _pump(tester, dirId: 'dir-1', dirName: 'Docs');
+    expect(find.byTooltip('Create'), findsOneWidget);
   });
 }

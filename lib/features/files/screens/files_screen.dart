@@ -405,6 +405,10 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     }
   }
 
+  /// The "Shared with me" listing is a client-side view, not a folder the
+  /// server knows, so nothing can be created or dropped into it.
+  bool get _isVirtualDir => widget.dirId == sharedWithMeDirId;
+
   String? get _branchTitle {
     if (widget.dirId == null) return null;
     if (widget.dirId == sharedWithMeDirId) return sharedWithMeDirName;
@@ -444,18 +448,21 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
         onExportSelected: _exportSelected,
         onMakeOfflineSelected: _offlineSelected,
         onEnterSelection: _notifier.enterEmptySelectionMode,
-        onCreate: _openCreateSheet,
+        onCreate: _isVirtualDir ? null : _openCreateSheet,
         onSortFieldSelected: _notifier.toggleSort,
       ),
       body: DropTarget(
         onDragDone: (detail) {
+          if (_isVirtualDir) return;
           final paths = detail.files
               .map((f) => f.path)
               .where((p) => p.isNotEmpty)
               .toList();
           if (paths.isNotEmpty) _uploadDroppedFiles(paths);
         },
-        onDragEntered: (_) => setState(() => _isDragging = true),
+        onDragEntered: (_) {
+          if (!_isVirtualDir) setState(() => _isDragging = true);
+        },
         onDragExited: (_) => setState(() => _isDragging = false),
         child: Stack(
           children: [
@@ -483,7 +490,9 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       return FilesErrorState(message: state.error!, onRetry: _loadFiles);
     }
     final files = state.files ?? [];
-    if (files.isEmpty) return FilesEmptyState(onAdd: _openCreateSheet);
+    if (files.isEmpty) {
+      return FilesEmptyState(onAdd: _isVirtualDir ? null : _openCreateSheet);
+    }
 
     return FilesList(
       dirId: widget.dirId,

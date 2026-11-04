@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hoodik_app/core/api/api_models.dart';
 import 'package:hoodik_app/core/api/files_client.dart';
 import 'package:hoodik_app/core/services/shared_folder_target.dart';
+import 'package:hoodik_app/features/shares/shared_constants.dart';
 
 /// Scripts per-id metadata so the resolver's parent-chain walk can traverse a
 /// tree, and counts fetches so a test can assert it short-circuits (root, held
@@ -57,6 +58,29 @@ void main() {
     bool sharingEnabled = true,
   }) =>
       SharedFolderTargetResolver(files: files, sharingEnabled: sharingEnabled);
+
+  group('Shared with me view', () {
+    test('resolveWriteRosterId refuses the sentinel without a fetch', () async {
+      final files = _FakeFilesClient({});
+      await expectLater(
+        build(files).resolveWriteRosterId(sharedWithMeDirId),
+        throwsStateError,
+      );
+      expect(files.fetches, 0);
+    });
+
+    test(
+      'resolveRosterFolderId refuses the sentinel without a fetch',
+      () async {
+        final files = _FakeFilesClient({});
+        await expectLater(
+          build(files).resolveRosterFolderId(sharedWithMeDirId),
+          throwsStateError,
+        );
+        expect(files.fetches, 0);
+      },
+    );
+  });
 
   group('resolveWriteRosterId', () {
     test('the account root is never shared and is not fetched', () async {

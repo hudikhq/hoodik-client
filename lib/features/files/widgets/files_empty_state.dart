@@ -6,10 +6,11 @@ import '../../../core/theme/hoodik_scheme.dart';
 
 /// Rendered when a directory returns zero items, with a direct route into
 /// the create sheet so the first action doesn't depend on spotting the FAB.
+/// A null [onAdd] hides the button, for views nothing can be created in.
 class FilesEmptyState extends StatelessWidget {
   const FilesEmptyState({super.key, required this.onAdd});
 
-  final VoidCallback onAdd;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -31,12 +32,14 @@ class FilesEmptyState extends StatelessWidget {
               fontSize: 16,
             ),
           ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: onAdd,
-            icon: Icon(AppIcons.add),
-            label: Text(AppLocalizations.of(context).filesEmptyAction),
-          ),
+          if (onAdd != null) ...[
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onAdd,
+              icon: Icon(AppIcons.add),
+              label: Text(AppLocalizations.of(context).filesEmptyAction),
+            ),
+          ],
         ],
       ),
     );
