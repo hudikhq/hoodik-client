@@ -68,7 +68,25 @@ class FileListItem extends StatelessWidget {
                 activeColor: context.colors.dangerFill,
               )
             : _buildLeading(context),
-        title: Text(displayName, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Row(
+          children: [
+            if (file.favorite) ...[
+              Icon(
+                AppIcons.favorite,
+                size: 14,
+                color: context.colors.iconEmber,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Expanded(
+              child: Text(
+                displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
         subtitle: Row(
           children: [
             if (!file.isDir && isOffline) ...[

@@ -12,7 +12,6 @@ import '../providers/preview_loader.dart';
 import 'preview_loading.dart';
 import '../../../core/theme/hoodik_scheme.dart';
 
-/// PDF preview — downloads, writes to temp file, renders with pdfx.
 class PreviewPdf extends ConsumerStatefulWidget {
   final FileItem file;
   final String fileName;
@@ -50,17 +49,16 @@ class _PreviewPdfState extends ConsumerState<PreviewPdf> {
 
   Future<void> _loadPdf() async {
     try {
-      final path = await loadPreviewPath(
+      final bytes = await loadPreviewBytes(
         ref,
         widget.file,
         widget.fileKey,
-        'pdf',
         displayName: widget.fileName,
       );
 
       if (!mounted) return;
 
-      if (path == null) {
+      if (bytes == null) {
         setState(() {
           _error = AppLocalizations.of(context).previewCannotDecrypt;
           _downloading = false;
@@ -68,7 +66,7 @@ class _PreviewPdfState extends ConsumerState<PreviewPdf> {
         return;
       }
 
-      await _initPdfViewer(path);
+      await _initPdfViewer(bytes);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -79,9 +77,9 @@ class _PreviewPdfState extends ConsumerState<PreviewPdf> {
     }
   }
 
-  Future<void> _initPdfViewer(String path) async {
+  Future<void> _initPdfViewer(Uint8List bytes) async {
     try {
-      final documentFuture = PdfDocument.openFile(path);
+      final documentFuture = PdfDocument.openData(bytes);
       final controller = PdfControllerPinch(document: documentFuture);
       final document = await documentFuture;
 

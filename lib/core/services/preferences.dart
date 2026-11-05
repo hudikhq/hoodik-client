@@ -107,4 +107,20 @@ class Preferences {
 
   Future<void> setThemeMode(ThemeMode mode) =>
       _prefs.setString(_kThemeMode, mode.name);
+
+  static const _kPreviewPreload = 'preview.preloadNeighbors';
+
+  bool get previewPreloadNeighbors => _prefs.getBool(_kPreviewPreload) ?? false;
+
+  Future<void> setPreviewPreloadNeighbors(bool value) =>
+      _prefs.setBool(_kPreviewPreload, value);
+
+  static const _kDownloadCompleteNotifications =
+      'transfers.downloadCompleteNotifications';
+
+  bool get downloadCompleteNotifications =>
+      _prefs.getBool(_kDownloadCompleteNotifications) ?? true;
+
+  Future<void> setDownloadCompleteNotifications(bool value) =>
+      _prefs.setBool(_kDownloadCompleteNotifications, value);
 }

@@ -7,6 +7,18 @@ import 'package:go_router/go_router.dart';
 import 'package:hoodik_app/core/api/api_client.dart';
 import 'package:hoodik_app/core/providers.dart';
 import 'package:hoodik_app/features/files/helpers/files_preview_navigation.dart';
+import 'package:hoodik_app/features/files/helpers/files_screen_row_actions.dart';
+import 'package:hoodik_app/features/files/providers/files_notifier.dart';
+import 'package:hoodik_app/features/files/providers/files_state.dart';
+import 'package:hoodik_app/features/files/widgets/file_sort_controls.dart';
+
+class _StubFilesNotifier extends FilesNotifier {
+  _StubFilesNotifier(this._initial);
+  final FilesState _initial;
+
+  @override
+  FilesState build(String? arg) => _initial;
+}
 
 void main() {
   testWidgets('openEditor seeds the tapped note even when siblings omit it', (
@@ -140,5 +152,97 @@ void main() {
     final seeded = container.read(previewContextProvider);
     expect(seeded, isNotNull);
     expect(seeded!.files.map((f) => f.id), contains('image-1'));
+  });
+
+  testWidgets('openFilesPreview seeds siblings in the displayed sort order', (
+    tester,
+  ) async {
+    final target = FileItem(
+      id: 'img-b',
+      encryptedName: 'enc-b',
+      mime: 'image/png',
+      finishedUploadAt: 1,
+    );
+    final files = [
+      FileItem(
+        id: 'img-c',
+        encryptedName: 'enc-c',
+        mime: 'image/png',
+        finishedUploadAt: 1,
+      ),
+      FileItem(
+        id: 'img-a',
+        encryptedName: 'enc-a',
+        mime: 'image/png',
+        finishedUploadAt: 1,
+      ),
+      target,
+    ];
+
+    final container = ProviderContainer(
+      overrides: [
+        filesNotifierProvider.overrideWith(
+          () => _StubFilesNotifier(
+            FilesState(
+              loading: false,
+              files: files,
+              decryptedNames: {
+                'img-a': 'alpha.png',
+                'img-b': 'bravo.png',
+                'img-c': 'charlie.png',
+              },
+              sortField: SortField.name,
+              sortOrder: SortOrder.asc,
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, _) => Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) => ElevatedButton(
+                onPressed: () => openFilesPreview(
+                  context: context,
+                  ref: ref,
+                  dirId: null,
+                  file: target,
+                  onSnack: (_, _) {},
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/preview/:fileId',
+          builder: (_, _) => const Scaffold(body: SizedBox.shrink()),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final seeded = container.read(previewContextProvider);
+    expect(seeded, isNotNull);
+    expect(seeded!.files.map((f) => f.id).toList(), [
+      'img-a',
+      'img-b',
+      'img-c',
+    ]);
   });
 }

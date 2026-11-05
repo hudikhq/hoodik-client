@@ -289,7 +289,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return;
     }
 
-    if (isPreviewable(file)) {
+    if (isPreviewable(file, fileName: _displayName(file))) {
       _openPreview(file);
     }
   }
@@ -415,7 +415,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _openPreview(FileItem file) {
     final previewableFiles = (_results ?? [])
-        .where((f) => isPreviewable(f))
+        .where((f) => isPreviewable(f, fileName: _displayName(f)))
         .toList();
 
     ref.read(previewContextProvider.notifier).state = PreviewContext(

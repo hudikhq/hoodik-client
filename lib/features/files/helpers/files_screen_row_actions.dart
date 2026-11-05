@@ -10,6 +10,7 @@ import '../providers/files_notifier.dart';
 import '../widgets/file_actions_sheet.dart';
 import '../widgets/file_dialogs.dart';
 import '../widgets/file_menu_actions_builder.dart';
+import '../widgets/file_sort_controls.dart';
 
 export '../../preview/providers/preview_providers.dart' show isPreviewable;
 
@@ -35,7 +36,14 @@ void openFilesPreview({
   }
 
   final state = ref.read(filesNotifierProvider(dirId));
-  final siblings = state.files ?? const <FileItem>[];
+  final siblings = pinFavoritesFirst(
+    sortFiles(
+      files: state.files ?? const <FileItem>[],
+      field: state.sortField,
+      order: state.sortOrder,
+      displayName: state.displayName,
+    ),
+  );
   if (isMarkdownFile(file, displayName: state.displayName(file))) {
     openEditor(
       context: context,

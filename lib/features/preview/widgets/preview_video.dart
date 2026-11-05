@@ -12,11 +12,19 @@ import '../../../core/services/transfer_manager.dart';
 import '../../../core/utils/logger.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../providers/preview_loader.dart';
+import '../services/preview_stream_resolver.dart';
 import 'preview_loading.dart';
 
 const _log = Logger('PreviewVideo');
 
-/// Video preview — downloads, decrypts, plays with media_kit (FFmpeg backend).
+/// Video preview — streams encrypted chunks on demand and plays with
+/// media_kit (FFmpeg backend).
+///
+/// On a cache miss the file's 4 MiB chunks are decrypted lazily and exposed to
+/// media_kit over a loopback HTTP range server, so playback starts without
+/// downloading the whole file and seeking doesn't pull the rest. Files that
+/// can't be streamed (no key or size metadata) fall back to decrypting into
+/// memory.
 ///
 /// Uses media_kit instead of video_player for broad codec support including
 /// MKV (Matroska), H.265/HEVC, and other formats that AVFoundation doesn't
@@ -49,6 +57,8 @@ class _PreviewVideoState extends ConsumerState<PreviewVideo> {
   bool _downloading = true;
   String? _error;
 
+  PreviewStreamHandle? _stream;
+
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
   @override
@@ -63,35 +73,40 @@ class _PreviewVideoState extends ConsumerState<PreviewVideo> {
       sub.cancel();
     }
     _player?.dispose();
+    unawaited(_stream?.release());
     super.dispose();
   }
 
-  String _extensionFromMime(String mime) {
-    const map = {
-      'video/mp4': 'mp4',
-      'video/quicktime': 'mov',
-      'video/webm': 'webm',
-      'video/x-msvideo': 'avi',
-      'video/x-matroska': 'mkv',
-    };
-    return map[mime.toLowerCase()] ?? 'mp4';
-  }
-
   Future<void> _loadVideo() async {
-    final ext = _extensionFromMime(widget.file.mime);
-
     try {
-      final path = await loadPreviewPath(
+      final prefetched = ref.read(previewCacheProvider).get(widget.file);
+      if (prefetched != null) {
+        await _initPlayer(await Media.memory(prefetched));
+        return;
+      }
+
+      final stream = await openPreviewStream(
+        ref,
+        file: widget.file,
+        fileKey: widget.fileKey,
+        fileName: widget.fileName,
+      );
+      if (stream != null) {
+        _stream = stream;
+        await _initPlayer(Media(stream.uri.toString()));
+        return;
+      }
+
+      final bytes = await loadPreviewBytes(
         ref,
         widget.file,
         widget.fileKey,
-        ext,
         displayName: widget.fileName,
       );
 
       if (!mounted) return;
 
-      if (path == null) {
+      if (bytes == null) {
         setState(() {
           _error = AppLocalizations.of(context).previewCannotDecrypt;
           _downloading = false;
@@ -99,7 +114,7 @@ class _PreviewVideoState extends ConsumerState<PreviewVideo> {
         return;
       }
 
-      await _initPlayer(path);
+      await _initPlayer(await Media.memory(bytes));
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -110,7 +125,7 @@ class _PreviewVideoState extends ConsumerState<PreviewVideo> {
     }
   }
 
-  Future<void> _initPlayer(String path) async {
+  Future<void> _initPlayer(Media media) async {
     try {
       final player = Player();
       final controller = VideoController(
@@ -169,7 +184,7 @@ class _PreviewVideoState extends ConsumerState<PreviewVideo> {
         return;
       }
 
-      await player.open(Media(path));
+      await player.open(media);
     } catch (e) {
       if (mounted) {
         setState(() {

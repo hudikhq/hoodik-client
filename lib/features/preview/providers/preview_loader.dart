@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,16 +13,19 @@ import 'offline_preview_helpers.dart';
 
 /// Load preview file bytes through the 3-tier cache pipeline:
 /// 1. In-memory [PreviewCache]
-/// 2. Offline encrypted chunk cache on disk
-/// 3. Download via [downloadAndPinOffline] → decrypt from cache
+/// 2. Offline encrypted chunk cache on disk — decrypted in memory
+/// 3. Download via [downloadAndPinOffline] → decrypt in memory
+///
+/// Nothing is ever written to disk: the offline cache holds only the
+/// server-encrypted chunks, and plaintext lives in memory for the lifetime of
+/// the preview.
 ///
 /// Returns `null` when decryption is impossible (no file key or no API client).
-/// Throws on download or I/O errors.
+/// Throws on download or decryption errors.
 Future<Uint8List?> loadPreviewBytes(
   WidgetRef ref,
   FileItem file,
-  Uint8List? fileKey,
-  String ext, {
+  Uint8List? fileKey, {
   String? displayName,
 }) async {
   final cache = ref.read(previewCacheProvider);
@@ -32,28 +34,24 @@ Future<Uint8List?> loadPreviewBytes(
   final cached = cache.get(file);
   if (cached != null) return cached;
 
-  // 2. Offline disk cache → decrypt to temp file → read bytes.
-  final cachedPath = await loadFromCache(ref, file, fileKey, ext);
-  if (cachedPath != null) {
-    final bytes = await File(cachedPath).readAsBytes();
-    cache.put(file, bytes);
-    return bytes;
+  final offlineBytes = await loadBytesFromCache(ref, file, fileKey);
+  if (offlineBytes != null) {
+    cache.put(file, offlineBytes);
+    return offlineBytes;
   }
 
-  // 3. Download to offline cache, then decrypt.
   final ops = ref.read(fileOperationsProvider);
   if (ops == null || fileKey == null) return null;
 
   await _ensureDownloaded(ref, ops, file, displayName: displayName);
 
-  final tempPath = await loadFromCache(ref, file, fileKey, ext);
-  if (tempPath == null) {
+  final downloadedBytes = await loadBytesFromCache(ref, file, fileKey);
+  if (downloadedBytes == null) {
     throw Exception(ambientL10n.previewDecryptAfterDownloadFailed);
   }
 
-  final bytes = await File(tempPath).readAsBytes();
-  cache.put(file, bytes);
-  return bytes;
+  cache.put(file, downloadedBytes);
+  return downloadedBytes;
 }
 
 /// Ensure a file's encrypted chunks are present in the offline cache.
@@ -110,48 +108,6 @@ Future<void> ensureFileDownloaded({
     onError: (error) => completer.completeError(Exception(error)),
   );
   await completer.future;
-}
-
-/// Load preview file path through the 3-tier cache pipeline:
-/// 1. In-memory [PreviewCache] temp-path entry
-/// 2. Offline encrypted chunk cache on disk
-/// 3. Download via [downloadAndPinOffline] → decrypt from cache
-///
-/// Returns `null` when decryption is impossible (no file key or no API client).
-/// Throws on download or I/O errors.
-Future<String?> loadPreviewPath(
-  WidgetRef ref,
-  FileItem file,
-  Uint8List? fileKey,
-  String ext, {
-  String? displayName,
-}) async {
-  final cache = ref.read(previewCacheProvider);
-
-  // 1. In-memory path cache.
-  final cachedPath = cache.getTempPath(file);
-  if (cachedPath != null) return cachedPath;
-
-  // 2. Offline disk cache → decrypt to temp file.
-  final offlinePath = await loadFromCache(ref, file, fileKey, ext);
-  if (offlinePath != null) {
-    cache.putTempPath(file, offlinePath);
-    return offlinePath;
-  }
-
-  // 3. Download to offline cache, then decrypt.
-  final ops = ref.read(fileOperationsProvider);
-  if (ops == null || fileKey == null) return null;
-
-  await _ensureDownloaded(ref, ops, file, displayName: displayName);
-
-  final tempPath = await loadFromCache(ref, file, fileKey, ext);
-  if (tempPath == null) {
-    throw Exception(ambientL10n.previewDecryptAfterDownloadFailed);
-  }
-
-  cache.putTempPath(file, tempPath);
-  return tempPath;
 }
 
 /// [WidgetRef]-bound wrapper around [ensureFileDownloaded].

@@ -31,6 +31,7 @@ void showFileActionsSheet({
       isOffline: isOffline,
       callbacks: callbacks,
       sharingEnabled: sharingEnabled,
+      displayName: displayName,
     ),
   );
 }

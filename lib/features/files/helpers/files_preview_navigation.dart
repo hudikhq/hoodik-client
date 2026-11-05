@@ -85,7 +85,9 @@ void openPreview({
   required Map<String, Uint8List> keys,
   String? parentDirId,
 }) {
-  final previewableFiles = siblings.where(isPreviewable).toList();
+  final previewableFiles = siblings
+      .where((f) => isPreviewable(f, fileName: names[f.id]))
+      .toList();
   // See openEditor: a row shared directly to the caller can be absent from
   // its resolved siblings, so seed it explicitly.
   if (!previewableFiles.any((f) => f.id == file.id)) {

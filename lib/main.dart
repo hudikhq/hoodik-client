@@ -9,6 +9,7 @@ import 'package:media_kit/media_kit.dart';
 import 'core/services/client_identity.dart';
 import 'core/platform/tray_integration.dart';
 import 'core/services/connect_link.dart';
+import 'core/services/file_downloader_config.dart';
 import 'core/services/preferences.dart';
 import 'core/services/share_handler.dart';
 import 'core/storage/at_rest_cipher.dart';
@@ -64,6 +65,9 @@ Future<void> main() async {
 
   // Loaded synchronously so early provider reads (view mode, landing branch) don't need to await.
   final preferences = await Preferences.load();
+  await setDownloadCompleteNotifications(
+    preferences.downloadCompleteNotifications,
+  );
 
   runApp(
     ProviderScope(

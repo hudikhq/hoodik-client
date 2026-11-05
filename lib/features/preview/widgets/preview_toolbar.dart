@@ -12,9 +12,11 @@ class PreviewToolbar extends StatelessWidget {
   final int currentIndex;
   final int totalCount;
   final bool visible;
+  final bool isFavorite;
   final VoidCallback onClose;
   final VoidCallback onDownload;
   final VoidCallback onDelete;
+  final VoidCallback onFavorite;
 
   const PreviewToolbar({
     super.key,
@@ -22,9 +24,11 @@ class PreviewToolbar extends StatelessWidget {
     required this.currentIndex,
     required this.totalCount,
     required this.visible,
+    required this.isFavorite,
     required this.onClose,
     required this.onDownload,
     required this.onDelete,
+    required this.onFavorite,
   });
 
   @override
@@ -85,6 +89,19 @@ class PreviewToolbar extends StatelessWidget {
                           ),
                       ],
                     ),
+                  ),
+
+                  IconButton(
+                    tooltip: isFavorite
+                        ? AppLocalizations.of(context).previewUnfavoriteFile
+                        : AppLocalizations.of(context).previewFavoriteFile,
+                    icon: Icon(
+                      isFavorite ? AppIcons.favorite : AppIcons.favoriteOutline,
+                      color: isFavorite
+                          ? context.colors.iconEmber
+                          : Colors.white,
+                    ),
+                    onPressed: onFavorite,
                   ),
 
                   // Download button

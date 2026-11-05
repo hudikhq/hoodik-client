@@ -51,11 +51,13 @@ class FilesList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final files = state.files ?? [];
     final sorted = _pinSharedWithMe(
-      sortFiles(
-        files: files.where((f) => f.id != sharedWithMeDirId).toList(),
-        field: state.sortField,
-        order: state.sortOrder,
-        displayName: state.displayName,
+      pinFavoritesFirst(
+        sortFiles(
+          files: files.where((f) => f.id != sharedWithMeDirId).toList(),
+          field: state.sortField,
+          order: state.sortOrder,
+          displayName: state.displayName,
+        ),
       ),
       files,
     );

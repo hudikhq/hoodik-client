@@ -76,12 +76,13 @@ List<AdaptiveMenuAction> buildFileMenuActions({
   required bool isOffline,
   required FileMenuCallbacks callbacks,
   bool sharingEnabled = false,
+  String? displayName,
 }) {
   // The "Shared with me" virtual folder is a navigation aid, not real content —
   // it carries no rename/delete/details/share actions.
   if (file.id == sharedWithMeDirId) return const [];
   return [
-    if (!file.isDir && isPreviewable(file))
+    if (!file.isDir && isPreviewable(file, fileName: displayName))
       AdaptiveMenuAction(
         icon: AppIcons.preview,
         iconColor: context.colors.sageFill,

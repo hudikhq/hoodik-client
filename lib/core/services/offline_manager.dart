@@ -1,19 +1,18 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../../src/rust/api.dart' as rust;
 import '../storage/database.dart';
 import '../storage/pending_downloads_dao.dart';
 import '../utils/format.dart' as fmt;
 import '../utils/log_redact.dart';
 import '../utils/logger.dart';
 import 'offline_cache_lru.dart';
-import 'plaintext_temp.dart';
 
 const _log = Logger('OfflineManager');
 
@@ -114,21 +113,11 @@ class OfflineManager extends ChangeNotifier {
     await enforceLimit(accountId, keep: {fileId});
   }
 
-  /// Decrypt cached chunks to a temp file and return the path.
-  ///
-  /// Returns `null` if no chunks are cached for this file. The caller is
-  /// responsible for reading or sharing the temp file. Plaintext lives in
-  /// `hoodik_plaintext/` and is swept on startup and logout.
-  ///
-  /// Uses the Rust FFI `decryptChunksToFile` which reads one chunk at a
-  /// time (~4 MB peak memory) — safe for large files.
-  Future<String?> decryptToTempFile({
+  Future<Uint8List?> decryptToMemory({
     required String accountId,
     required String fileId,
-    required Uint8List fileKey,
-    required String cipher,
     required int chunkCount,
-    required String extension,
+    required Uint8List Function(Uint8List encrypted, int index) decryptChunk,
   }) async {
     final entry = await _db.getOfflineFile(accountId, fileId);
     if (entry == null) return null;
@@ -141,28 +130,28 @@ class OfflineManager extends ChangeNotifier {
       return null;
     }
 
+    final builder = BytesBuilder(copy: false);
     try {
-      final dir = await plaintextTempDirectory();
-      final tempPath = p.join(dir.path, 'hoodik_$fileId.$extension');
-
-      await rust.decryptChunksToFile(
-        chunksDir: entry.localPath,
-        chunkCount: BigInt.from(chunkCount),
-        decryptionKey: fileKey,
-        cipher: cipher,
-        outputPath: tempPath,
-        fileId: fileId,
-      );
+      for (var i = 0; i < chunkCount; i++) {
+        final chunk = File(
+          p.join(entry.localPath, '${i.toString().padLeft(6, '0')}.enc'),
+        );
+        if (!await chunk.exists()) {
+          await _removeEntry(accountId, fileId, entry.localPath);
+          return null;
+        }
+        builder.add(decryptChunk(await chunk.readAsBytes(), i));
+      }
 
       // Update access time.
       await _db.touchOfflineFile(accountId, fileId);
 
-      _log.debug('decrypted chunks to temp file', fields: {'file_id': fileId});
+      _log.debug('decrypted chunks to memory', fields: {'file_id': fileId});
 
-      return tempPath;
+      return builder.toBytes();
     } catch (e) {
       _log.warn(
-        'failed to decrypt chunks',
+        'failed to decrypt chunks to memory',
         fields: {'file_id': fileId, 'error': describeError(e)},
       );
       // Corrupted cache entry — remove it.
@@ -210,7 +199,7 @@ class OfflineManager extends ChangeNotifier {
 
   /// Bump an offline file's last-accessed timestamp. Preview-layer cache
   /// hits call this so recently-viewed files don't trail less-recent ones
-  /// in LRU eviction order; [decryptToTempFile] already touches when it
+  /// in LRU eviction order; [decryptToMemory] already touches when it
   /// runs.
   Future<void> touchCachedFile(String accountId, String fileId) =>
       _db.touchOfflineFile(accountId, fileId);

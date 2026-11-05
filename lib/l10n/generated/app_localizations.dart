@@ -888,6 +888,30 @@ abstract class AppLocalizations {
   /// **'Offline Cache'**
   String get accountOfflineCacheTitle;
 
+  /// No description provided for @accountPreviewPreloadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preload nearby previews'**
+  String get accountPreviewPreloadTitle;
+
+  /// No description provided for @accountPreviewPreloadSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Loads the next and previous files under 5 MB so swiping is instant.'**
+  String get accountPreviewPreloadSubtitle;
+
+  /// No description provided for @accountDownloadNotificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download notifications'**
+  String get accountDownloadNotificationsTitle;
+
+  /// No description provided for @accountDownloadNotificationsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify when a download has finished.'**
+  String get accountDownloadNotificationsSubtitle;
+
   /// No description provided for @accountOfflineCacheOfLimit.
   ///
   /// In en, this message translates to:
@@ -2778,6 +2802,18 @@ abstract class AppLocalizations {
   /// **'Export'**
   String get filesExport;
 
+  /// No description provided for @filesAddToFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get filesAddToFavorites;
+
+  /// No description provided for @filesRemoveFromFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get filesRemoveFromFavorites;
+
   /// No description provided for @filesExportBulkBody.
   ///
   /// In en, this message translates to:
@@ -4271,6 +4307,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cannot decrypt file'**
   String get previewCannotDecrypt;
+
+  /// No description provided for @previewFavoriteFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get previewFavoriteFile;
+
+  /// No description provided for @previewUnfavoriteFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get previewUnfavoriteFile;
 
   /// No description provided for @previewDecryptAfterDownloadFailed.
   ///

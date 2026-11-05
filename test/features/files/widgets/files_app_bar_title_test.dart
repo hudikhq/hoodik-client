@@ -39,6 +39,7 @@ Future<void> _pump(
             onDeleteSelected: () {},
             onExportSelected: () {},
             onMakeOfflineSelected: () {},
+            onFavoriteSelected: () {},
             onEnterSelection: () {},
             onCreate: canCreate ? (_) {} : null,
             onSortFieldSelected: (_) {},
