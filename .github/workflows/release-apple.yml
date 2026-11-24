@@ -20,7 +20,10 @@ jobs:
         if: github.event_name != 'workflow_dispatch'
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+              with:
+                  # Nothing in this job pushes with git, so do not leave the token in .git/config for later steps.
+                  persist-credentials: false
 
             - name: Check ci.yml status for tagged SHA
               env:
@@ -55,9 +58,12 @@ jobs:
         if: always() && needs.require-green-ci.result != 'failure'
         runs-on: macos-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+              with:
+                  # Nothing in this job pushes with git, so do not leave the token in .git/config for later steps.
+                  persist-credentials: false
 
-            - uses: ruby/setup-ruby@v1
+            - uses: ruby/setup-ruby@78c62f2208e480ce3d5ae4dfd9b9e181acf48b63 # v1
               with:
                   ruby-version: "3.2"
                   bundler-cache: true
@@ -84,7 +90,7 @@ jobs:
             # alongside the runner image's macOS — pin the latest stable
             # explicitly so a runner update doesn't silently regress us
             # below Apple's threshold again.
-            - uses: maxim-lobanov/setup-xcode@v1
+            - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
               if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
               with:
                   xcode-version: latest-stable
@@ -95,18 +101,19 @@ jobs:
               with:
                   pinned: ${{ vars.HOODIK_BRANCH }}
 
-            - uses: dtolnay/rust-toolchain@stable
+            - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
               if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
               with:
+                  toolchain: stable
                   targets: aarch64-apple-ios,aarch64-apple-darwin,x86_64-apple-darwin
 
-            - uses: Swatinem/rust-cache@v2
+            - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
               if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
               with:
                   workspaces: rust -> target
                   key: apple-release
 
-            - uses: subosito/flutter-action@v2
+            - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
               if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
               with:
                   flutter-version: "3.41.x"
@@ -118,7 +125,7 @@ jobs:
             # reusing MACOS_CERTIFICATE_PASSWORD keeps it consistent across imports.
             - name: Import iOS signing certificate
               if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
-              uses: apple-actions/import-codesign-certs@v2
+              uses: apple-actions/import-codesign-certs@8f3fb608891dd2244cdab3d69cd68c0d37a7fe93 # v2
               with:
                   p12-file-base64: ${{ secrets.IOS_CERTIFICATE_P12 }}
                   p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
@@ -126,7 +133,7 @@ jobs:
 
             - name: Import macOS application certificate
               if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
-              uses: apple-actions/import-codesign-certs@v2
+              uses: apple-actions/import-codesign-certs@8f3fb608891dd2244cdab3d69cd68c0d37a7fe93 # v2
               with:
                   p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
                   p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -135,7 +142,7 @@ jobs:
 
             - name: Import macOS installer certificate
               if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
-              uses: apple-actions/import-codesign-certs@v2
+              uses: apple-actions/import-codesign-certs@8f3fb608891dd2244cdab3d69cd68c0d37a7fe93 # v2
               with:
                   p12-file-base64: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_P12 }}
                   p12-password: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_PASSWORD }}
@@ -150,7 +157,7 @@ jobs:
                   echo "${{ secrets.IOS_SHARE_EXTENSION_PROVISIONING_PROFILE }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/share_extension.mobileprovision
                   echo "${{ secrets.MACOS_PROVISIONING_PROFILE }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/macos_app.provisionprofile
 
-            - run: flutter pub get
+            - run: flutter pub get --enforce-lockfile
               if: steps.store.outputs.ios_uploaded != 'true' || steps.store.outputs.macos_uploaded != 'true'
 
             # iOS: build + upload to TestFlight. Done first so TestFlight sees the

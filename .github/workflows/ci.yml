@@ -21,7 +21,7 @@ jobs:
             # Fast path never touches docker (only E2E does).
             HOODIK_PREFLIGHT_NO_DOCKER: "1"
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
               with:
                   fetch-depth: 0
 
@@ -34,7 +34,7 @@ jobs:
                     /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
                   df -h /
 
-            - uses: subosito/flutter-action@v2
+            - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
               with:
                   flutter-version: "3.41.x"
                   channel: stable
@@ -49,7 +49,9 @@ jobs:
             # versions. taiki-e is single-purpose and rock solid; many
             # CI workflows use it for rust tools precisely because of
             # this kind of flake.
-            - uses: taiki-e/install-action@just
+            - uses: taiki-e/install-action@262ea96a68a4effc27379c07c676063a76c6e740 # just
+              with:
+                  tool: just
 
             # The unit suite now exercises the Rust FFI, so the host library has
             # to exist: frb's default loader opens rust/target/release/
@@ -60,13 +62,15 @@ jobs:
               with:
                   pinned: ${{ vars.HOODIK_BRANCH }}
 
-            - uses: dtolnay/rust-toolchain@stable
+            - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+              with:
+                  toolchain: stable
 
-            - uses: Swatinem/rust-cache@v2
+            - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
               with:
                   workspaces: rust -> target
 
-            - uses: awalsh128/cache-apt-pkgs-action@latest
+            - uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # latest
               with:
                   packages: clang llvm pkg-config nettle-dev libpq-dev libc6-dev
                   version: 1.0
@@ -74,7 +78,7 @@ jobs:
             - name: Build host FFI library
               run: cd rust && cargo build --release
 
-            - run: flutter pub get
+            - run: flutter pub get --enforce-lockfile
 
             - name: release-check-fast (format + analyze + invariants + unit)
               run: just release-check-fast
@@ -84,7 +88,7 @@ jobs:
             # unless uploaded.
             - name: Upload release-check logs
               if: failure()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: release-check-logs
                   path: .release-check/
@@ -95,28 +99,29 @@ jobs:
         name: Build Verify (iOS, no codesign)
         runs-on: macos-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
             - name: Clone hoodik (for shared Rust crates)
               uses: ./.github/actions/clone-hoodik
               with:
                   pinned: ${{ vars.HOODIK_BRANCH }}
 
-            - uses: dtolnay/rust-toolchain@stable
+            - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
               with:
+                  toolchain: stable
                   targets: aarch64-apple-ios
 
-            - uses: Swatinem/rust-cache@v2
+            - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
               with:
                   workspaces: rust -> target
                   key: ios-ci
 
-            - uses: subosito/flutter-action@v2
+            - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
               with:
                   flutter-version: "3.41.x"
                   channel: stable
 
-            - run: flutter pub get
+            - run: flutter pub get --enforce-lockfile
 
             - name: Build iOS with retry on transient pod or git failures
               shell: bash
@@ -152,7 +157,7 @@ jobs:
             matrix:
                 mode: [direct, tar, chunk]
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
             - name: Free disk space
               run: |
@@ -165,9 +170,11 @@ jobs:
               with:
                   pinned: ${{ vars.HOODIK_BRANCH }}
 
-            - uses: dtolnay/rust-toolchain@stable
+            - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+              with:
+                  toolchain: stable
 
-            - uses: Swatinem/rust-cache@v2
+            - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
               with:
                   # Two workspaces: the FFI library the test loads, and the
                   # server binary the recipe boots.
@@ -179,19 +186,21 @@ jobs:
                   # and cache their own copy of it.
                   key: e2e-transfer
 
-            - uses: awalsh128/cache-apt-pkgs-action@latest
+            - uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # latest
               with:
                   packages: clang llvm pkg-config nettle-dev libpq-dev libc6-dev
                   version: 1.0
 
-            - uses: subosito/flutter-action@v2
+            - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
               with:
                   flutter-version: "3.41.x"
                   channel: stable
 
-            - uses: taiki-e/install-action@just
+            - uses: taiki-e/install-action@262ea96a68a4effc27379c07c676063a76c6e740 # just
+              with:
+                  tool: just
 
-            - run: flutter pub get
+            - run: flutter pub get --enforce-lockfile
 
             # Boots MinIO and the paired server configured for this leg, then
             # runs the round trip: register, upload, finalize, download,
@@ -218,7 +227,7 @@ jobs:
             # r2clean/ data in the same bucket.
             S3_PREFIX: ci-live/
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
             # The recipe falls back to MinIO defaults for any S3 variable
             # that is empty, which is right for local runs and wrong here: a
@@ -244,28 +253,32 @@ jobs:
               with:
                   pinned: ${{ vars.HOODIK_BRANCH }}
 
-            - uses: dtolnay/rust-toolchain@stable
+            - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+              with:
+                  toolchain: stable
 
-            - uses: Swatinem/rust-cache@v2
+            - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
               with:
                   workspaces: |
                       rust -> target
                       ../hoodik -> target
                   key: e2e-transfer
 
-            - uses: awalsh128/cache-apt-pkgs-action@latest
+            - uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # latest
               with:
                   packages: clang llvm pkg-config nettle-dev libpq-dev libc6-dev
                   version: 1.0
 
-            - uses: subosito/flutter-action@v2
+            - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
               with:
                   flutter-version: "3.41.x"
                   channel: stable
 
-            - uses: taiki-e/install-action@just
+            - uses: taiki-e/install-action@262ea96a68a4effc27379c07c676063a76c6e740 # just
+              with:
+                  tool: just
 
-            - run: flutter pub get
+            - run: flutter pub get --enforce-lockfile
 
             - name: Live direct-transfer round trip against R2
               run: just e2e-transfer direct
