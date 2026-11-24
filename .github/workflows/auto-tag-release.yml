@@ -34,7 +34,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout main at the validated SHA
-              uses: actions/checkout@v4
+              uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
               with:
                   ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || github.event.workflow_run.head_sha }}
                   fetch-depth: 0
@@ -82,7 +82,7 @@ jobs:
 
             - name: Create release
               id: create
-              uses: actions/github-script@v6.3.3
+              uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0 # v6.3.3
               with:
                   github-token: "${{ secrets.PERSONAL_GITHUB_TOKEN }}"
                   script: |
